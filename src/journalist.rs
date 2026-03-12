@@ -1,6 +1,8 @@
+mod input_parser;
+
 use std::fs;
+use std::io;
 use std::path::Path;
-use std::io::{self, Write};
 
 use crate::Args;
 
@@ -29,47 +31,12 @@ pub fn add_entry(args: &Args) -> std::io::Result<()> {
         return Err(io::Error::new(io::ErrorKind::NotFound, format!("Journal file {} not found.", journal_file.display())));
     }
     
-    // Get date
-    print!("Date (YYYY-MM-DD): ");
-    io::stdout().flush()?;
-    let mut date = String::new();
-    io::stdin().read_line(&mut date)?;
-    let date: &str = date.trim();
-
-    // Get description
-    print!("Description: ");
-    io::stdout().flush()?;
-    let mut description = String::new();
-    io::stdin().read_line(&mut description)?;
-    let description: &str = description.trim();
-
-    // Get account from
-    print!("From Account: ");
-    io::stdout().flush()?;
-    let mut from_account = String::new();
-    io::stdin().read_line(&mut from_account)?;
-    let from_account: &str = from_account.trim();
-
-    // Get amount from
-    print!("Amount: ");
-    io::stdout().flush()?;
-    let mut amount_from = String::new();
-    io::stdin().read_line(&mut amount_from)?;
-    let amount_from: &str = amount_from.trim();
-
-    // Get account to
-    print!("To Account: ");
-    io::stdout().flush()?;
-    let mut to_account = String::new();
-    io::stdin().read_line(&mut to_account)?;
-    let to_account: &str = to_account.trim();
-
-    // Get amount to
-    print!("Amount: ");
-    io::stdout().flush()?;
-    let mut amount_to = String::new();
-    io::stdin().read_line(&mut amount_to)?;
-    let amount_to: &str = amount_to.trim();
+    let date = input_parser::prompt_input("Date (YYYY-MM-DD): ")?;
+    let description = input_parser::prompt_input("Description: ")?;
+    let from_account = input_parser::prompt_input("From Account: ")?;
+    let amount_from = input_parser::prompt_input("Amount: ")?;
+    let to_account = input_parser::prompt_input("To Account: ")?;
+    let amount_to = input_parser::prompt_input("Amount: ")?;
 
     // Append entry to journal file
     let entry: String = format!("{date} {description}\n\t{from_account} {amount_from}\n\t{to_account} {amount_to}\n\n");
