@@ -1,7 +1,4 @@
 use clap::Parser;
-use std::fs;
-use std::path::Path;
-use std::io::{self, Write};
 
 mod journalist;
 
