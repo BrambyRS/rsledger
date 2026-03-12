@@ -37,39 +37,39 @@ pub fn add_entry(args: &Args) -> std::io::Result<()> {
     
     let date_str: String = input_parser::prompt_input("Date (YYYY-MM-DD): ")?;
     let description_str: String = input_parser::prompt_input("Description: ")?;
-    let account_from_str: String = input_parser::prompt_input("From Account: ")?;
-    let amount_from_str: String = input_parser::prompt_input("Amount: ")?;
-    let account_to_str: String = input_parser::prompt_input("To Account: ")?;
-    let amount_to_str: String = input_parser::prompt_input("Amount: ")?;
+    let account_1_str: String = input_parser::prompt_input("Account 1: ")?;
+    let amount_1_str: String = input_parser::prompt_input("Amount: ")?;
+    let account_2_str: String = input_parser::prompt_input("Account 2: ")?;
+    let amount_2_str: String = input_parser::prompt_input("Amount: ")?;
 
-    let amount_from = match double_entry::TransactionAmount::from_str(&amount_from_str) {
+    let amount_1 = match double_entry::TransactionAmount::from_str(&amount_1_str) {
         Some(val) => val,
-        None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'From Account'.")),
+        None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 1'.")),
     };
 
-    // If it's empty, we can assume it's the negative of the amount from the 'From Account'.
-    let amount_to: double_entry::TransactionAmount;
-    if amount_to_str.len() == 0 {
-        amount_to = -amount_from.clone();
+    // If it's empty, we can assume it's the negative of the amount from 'Account 1'.
+    let amount_2: double_entry::TransactionAmount;
+    if amount_2_str.len() == 0 {
+        amount_2 = -amount_1.clone();
     } else {
-        amount_to = match double_entry::TransactionAmount::from_str(&amount_to_str) {
+        amount_2 = match double_entry::TransactionAmount::from_str(&amount_2_str) {
             Some(val) => val,
-            None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'To Account'.")),
+            None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 2'.")),
         };
 
-        // If the currency is the same, validate that the amount is the negative of the amount from the 'From Account'.
-        if amount_to.same_currency(&amount_from) && !amount_to.same_amount(&(-amount_from.clone())) {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Amount for 'To Account' must be the negative of the amount from 'From Account' if the currency is the same."));
+        // If the currency is the same, validate that the amount is the negative of the amount from 'Account 1'.
+        if amount_2.same_currency(&amount_1) && !amount_2.same_amount(&(-amount_1.clone())) {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Amount for 'Account 2' must be the negative of the amount from 'Account 1' when the currency is the same."));
         }
     };
 
     let entry: double_entry::DoubleEntry = double_entry::DoubleEntry::new(
         date_str,
         description_str,
-        account_from_str,
-        amount_from,
-        account_to_str,
-        amount_to);
+        account_1_str,
+        amount_1,
+        account_2_str,
+        amount_2);
 
     // Append entry to journal file
     let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;

@@ -81,27 +81,27 @@ DoubleEntry struct
 pub struct DoubleEntry {
     date: String,
     description: String,
-    account_from: String,
-    amount_from: TransactionAmount,
-    account_to: String,
-    amount_to: TransactionAmount,
+    account_1: String,
+    amount_1: TransactionAmount,
+    account_2: String,
+    amount_2: TransactionAmount,
 }
 
 impl core::fmt::Display for DoubleEntry {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        write!(f, "{} {}\n\t{} {}\n\t{} {}\n\n", self.date, self.description, self.account_from, self.amount_from, self.account_to, self.amount_to)
+        write!(f, "{} {}\n\t{} {}\n\t{} {}\n\n", self.date, self.description, self.account_1, self.amount_1, self.account_2, self.amount_2)
     }
 }
 
 impl DoubleEntry {
-    pub fn new (date: String, description: String, account_from: String, amount_from: TransactionAmount, account_to: String, amount_to: TransactionAmount) -> Self {
+    pub fn new (date: String, description: String, account_1: String, amount_1: TransactionAmount, account_2: String, amount_2: TransactionAmount) -> Self {
         DoubleEntry {
             date,
             description,
-            account_from,
-            amount_from,
-            account_to,
-            amount_to,
+            account_1,
+            amount_1,
+            account_2,
+            amount_2,
         }
     }
 }
