@@ -2,7 +2,7 @@ mod input_parser;
 mod double_entry;
 
 use std::fs;
-use std::io;
+use std::io::{self, Write};
 use std::path::Path;
 
 use crate::Args;
@@ -72,8 +72,8 @@ pub fn add_entry(args: &Args) -> std::io::Result<()> {
         amount_to);
 
     // Append entry to journal file
-    fs::OpenOptions::new().append(true).open(journal_file)?;
-    fs::write(journal_file, format!("{entry}"))?;
+    let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
+    write!(file, "{entry}")?;
 
     Ok(())
 }
