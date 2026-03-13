@@ -30,12 +30,12 @@ fn main() {
     // Handle entry point
     match args.entry_point.as_str() {
         "new" => {
-            if let Err(e) = journalist::new_journal(&args) {
+            if let Err(e) = journalist::new_journal(&args, &config) {
                 eprintln!("Error creating journal: {}", e);
             }
         }
         "add" => {
-            if let Err(e) = journalist::add_entry(&args, ) {
+            if let Err(e) = journalist::add_entry(&args, &config) {
                 eprintln!("Error adding entry: {}", e);
             }
         }

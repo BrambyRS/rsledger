@@ -3,13 +3,19 @@ mod double_entry;
 
 use std::fs;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::Args;
+use crate::config::Config;
 
 // TODO: Set default config
-pub fn new_journal(args: &Args) -> std::io::Result<()> {
-    let journal_file = Path::new(&args.journal_path);
+pub fn new_journal(args: &Args, config: &Config) -> std::io::Result<()> {
+
+    // Use the --path if it has been provided
+    let journal_file: PathBuf = match get_journal_file_path(args, config) {
+        Ok(path) => path,
+        Err(e) => return Err(e),
+    };
 
     // Create the directory if it doesn't exist
     if let Some(parent) = journal_file.parent() {
@@ -28,9 +34,13 @@ pub fn new_journal(args: &Args) -> std::io::Result<()> {
 Add entry to journal file
 */
 // TODO: Input validation, error handling, multi currency support, multi entry support, etc.
-pub fn add_entry(args: &Args) -> std::io::Result<()> {
+pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
     // Get Journal path
-    let journal_file = Path::new(&args.journal_path);
+    let journal_file: PathBuf = match get_journal_file_path(args, config) {
+        Ok(path) => path,
+        Err(e) => return Err(e),
+    };
+
     if !journal_file.exists() {
         return Err(io::Error::new(io::ErrorKind::NotFound, format!("Journal file {} not found.", journal_file.display())));
     }
@@ -76,4 +86,17 @@ pub fn add_entry(args: &Args) -> std::io::Result<()> {
     write!(file, "{entry}")?;
 
     Ok(())
+}
+
+fn get_journal_file_path(args: &Args, config: &Config) -> std::io::Result<PathBuf> {
+    // Use the --path if it has been provided
+    if args.journal_path.len() > 0 {
+        return Ok(PathBuf::from(&args.journal_path));
+    } else {
+        // Otherwise, use the default journal from config
+        if config.default_journal_folder.len() == 0 || config.default_journal.len() == 0 {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "No journal path provided and default journal not set in config."));
+        }
+        return Ok(Path::new(&config.default_journal_folder).join(&config.default_journal));
+    }
 }
