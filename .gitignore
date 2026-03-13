@@ -1,5 +1,8 @@
 # Specific files
 PLAN.md
 
+# File types
+*.journal
+
 # Directories
 /target
