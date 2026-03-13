@@ -105,3 +105,56 @@ impl DoubleEntry {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // TransactionAmount tests
+    #[test]
+    fn test_transaction_amount_from_str() {
+        let amount_str = "123.45 SEK";
+        let transaction_amount = TransactionAmount::from_str(amount_str).unwrap();
+        assert_eq!(transaction_amount.amount, 12345);
+        assert_eq!(transaction_amount.currency, "SEK");
+    }
+
+    #[test]
+    fn test_transaction_amount_from_str_no_decimal() {
+        let amount_str_no_decimal = "123 SEK";
+        let transaction_amount_no_decimal = TransactionAmount::from_str(amount_str_no_decimal).unwrap();
+        assert_eq!(transaction_amount_no_decimal.amount, 12300);
+        assert_eq!(transaction_amount_no_decimal.currency, "SEK");
+    }
+
+    #[test]
+    fn test_transaction_amount_from_str_negative() {
+        let amount_str_negative = "-123.45 SEK";
+        let transaction_amount_negative = TransactionAmount::from_str(amount_str_negative).unwrap();
+        assert_eq!(transaction_amount_negative.amount, -12345);
+        assert_eq!(transaction_amount_negative.currency, "SEK");
+    }
+
+    #[test]
+    fn test_transaction_amount_from_str_invalid() {
+        let amount_str_invalid = "invalid_amount";
+        let transaction_amount_invalid = TransactionAmount::from_str(amount_str_invalid);
+        assert!(transaction_amount_invalid.is_none());
+    }
+
+    // DoubleEntry tests
+    #[test]
+    fn test_double_entry_display() {
+        let double_entry = DoubleEntry::new(
+            "2024-01-01".to_string(),
+            "Test Transaction".to_string(),
+            "Account 1".to_string(),
+            TransactionAmount::from_str("123.45 SEK").unwrap(),
+            "Account 2".to_string(),
+            TransactionAmount::from_str("-123.45 SEK").unwrap(),
+        );
+
+        let expected_display = "2024-01-01 Test Transaction\n\tAccount 1 123.45 SEK\n\tAccount 2 -123.45 SEK\n\n";
+        assert_eq!(format!("{}", double_entry), expected_display);
+    }
+}
