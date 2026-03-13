@@ -9,15 +9,14 @@ struct Args {
     // Entry point
     entry_point: String,
 
-    // Path for specifying full path to journal file
-    #[arg(short = 'p', long = "path", default_value = "main.journal", help = "Path to the journal file to use.")]
+    // Options related to journal file and configuration
+    #[arg(short = 'p', long = "path", default_value = "", help = "Path to the journal file to use.")]
     journal_path: String,
 
-    // 
     #[arg(short = 'f', long = "folder", default_value = "", help = "Journal folder to set as default.")]
     config_folder: String,
 
-    #[arg(short = 'j', long = "journal", default_value = "", help = "File name of journal file in default folder to use.")]
+    #[arg(short = 'j', long = "journal", default_value = "main.journal", help = "File name of journal file in default folder to use.")]
     config_journal: String,
 }
 
