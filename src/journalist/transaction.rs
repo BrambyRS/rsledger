@@ -1,7 +1,7 @@
 /*
 CommodityValue struct
 */
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CommodityValue {
     amount: i64, // We save the amount as an integer to avoid floating point precision issues.
     precision: u8, // Number of decimal places for the value
@@ -136,7 +136,7 @@ mod tests {
 
     // CommodityValue tests
     #[test]
-    fn test_transaction_amount_from_str() {
+    fn test_transaction_amount_from_str_nominal_format() {
         let amount_str = "123.45 SEK";
         let transaction_amount = CommodityValue::from_str(amount_str).unwrap();
         assert_eq!(transaction_amount.amount, 12345);
@@ -154,12 +154,12 @@ mod tests {
     }
 
     #[test]
-    fn test_transaction_amount_from_str_different_precision() {
-        let amount_str_different_precision: &str = "123.4567 USD";
-        let transaction_amount_different_precision: CommodityValue = CommodityValue::from_str(amount_str_different_precision).unwrap();
-        assert_eq!(transaction_amount_different_precision.amount, 1234567);
-        assert_eq!(transaction_amount_different_precision.precision, 4);
-        assert_eq!(transaction_amount_different_precision.commodity, "USD");
+    fn test_transaction_amount_from_str_high_precision() {
+        let amount_str_high_precision: &str = "123.4567 USD";
+        let transaction_amount_high_precision: CommodityValue = CommodityValue::from_str(amount_str_high_precision).unwrap();
+        assert_eq!(transaction_amount_high_precision.amount, 1234567);
+        assert_eq!(transaction_amount_high_precision.precision, 4);
+        assert_eq!(transaction_amount_high_precision.commodity, "USD");
     }
 
     #[test]
@@ -195,7 +195,7 @@ mod tests {
     }
 
     #[test]
-    fn test_commodity_value_display() {
+    fn test_commodity_value_display_nominal_format() {
         let commodity_value: CommodityValue = match CommodityValue::from_str("123.45 SEK") {
             Ok(val) => val,
             Err(e) => panic!("Failed to parse amount string: {}", e),
@@ -222,6 +222,85 @@ mod tests {
         };
         let expected_display_different_precision = "123.4567 Gold Bar";
         assert_eq!(format!("{}", commodity_value_different_precision), expected_display_different_precision);
+    }
+
+    #[test]
+    fn test_commodity_value_display_negative() {
+        let commodity_value_negative: CommodityValue = match CommodityValue::from_str("-123.45 SEK") {
+                Ok(val) => val,
+                Err(e) => panic!("Failed to parse amount string: {}", e),
+            };
+
+        let expected_display_negative = "-123.45 SEK";
+        assert_eq!(format!("{}", commodity_value_negative), expected_display_negative);
+    }
+
+    #[test]
+    fn test_commodity_value_equality_same_precision() {
+        let commodity_value_1: CommodityValue = match CommodityValue::from_str("123.45 SEK") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+        let commodity_value_2: CommodityValue = match CommodityValue::from_str("123.45 SEK") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+        assert_eq!(commodity_value_1, commodity_value_2);
+    }
+
+    #[test]
+    fn test_commodity_value_equality_different_precision() {
+        let commodity_value_1: CommodityValue = match CommodityValue::from_str("123.4 SEK") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+        let commodity_value_2: CommodityValue = match CommodityValue::from_str("123.40 SEK") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+        assert_eq!(commodity_value_1, commodity_value_2);
+    }
+
+    #[test]
+    fn test_commodity_value_equality_different_commodities() {
+        let commodity_value_1: CommodityValue = match CommodityValue::from_str("123.45 SEK") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+        let commodity_value_2: CommodityValue = match CommodityValue::from_str("123.45 USD") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+
+        assert_ne!(commodity_value_1, commodity_value_2);
+    }
+
+    #[test]
+    fn test_commodity_value_equality_different_precision_and_commodities() {
+        let commodity_value_1: CommodityValue = match CommodityValue::from_str("123.4 SEK") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+        let commodity_value_2: CommodityValue = match CommodityValue::from_str("123.40 USD") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };  
+        
+        assert_ne!(commodity_value_1, commodity_value_2);
+    }
+
+    #[test]
+    fn test_commodity_value_negation() {
+        let commodity_value: CommodityValue = match CommodityValue::from_str("123.45 SEK") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+        let negated_commodity_value = -commodity_value.clone();
+        let expected_negated_commodity_value: CommodityValue = match CommodityValue::from_str("-123.45 SEK") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+        assert_eq!(negated_commodity_value, expected_negated_commodity_value);
     }
 
     // DoubleEntry tests
