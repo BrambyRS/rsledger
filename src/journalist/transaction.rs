@@ -3,15 +3,22 @@ CommodityValue struct
 */
 #[derive(Clone)]
 pub struct CommodityValue {
-    amount: i32, // We save the amount as an integer (100x the amount in the journal) to avoid floating point issues.
-    currency: String,
+    amount: i64, // We save the amount as an integer to avoid floating point precision issues.
+    precision: u8, // Number of decimal places for the value
+    commodity: String, // Name of the commodity
 }
 
 impl core::fmt::Display for CommodityValue {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        // Format the amount as a decimal with 2 places by placing a decimal point before the last two digits.
-        let amount_str = format!("{}.{:02}", self.amount / 100, self.amount.abs() % 100);
-        write!(f, "{} {}", amount_str, self.currency)
+        // Format the amount as a string with the correct number of decimal places based in the precision
+        let amount_str = if self.precision == 0 {
+            self.amount.to_string()
+        } else {
+            let int_part = self.amount / 10_i64.pow(self.precision as u32);
+            let decimal_part = (self.amount.abs() % 10_i64.pow(self.precision as u32)).abs();
+            format!("{}.{}", int_part, format!("{:0width$}", decimal_part, width = self.precision as usize))
+        };
+        write!(f, "{} {}", amount_str, self.commodity)
     }
 }
 
@@ -21,53 +28,62 @@ impl std::ops::Neg for CommodityValue {
     fn neg(self) -> Self::Output {
         CommodityValue {
             amount: -self.amount,
-            currency: self.currency,
+            precision: self.precision,
+            commodity: self.commodity,
         }
     }
 }
 
 impl PartialEq for CommodityValue {
     fn eq(&self, other: &Self) -> bool {
-        self.amount == other.amount && self.currency == other.currency
+        self.amount == other.amount && self.commodity == other.commodity
     }
 }
 
 impl CommodityValue {
-    pub fn from_str(amount_str: &str) -> Option<Self> {
-        // Split the amount string into the numeric part and the currency part.
+    pub fn from_str(amount_str: &str) -> Result<Self, String> {
+        // First split the string into the amount part and the commodity part
+        // The commodity part can have spaces, 
         let parts: Vec<&str> = amount_str.split_whitespace().collect();
-        if parts.len() != 2 {
-            return None;
+        if parts.len() < 2 {
+            return Err(format!("Invalid amount format: '{}'. Expected format: '<amount> <commodity>'.", amount_str));
         }
 
-        let amount_part = parts[0];
-        let currency_part = parts[1].to_string();
+        let amount_part: &str = parts[0];
+        let commodity_part: String = parts[1..].join(" ");
 
-        // Remove the decimal point from the amount part and convert it to an integer.
-        // If there is no decimal point, we can just parse it as an integer and multiply by 100.
-        let amount_int: i32;
-        if amount_part.contains('.') {
-            let amount_int_str = amount_part.replace('.', "");
-            amount_int = match amount_int_str.parse::<i32>() {
-                Ok(val) => val,
-                Err(_) => return None,
+        // Split the amount_part at the decimal point if it exists
+        let amount_parts: Vec<&str> = amount_part.split('.').collect();
+        let amount_int: i64;
+        let precision: u8;
+        // If there's no decimal point, save the integer and set precision to 0
+        if amount_parts.len() == 1 {
+            (amount_int, precision) = match amount_parts[0].parse::<i64>() {
+                Ok(val) => (val, 0),
+                Err(_) => return Err(format!("Invalid amount format: '{}'.", amount_part)),
             };
+        // If there are two parts, save as an integer with non-zero precision
+        } else if amount_parts.len() == 2 {
+            let int_str = amount_parts[..].join("");
+            precision = amount_parts[1].len() as u8;
+            amount_int = match int_str.parse::<i64>() {
+                Ok(val) => val,
+                Err(_) => return Err(format!("Invalid amount format: '{}'.", amount_part)),
+            };
+        // If there are more than two parts, something is wrong!
         } else {
-            let whole_part = match amount_part.parse::<i32>() {
-                Ok(val) => val,
-                Err(_) => return None,
-            };
-            amount_int = whole_part * 100; // Multiply by 100
+            return Err(format!("Invalid amount format: '{}'.", amount_part));
         }
 
-        Some(CommodityValue {
+        Ok(CommodityValue {
             amount: amount_int,
-            currency: currency_part,
+            precision,
+            commodity: commodity_part,
         })
     }
 
-    pub fn same_currency(&self, other: &Self) -> bool {
-        self.currency == other.currency
+    pub fn same_commodity(&self, other: &Self) -> bool {
+        self.commodity == other.commodity
     }
 
     pub fn same_amount(&self, other: &Self) -> bool {
@@ -116,36 +132,94 @@ mod tests {
         let amount_str = "123.45 SEK";
         let transaction_amount = CommodityValue::from_str(amount_str).unwrap();
         assert_eq!(transaction_amount.amount, 12345);
-        assert_eq!(transaction_amount.currency, "SEK");
+        assert_eq!(transaction_amount.precision, 2);
+        assert_eq!(transaction_amount.commodity, "SEK");
     }
 
     #[test]
     fn test_transaction_amount_from_str_no_decimal() {
-        let amount_str_no_decimal = "123 SEK";
-        let transaction_amount_no_decimal = CommodityValue::from_str(amount_str_no_decimal).unwrap();
-        assert_eq!(transaction_amount_no_decimal.amount, 12300);
-        assert_eq!(transaction_amount_no_decimal.currency, "SEK");
+        let amount_str_no_decimal: &str = "123 SEK";
+        let transaction_amount_no_decimal: CommodityValue = CommodityValue::from_str(amount_str_no_decimal).unwrap();
+        assert_eq!(transaction_amount_no_decimal.amount, 123);
+        assert_eq!(transaction_amount_no_decimal.precision, 0);
+        assert_eq!(transaction_amount_no_decimal.commodity, "SEK");
+    }
+
+    #[test]
+    fn test_transaction_amount_from_str_different_precision() {
+        let amount_str_different_precision: &str = "123.4567 USD";
+        let transaction_amount_different_precision: CommodityValue = CommodityValue::from_str(amount_str_different_precision).unwrap();
+        assert_eq!(transaction_amount_different_precision.amount, 1234567);
+        assert_eq!(transaction_amount_different_precision.precision, 4);
+        assert_eq!(transaction_amount_different_precision.commodity, "USD");
+    }
+
+    #[test]
+    fn test_transaction_amount_from_str_commodity_with_spaces() {
+        let amount_str_commodity_with_spaces: &str = "123.45 Gold Bar";
+        let transaction_amount_commodity_with_spaces: CommodityValue = CommodityValue::from_str(amount_str_commodity_with_spaces).unwrap();
+        assert_eq!(transaction_amount_commodity_with_spaces.amount, 12345);
+        assert_eq!(transaction_amount_commodity_with_spaces.precision, 2);
+        assert_eq!(transaction_amount_commodity_with_spaces.commodity, "Gold Bar");
     }
 
     #[test]
     fn test_transaction_amount_from_str_negative() {
-        let amount_str_negative = "-123.45 SEK";
-        let transaction_amount_negative = CommodityValue::from_str(amount_str_negative).unwrap();
+        let amount_str_negative: &str = "-123.45 SEK";
+        let transaction_amount_negative: CommodityValue = CommodityValue::from_str(amount_str_negative).unwrap();
         assert_eq!(transaction_amount_negative.amount, -12345);
-        assert_eq!(transaction_amount_negative.currency, "SEK");
+        assert_eq!(transaction_amount_negative.precision, 2);
+        assert_eq!(transaction_amount_negative.commodity, "SEK");
+    }
+
+    #[test]
+    fn test_transaction_amount_from_str_invalid_format() {
+        let amount_str_invalid_format: &str = "123.45.67 SEK";
+        let transaction_amount_invalid_format: Result<CommodityValue, String> = CommodityValue::from_str(amount_str_invalid_format);
+        assert!(transaction_amount_invalid_format.is_err());
     }
 
     #[test]
     fn test_transaction_amount_from_str_invalid() {
-        let amount_str_invalid = "invalid_amount";
-        let transaction_amount_invalid = CommodityValue::from_str(amount_str_invalid);
-        assert!(transaction_amount_invalid.is_none());
+        let amount_str_invalid: &str = "invalid_amount";
+        let transaction_amount_invalid: Result<CommodityValue, String> = CommodityValue::from_str(amount_str_invalid);
+        assert!(transaction_amount_invalid.is_err());
+    }
+
+    #[test]
+    fn test_commodity_value_display() {
+        let commodity_value: CommodityValue = match CommodityValue::from_str("123.45 SEK") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+        let expected_display = "123.45 SEK";
+        assert_eq!(format!("{}", commodity_value), expected_display);
+    }
+
+    #[test]
+    fn test_commodity_value_display_no_decimal() {
+        let commodity_value_no_decimal: CommodityValue = match CommodityValue::from_str("123 SEK") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+        let expected_display_no_decimal = "123 SEK";
+        assert_eq!(format!("{}", commodity_value_no_decimal), expected_display_no_decimal);
+    }
+
+    #[test]
+    fn test_commodity_value_display_different_precision() {
+        let commodity_value_different_precision: CommodityValue = match CommodityValue::from_str("123.4567 Gold Bar") {
+            Ok(val) => val,
+            Err(e) => panic!("Failed to parse amount string: {}", e),
+        };
+        let expected_display_different_precision = "123.4567 Gold Bar";
+        assert_eq!(format!("{}", commodity_value_different_precision), expected_display_different_precision);
     }
 
     // DoubleEntry tests
     #[test]
     fn test_double_entry_display() {
-        let double_entry = DoubleEntry::new(
+        let double_entry: DoubleEntry = DoubleEntry::new(
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             "Account 1".to_string(),

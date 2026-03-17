@@ -53,8 +53,8 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
     let amount_2_str: String = input_parser::prompt_input("Amount: ")?;
 
     let amount_1 = match transaction::CommodityValue::from_str(&amount_1_str) {
-        Some(val) => val,
-        None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 1'.")),
+        Ok(val) => val,
+        Err(e) => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 1'.")),
     };
 
     // If it's empty, we can assume it's the negative of the amount from 'Account 1'.
@@ -63,12 +63,12 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
         amount_2 = -amount_1.clone();
     } else {
         amount_2 = match transaction::CommodityValue::from_str(&amount_2_str) {
-            Some(val) => val,
-            None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 2'.")),
+            Ok(val) => val,
+            Err(e) => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 2'.")),
         };
 
         // If the currency is the same, validate that the amount is the negative of the amount from 'Account 1'.
-        if amount_2.same_currency(&amount_1) && !amount_2.same_amount(&(-amount_1.clone())) {
+        if amount_2.same_commodity(&amount_1) && !amount_2.same_amount(&(-amount_1.clone())) {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, "Amount for 'Account 2' must be the negative of the amount from 'Account 1' when the currency is the same."));
         }
     };
