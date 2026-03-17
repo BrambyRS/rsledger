@@ -36,7 +36,15 @@ impl std::ops::Neg for CommodityValue {
 
 impl PartialEq for CommodityValue {
     fn eq(&self, other: &Self) -> bool {
-        self.amount == other.amount && self.commodity == other.commodity
+        if self.precision > other.precision {
+            let factor = 10_i64.pow((self.precision - other.precision) as u32);
+            self.amount == other.amount * factor && self.commodity == other.commodity
+        } else if self.precision < other.precision {
+            let factor = 10_i64.pow((other.precision - self.precision) as u32);
+            self.amount * factor == other.amount && self.commodity == other.commodity
+        } else {
+            self.amount == other.amount && self.commodity == other.commodity
+        }
     }
 }
 
