@@ -1,13 +1,13 @@
 /*
-TransactionAmount struct
+CommodityValue struct
 */
 #[derive(Clone)]
-pub struct TransactionAmount {
+pub struct CommodityValue {
     amount: i32, // We save the amount as an integer (100x the amount in the journal) to avoid floating point issues.
     currency: String,
 }
 
-impl core::fmt::Display for TransactionAmount {
+impl core::fmt::Display for CommodityValue {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         // Format the amount as a decimal with 2 places by placing a decimal point before the last two digits.
         let amount_str = format!("{}.{:02}", self.amount / 100, self.amount.abs() % 100);
@@ -15,24 +15,24 @@ impl core::fmt::Display for TransactionAmount {
     }
 }
 
-impl std::ops::Neg for TransactionAmount {
+impl std::ops::Neg for CommodityValue {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        TransactionAmount {
+        CommodityValue {
             amount: -self.amount,
             currency: self.currency,
         }
     }
 }
 
-impl PartialEq for TransactionAmount {
+impl PartialEq for CommodityValue {
     fn eq(&self, other: &Self) -> bool {
         self.amount == other.amount && self.currency == other.currency
     }
 }
 
-impl TransactionAmount {
+impl CommodityValue {
     pub fn from_str(amount_str: &str) -> Option<Self> {
         // Split the amount string into the numeric part and the currency part.
         let parts: Vec<&str> = amount_str.split_whitespace().collect();
@@ -60,7 +60,7 @@ impl TransactionAmount {
             amount_int = whole_part * 100; // Multiply by 100
         }
 
-        Some(TransactionAmount {
+        Some(CommodityValue {
             amount: amount_int,
             currency: currency_part,
         })
@@ -82,9 +82,9 @@ pub struct DoubleEntry {
     date: String,
     description: String,
     account_1: String,
-    amount_1: TransactionAmount,
+    amount_1: CommodityValue,
     account_2: String,
-    amount_2: TransactionAmount,
+    amount_2: CommodityValue,
 }
 
 impl core::fmt::Display for DoubleEntry {
@@ -94,7 +94,7 @@ impl core::fmt::Display for DoubleEntry {
 }
 
 impl DoubleEntry {
-    pub fn new (date: String, description: String, account_1: String, amount_1: TransactionAmount, account_2: String, amount_2: TransactionAmount) -> Self {
+    pub fn new (date: String, description: String, account_1: String, amount_1: CommodityValue, account_2: String, amount_2: CommodityValue) -> Self {
         DoubleEntry {
             date,
             description,
@@ -110,11 +110,11 @@ impl DoubleEntry {
 mod tests {
     use super::*;
 
-    // TransactionAmount tests
+    // CommodityValue tests
     #[test]
     fn test_transaction_amount_from_str() {
         let amount_str = "123.45 SEK";
-        let transaction_amount = TransactionAmount::from_str(amount_str).unwrap();
+        let transaction_amount = CommodityValue::from_str(amount_str).unwrap();
         assert_eq!(transaction_amount.amount, 12345);
         assert_eq!(transaction_amount.currency, "SEK");
     }
@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn test_transaction_amount_from_str_no_decimal() {
         let amount_str_no_decimal = "123 SEK";
-        let transaction_amount_no_decimal = TransactionAmount::from_str(amount_str_no_decimal).unwrap();
+        let transaction_amount_no_decimal = CommodityValue::from_str(amount_str_no_decimal).unwrap();
         assert_eq!(transaction_amount_no_decimal.amount, 12300);
         assert_eq!(transaction_amount_no_decimal.currency, "SEK");
     }
@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn test_transaction_amount_from_str_negative() {
         let amount_str_negative = "-123.45 SEK";
-        let transaction_amount_negative = TransactionAmount::from_str(amount_str_negative).unwrap();
+        let transaction_amount_negative = CommodityValue::from_str(amount_str_negative).unwrap();
         assert_eq!(transaction_amount_negative.amount, -12345);
         assert_eq!(transaction_amount_negative.currency, "SEK");
     }
@@ -138,7 +138,7 @@ mod tests {
     #[test]
     fn test_transaction_amount_from_str_invalid() {
         let amount_str_invalid = "invalid_amount";
-        let transaction_amount_invalid = TransactionAmount::from_str(amount_str_invalid);
+        let transaction_amount_invalid = CommodityValue::from_str(amount_str_invalid);
         assert!(transaction_amount_invalid.is_none());
     }
 
@@ -149,9 +149,9 @@ mod tests {
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             "Account 1".to_string(),
-            TransactionAmount::from_str("123.45 SEK").unwrap(),
+            CommodityValue::from_str("123.45 SEK").unwrap(),
             "Account 2".to_string(),
-            TransactionAmount::from_str("-123.45 SEK").unwrap(),
+            CommodityValue::from_str("-123.45 SEK").unwrap(),
         );
 
         let expected_display = "2024-01-01 Test Transaction\n\tAccount 1 123.45 SEK\n\tAccount 2 -123.45 SEK\n\n";

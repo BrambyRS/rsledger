@@ -1,5 +1,5 @@
 mod input_parser;
-mod double_entry;
+mod transaction;
 
 use std::fs;
 use std::io::{self, Write};
@@ -52,17 +52,17 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
     let account_2_str: String = input_parser::prompt_input("Account 2: ")?;
     let amount_2_str: String = input_parser::prompt_input("Amount: ")?;
 
-    let amount_1 = match double_entry::TransactionAmount::from_str(&amount_1_str) {
+    let amount_1 = match transaction::CommodityValue::from_str(&amount_1_str) {
         Some(val) => val,
         None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 1'.")),
     };
 
     // If it's empty, we can assume it's the negative of the amount from 'Account 1'.
-    let amount_2: double_entry::TransactionAmount;
+    let amount_2: transaction::CommodityValue;
     if amount_2_str.len() == 0 {
         amount_2 = -amount_1.clone();
     } else {
-        amount_2 = match double_entry::TransactionAmount::from_str(&amount_2_str) {
+        amount_2 = match transaction::CommodityValue::from_str(&amount_2_str) {
             Some(val) => val,
             None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 2'.")),
         };
@@ -73,7 +73,7 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
         }
     };
 
-    let entry: double_entry::DoubleEntry = double_entry::DoubleEntry::new(
+    let entry: transaction::DoubleEntry = transaction::DoubleEntry::new(
         date_str,
         description_str,
         account_1_str,
