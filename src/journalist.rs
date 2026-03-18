@@ -60,7 +60,7 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
     // If it's empty, we can assume it's the negative of the amount from 'Account 1'.
     let amount_2: transaction::commodity_value::CommodityValue;
     if amount_2_str.len() == 0 {
-        amount_2 = -amount_1.clone();
+        amount_2 = -&amount_1;
     } else {
         amount_2 = match transaction::commodity_value::CommodityValue::from_str(&amount_2_str) {
             Ok(val) => val,
@@ -68,7 +68,7 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
         };
 
         // If the currency is the same, validate that the amount is the negative of the amount from 'Account 1'.
-        if amount_2.same_commodity(&amount_1) && !amount_2.same_amount(&(-amount_1.clone())) {
+        if amount_2.same_commodity(&amount_1) && !amount_2.same_amount(&(-&amount_1)) {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, "Amount for 'Account 2' must be the negative of the amount from 'Account 1' when the currency is the same."));
         }
     };

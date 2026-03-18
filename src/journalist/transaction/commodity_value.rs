@@ -111,10 +111,10 @@ impl CommodityValue {
 ///
 /// # Panics
 /// Panics if the two values have different commodities.
-impl std::ops::Add for CommodityValue {
-    type Output = Self;
+impl std::ops::Add for &CommodityValue {
+    type Output = CommodityValue;
 
-    fn add(self, other: Self) -> Self {
+    fn add(self, other: Self) -> CommodityValue {
         if self.commodity != other.commodity {
             panic!("Cannot add CommodityValues with different commodities.");
         }
@@ -124,7 +124,7 @@ impl std::ops::Add for CommodityValue {
         CommodityValue {
             amount: self_amount_aligned + other_amount_aligned,
             precision: max_precision,
-            commodity: self.commodity,
+            commodity: self.commodity.clone(),
         }
     }
 }
@@ -133,10 +133,10 @@ impl std::ops::Add for CommodityValue {
 ///
 /// # Panics
 /// Panics if the two values have different commodities.
-impl std::ops::Sub for CommodityValue {
-    type Output = Self;
+impl std::ops::Sub for &CommodityValue {
+    type Output = CommodityValue;
 
-    fn sub(self, other: Self) -> Self {
+    fn sub(self, other: Self) -> CommodityValue {
         if self.commodity != other.commodity {
             panic!("Cannot subtract CommodityValues with different commodities.");
         }
@@ -146,20 +146,20 @@ impl std::ops::Sub for CommodityValue {
         CommodityValue {
             amount: self_amount_aligned - other_amount_aligned,
             precision: max_precision,
-            commodity: self.commodity,
+            commodity: self.commodity.clone(),
         }
     }
 }
 
 /// Negates a `CommodityValue` by flipping the sign of its amount.
-impl std::ops::Neg for CommodityValue {
-    type Output = Self;
+impl std::ops::Neg for &CommodityValue {
+    type Output = CommodityValue;
 
     fn neg(self) -> Self::Output {
         CommodityValue {
             amount: -self.amount,
             precision: self.precision,
-            commodity: self.commodity,
+            commodity: self.commodity.clone(),
         }
     }
 }
@@ -302,35 +302,35 @@ mod tests {
     #[test]
     fn test_commodity_value_negation() {
         let cv = CommodityValue::from_str("123.45 SEK").unwrap();
-        assert_eq!(-cv, CommodityValue::from_str("-123.45 SEK").unwrap());
+        assert_eq!(-&cv, CommodityValue::from_str("-123.45 SEK").unwrap());
     }
 
     #[test]
     fn test_commodity_value_addition_same_precision() {
         let cv1 = CommodityValue::from_str("100.50 SEK").unwrap();
         let cv2 = CommodityValue::from_str("23.75 SEK").unwrap();
-        assert_eq!(cv1 + cv2, CommodityValue::from_str("124.25 SEK").unwrap());
+        assert_eq!(&cv1 + &cv2, CommodityValue::from_str("124.25 SEK").unwrap());
     }
 
     #[test]
     fn test_commodity_value_addition_different_precision() {
         let cv1 = CommodityValue::from_str("100.5 SEK").unwrap();
         let cv2 = CommodityValue::from_str("23.75 SEK").unwrap();
-        assert_eq!(cv1 + cv2, CommodityValue::from_str("124.25 SEK").unwrap());
+        assert_eq!(&cv1 + &cv2, CommodityValue::from_str("124.25 SEK").unwrap());
     }
 
     #[test]
     fn test_commodity_value_addition_to_zero() {
         let cv1 = CommodityValue::from_str("50.00 SEK").unwrap();
         let cv2 = CommodityValue::from_str("-50.00 SEK").unwrap();
-        assert_eq!(cv1 + cv2, CommodityValue::from_str("0.00 SEK").unwrap());
+        assert_eq!(&cv1 + &cv2, CommodityValue::from_str("0.00 SEK").unwrap());
     }
 
     #[test]
     fn test_commodity_value_addition_negative() {
         let cv1 = CommodityValue::from_str("-10.00 SEK").unwrap();
         let cv2 = CommodityValue::from_str("-5.00 SEK").unwrap();
-        assert_eq!(cv1 + cv2, CommodityValue::from_str("-15.00 SEK").unwrap());
+        assert_eq!(&cv1 + &cv2, CommodityValue::from_str("-15.00 SEK").unwrap());
     }
 
     #[test]
@@ -338,35 +338,35 @@ mod tests {
     fn test_commodity_value_addition_different_commodities_panics() {
         let cv1 = CommodityValue::from_str("10.00 SEK").unwrap();
         let cv2 = CommodityValue::from_str("10.00 USD").unwrap();
-        let _ = cv1 + cv2;
+        let _ = &cv1 + &cv2;
     }
 
     #[test]
     fn test_commodity_value_subtraction_same_precision() {
         let cv1 = CommodityValue::from_str("100.50 SEK").unwrap();
         let cv2 = CommodityValue::from_str("23.25 SEK").unwrap();
-        assert_eq!(cv1 - cv2, CommodityValue::from_str("77.25 SEK").unwrap());
+        assert_eq!(&cv1 - &cv2, CommodityValue::from_str("77.25 SEK").unwrap());
     }
 
     #[test]
     fn test_commodity_value_subtraction_different_precision() {
         let cv1 = CommodityValue::from_str("100.5 SEK").unwrap();
         let cv2 = CommodityValue::from_str("23.25 SEK").unwrap();
-        assert_eq!(cv1 - cv2, CommodityValue::from_str("77.25 SEK").unwrap());
+        assert_eq!(&cv1 - &cv2, CommodityValue::from_str("77.25 SEK").unwrap());
     }
 
     #[test]
     fn test_commodity_value_subtraction_to_zero() {
         let cv1 = CommodityValue::from_str("50.00 SEK").unwrap();
         let cv2 = CommodityValue::from_str("50.00 SEK").unwrap();
-        assert_eq!(cv1 - cv2, CommodityValue::from_str("0.00 SEK").unwrap());
+        assert_eq!(&cv1 - &cv2, CommodityValue::from_str("0.00 SEK").unwrap());
     }
 
     #[test]
     fn test_commodity_value_subtraction_to_negative() {
         let cv1 = CommodityValue::from_str("10.00 SEK").unwrap();
         let cv2 = CommodityValue::from_str("25.00 SEK").unwrap();
-        assert_eq!(cv1 - cv2, CommodityValue::from_str("-15.00 SEK").unwrap());
+        assert_eq!(&cv1 - &cv2, CommodityValue::from_str("-15.00 SEK").unwrap());
     }
 
     #[test]
@@ -374,6 +374,6 @@ mod tests {
     fn test_commodity_value_subtraction_different_commodities_panics() {
         let cv1 = CommodityValue::from_str("10.00 SEK").unwrap();
         let cv2 = CommodityValue::from_str("10.00 USD").unwrap();
-        let _ = cv1 - cv2;
+        let _ = &cv1 - &cv2;
     }
 }
