@@ -1,28 +1,20 @@
+use super::fixed_decimal::FixedDecimal;
+
 /// Represents a monetary or commodity amount with a fixed-precision integer representation.
 ///
-/// The amount is stored as a scaled integer to avoid floating-point precision issues.
-/// For example, `123.45 SEK` is stored as `amount = 12345`, `precision = 2`.
+/// The numeric amount is stored as a [`FixedDecimal`] to avoid floating-point precision
+/// issues. For example, `123.45 SEK` stores `amount = FixedDecimal { 12345, 2 }`.
 #[derive(Clone, Debug)]
 pub struct CommodityValue {
-    /// The scaled integer amount. Divide by `10^precision` to get the real value.
-    amount: i64,
-    /// Number of decimal places (e.g. `2` means the amount is in hundredths).
-    precision: u8,
+    /// The scaled decimal amount.
+    amount: FixedDecimal,
     /// Name of the commodity (e.g. `"SEK"`, `"GBP"`, `"Gold Bar"`).
     commodity: String,
 }
 
 impl core::fmt::Display for CommodityValue {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        // Format the amount as a string with the correct number of decimal places based in the precision
-        let amount_str = if self.precision == 0 {
-            self.amount.to_string()
-        } else {
-            let int_part = self.amount / 10_i64.pow(self.precision as u32);
-            let decimal_part = (self.amount.abs() % 10_i64.pow(self.precision as u32)).abs();
-            format!("{}.{}", int_part, format!("{:0width$}", decimal_part, width = self.precision as usize))
-        };
-        write!(f, "{} {}", amount_str, self.commodity)
+        write!(f, "{} {}", self.amount, self.commodity)
     }
 }
 
@@ -51,46 +43,13 @@ impl CommodityValue {
         let amount_part: &str = parts[0];
         let commodity_part: String = parts[1..].join(" ");
 
-        // Split the amount_part at the decimal point if it exists
-        let amount_parts: Vec<&str> = amount_part.split('.').collect();
-        let amount_int: i64;
-        let precision: u8;
-        // If there's no decimal point, save the integer and set precision to 0
-        if amount_parts.len() == 1 {
-            (amount_int, precision) = match amount_parts[0].parse::<i64>() {
-                Ok(val) => (val, 0),
-                Err(_) => return Err(format!("Invalid amount format: '{}'.", amount_part)),
-            };
-        // If there are two parts, save as an integer with non-zero precision
-        } else if amount_parts.len() == 2 {
-            let int_str = amount_parts[..].join("");
-            precision = amount_parts[1].len() as u8;
-            amount_int = match int_str.parse::<i64>() {
-                Ok(val) => val,
-                Err(_) => return Err(format!("Invalid amount format: '{}'.", amount_part)),
-            };
-        // If there are more than two parts, something is wrong!
-        } else {
-            return Err(format!("Invalid amount format: '{}'.", amount_part));
-        }
+        let amount = FixedDecimal::from_str(amount_part)
+            .map_err(|_| format!("Invalid amount format: '{}'.", amount_part))?;
 
         Ok(CommodityValue {
-            amount: amount_int,
-            precision,
+            amount,
             commodity: commodity_part,
         })
-    }
-
-    /// Aligns the precision of `self` and `other` to the same scale for arithmetic
-    /// and comparisons.
-    ///
-    /// Returns `(self_amount, other_amount, max_precision)` where both amounts have
-    /// been scaled up to `max_precision` decimal places.
-    fn align_precision(&self, other: &Self) -> (i64, i64, u8) {
-        let max_precision: u8 = std::cmp::max(self.precision, other.precision);
-        let self_amount_aligned = self.amount * 10_i64.pow((max_precision - self.precision) as u32);
-        let other_amount_aligned = other.amount * 10_i64.pow((max_precision - other.precision) as u32);
-        return (self_amount_aligned, other_amount_aligned, max_precision);
     }
 
     /// Returns `true` if both values share the same commodity name.
@@ -103,7 +62,28 @@ impl CommodityValue {
     /// Unlike `PartialEq`, this does **not** normalize precision, so `1.0` and `1.00`
     /// are considered different.
     pub fn same_amount(&self, other: &Self) -> bool {
-        self.amount == other.amount && self.precision == other.precision
+        self.amount.raw_amount() == other.amount.raw_amount()
+            && self.amount.precision() == other.amount.precision()
+    }
+
+    /// Returns a reference to the underlying [`FixedDecimal`] amount.
+    pub fn amount(&self) -> &FixedDecimal {
+        &self.amount
+    }
+
+    /// Returns the commodity name.
+    pub fn commodity(&self) -> &str {
+        &self.commodity
+    }
+}
+
+/// Implements `+=` for `CommodityValue`, delegating to `Add`.
+///
+/// # Panics
+/// Panics if the two values have different commodities.
+impl std::ops::AddAssign<&CommodityValue> for CommodityValue {
+    fn add_assign(&mut self, other: &Self) {
+        *self = &*self + other;
     }
 }
 
@@ -118,12 +98,8 @@ impl std::ops::Add for &CommodityValue {
         if self.commodity != other.commodity {
             panic!("Cannot add CommodityValues with different commodities.");
         }
-
-        let (self_amount_aligned, other_amount_aligned, max_precision) = self.align_precision(&other);
-
         CommodityValue {
-            amount: self_amount_aligned + other_amount_aligned,
-            precision: max_precision,
+            amount: &self.amount + &other.amount,
             commodity: self.commodity.clone(),
         }
     }
@@ -140,12 +116,8 @@ impl std::ops::Sub for &CommodityValue {
         if self.commodity != other.commodity {
             panic!("Cannot subtract CommodityValues with different commodities.");
         }
-
-        let (self_amount_aligned, other_amount_aligned, max_precision) = self.align_precision(&other);
-
         CommodityValue {
-            amount: self_amount_aligned - other_amount_aligned,
-            precision: max_precision,
+            amount: &self.amount - &other.amount,
             commodity: self.commodity.clone(),
         }
     }
@@ -157,8 +129,7 @@ impl std::ops::Neg for &CommodityValue {
 
     fn neg(self) -> Self::Output {
         CommodityValue {
-            amount: -self.amount,
-            precision: self.precision,
+            amount: -&self.amount,
             commodity: self.commodity.clone(),
         }
     }
@@ -171,9 +142,7 @@ impl PartialEq for CommodityValue {
         if self.commodity != other.commodity {
             return false;
         }
-
-        let (self_amount_aligned, other_amount_aligned, _) = self.align_precision(other);
-        return self_amount_aligned == other_amount_aligned;
+        self.amount == other.amount
     }
 }
 
@@ -187,42 +156,37 @@ mod tests {
 
     #[test]
     fn test_commodity_value_from_str_nominal_format() {
-        let commodity_value = CommodityValue::from_str("123.45 SEK").unwrap();
-        assert_eq!(commodity_value.amount, 12345);
-        assert_eq!(commodity_value.precision, 2);
-        assert_eq!(commodity_value.commodity, "SEK");
+        let cv = CommodityValue::from_str("123.45 SEK").unwrap();
+        assert_eq!(cv.amount.raw_amount(), 12345);
+        assert_eq!(cv.amount.precision(), 2);
     }
 
     #[test]
     fn test_commodity_value_from_str_no_decimal() {
-        let commodity_value = CommodityValue::from_str("123 SEK").unwrap();
-        assert_eq!(commodity_value.amount, 123);
-        assert_eq!(commodity_value.precision, 0);
-        assert_eq!(commodity_value.commodity, "SEK");
+        let cv = CommodityValue::from_str("123 SEK").unwrap();
+        assert_eq!(cv.amount.raw_amount(), 123);
+        assert_eq!(cv.amount.precision(), 0);
     }
 
     #[test]
     fn test_commodity_value_from_str_high_precision() {
-        let commodity_value = CommodityValue::from_str("123.4567 USD").unwrap();
-        assert_eq!(commodity_value.amount, 1234567);
-        assert_eq!(commodity_value.precision, 4);
-        assert_eq!(commodity_value.commodity, "USD");
+        let cv = CommodityValue::from_str("123.4567 USD").unwrap();
+        assert_eq!(cv.amount.raw_amount(), 1234567);
+        assert_eq!(cv.amount.precision(), 4);
     }
 
     #[test]
     fn test_commodity_value_from_str_commodity_with_spaces() {
-        let commodity_value = CommodityValue::from_str("123.45 Gold Bar").unwrap();
-        assert_eq!(commodity_value.amount, 12345);
-        assert_eq!(commodity_value.precision, 2);
-        assert_eq!(commodity_value.commodity, "Gold Bar");
+        let cv = CommodityValue::from_str("123.45 Gold Bar").unwrap();
+        assert_eq!(cv.amount.raw_amount(), 12345);
+        assert_eq!(cv.amount.precision(), 2);
     }
 
     #[test]
     fn test_commodity_value_from_str_negative() {
-        let commodity_value = CommodityValue::from_str("-123.45 SEK").unwrap();
-        assert_eq!(commodity_value.amount, -12345);
-        assert_eq!(commodity_value.precision, 2);
-        assert_eq!(commodity_value.commodity, "SEK");
+        let cv = CommodityValue::from_str("-123.45 SEK").unwrap();
+        assert_eq!(cv.amount.raw_amount(), -12345);
+        assert_eq!(cv.amount.precision(), 2);
     }
 
     #[test]
