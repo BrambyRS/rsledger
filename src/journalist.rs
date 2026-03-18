@@ -1,5 +1,3 @@
-mod input_parser;
-
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -7,6 +5,15 @@ use std::path::{Path, PathBuf};
 use crate::Args;
 use crate::config::Config;
 use crate::transaction;
+
+fn prompt_input(prompt: &str) -> io::Result<String> {
+    print!("{prompt}");
+    io::stdout().flush()?;
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    Ok(input.trim().to_string())
+}
 
 // TODO: Set default config
 pub fn new_journal(args: &Args, config: &Config) -> std::io::Result<()> {
@@ -33,7 +40,6 @@ pub fn new_journal(args: &Args, config: &Config) -> std::io::Result<()> {
 /*
 Add entry to journal file
 */
-// TODO: Input validation, error handling, multi currency support, multi entry support, etc.
 pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
     // Get Journal path
     let journal_file: PathBuf = match get_journal_file_path(args, config) {
@@ -45,12 +51,12 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
         return Err(io::Error::new(io::ErrorKind::NotFound, format!("Journal file {} not found.", journal_file.display())));
     }
     
-    let date_str: String = input_parser::prompt_input("Date (YYYY-MM-DD): ")?;
-    let description_str: String = input_parser::prompt_input("Description: ")?;
-    let account_1_str: String = input_parser::prompt_input("Account 1: ")?;
-    let amount_1_str: String = input_parser::prompt_input("Amount: ")?;
-    let account_2_str: String = input_parser::prompt_input("Account 2: ")?;
-    let amount_2_str: String = input_parser::prompt_input("Amount: ")?;
+    let date_str: String = prompt_input("Date (YYYY-MM-DD): ")?;
+    let description_str: String = prompt_input("Description: ")?;
+    let account_1_str: String = prompt_input("Account 1: ")?;
+    let amount_1_str: String = prompt_input("Amount: ")?;
+    let account_2_str: String = prompt_input("Account 2: ")?;
+    let amount_2_str: String = prompt_input("Amount: ")?;
 
     let amount_1 = match transaction::commodity_value::CommodityValue::from_str(&amount_1_str) {
         Ok(val) => val,
