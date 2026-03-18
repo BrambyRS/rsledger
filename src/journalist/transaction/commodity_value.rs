@@ -1,11 +1,15 @@
-/*
-CommodityValue struct
-*/
+/// Represents a monetary or commodity amount with a fixed-precision integer representation.
+///
+/// The amount is stored as a scaled integer to avoid floating-point precision issues.
+/// For example, `123.45 SEK` is stored as `amount = 12345`, `precision = 2`.
 #[derive(Clone, Debug)]
 pub struct CommodityValue {
-    amount: i64, // We save the amount as an integer to avoid floating point precision issues.
-    precision: u8, // Number of decimal places for the value
-    commodity: String, // Name of the commodity
+    /// The scaled integer amount. Divide by `10^precision` to get the real value.
+    amount: i64,
+    /// Number of decimal places (e.g. `2` means the amount is in hundredths).
+    precision: u8,
+    /// Name of the commodity (e.g. `"SEK"`, `"GBP"`, `"Gold Bar"`).
+    commodity: String,
 }
 
 impl core::fmt::Display for CommodityValue {
@@ -23,9 +27,22 @@ impl core::fmt::Display for CommodityValue {
 }
 
 impl CommodityValue {
+    /// Parses a `CommodityValue` from a string of the form `"<amount> <commodity>"`.
+    ///
+    /// The commodity name may contain spaces (e.g. `"Gold Bar"`). The amount may
+    /// include a decimal point; if omitted, precision is set to `0`.
+    ///
+    /// # Errors
+    /// Returns an `Err` if the string is missing a commodity, has multiple decimal
+    /// points, or contains a non-numeric amount.
+    ///
+    /// # Examples
+    /// ```
+    /// let cv = CommodityValue::from_str("123.45 SEK").unwrap();
+    /// ```
     pub fn from_str(amount_str: &str) -> Result<Self, String> {
         // First split the string into the amount part and the commodity part
-        // The commodity part can have spaces, 
+        // The commodity part can have spaces,
         let parts: Vec<&str> = amount_str.split_whitespace().collect();
         if parts.len() < 2 {
             return Err(format!("Invalid amount format: '{}'. Expected format: '<amount> <commodity>'.", amount_str));
@@ -64,9 +81,11 @@ impl CommodityValue {
         })
     }
 
-    /*
-    Utliity function to align the precision of two CommodityValues for mathematical operations and comparisons. It returns the aligned amounts and the max precision.
-    */
+    /// Aligns the precision of `self` and `other` to the same scale for arithmetic
+    /// and comparisons.
+    ///
+    /// Returns `(self_amount, other_amount, max_precision)` where both amounts have
+    /// been scaled up to `max_precision` decimal places.
     fn align_precision(&self, other: &Self) -> (i64, i64, u8) {
         let max_precision: u8 = std::cmp::max(self.precision, other.precision);
         let self_amount_aligned = self.amount * 10_i64.pow((max_precision - self.precision) as u32);
@@ -74,22 +93,24 @@ impl CommodityValue {
         return (self_amount_aligned, other_amount_aligned, max_precision);
     }
 
+    /// Returns `true` if both values share the same commodity name.
     pub fn same_commodity(&self, other: &Self) -> bool {
         self.commodity == other.commodity
     }
 
+    /// Returns `true` if both values have exactly the same raw amount and precision.
+    ///
+    /// Unlike `PartialEq`, this does **not** normalize precision, so `1.0` and `1.00`
+    /// are considered different.
     pub fn same_amount(&self, other: &Self) -> bool {
         self.amount == other.amount && self.precision == other.precision
     }
 }
 
-/*
-Mathematical operations and comparisons for CommodityValue
-- Addition and Subtraction: We can add or subtract two CommodityValues if they have the same commodity. The precision will be aligned before performing the operation.
-- Negation: We can negate a CommodityValue by negating the amount.
-- Equality: Two CommodityValues are equal if they have the same commodity and the same amount (taking into account the precision).
-*/
-
+/// Adds two `CommodityValue`s. Precision is aligned automatically.
+///
+/// # Panics
+/// Panics if the two values have different commodities.
 impl std::ops::Add for CommodityValue {
     type Output = Self;
 
@@ -108,6 +129,10 @@ impl std::ops::Add for CommodityValue {
     }
 }
 
+/// Subtracts one `CommodityValue` from another. Precision is aligned automatically.
+///
+/// # Panics
+/// Panics if the two values have different commodities.
 impl std::ops::Sub for CommodityValue {
     type Output = Self;
 
@@ -126,6 +151,7 @@ impl std::ops::Sub for CommodityValue {
     }
 }
 
+/// Negates a `CommodityValue` by flipping the sign of its amount.
 impl std::ops::Neg for CommodityValue {
     type Output = Self;
 
@@ -138,6 +164,8 @@ impl std::ops::Neg for CommodityValue {
     }
 }
 
+/// Two `CommodityValue`s are equal when they share the same commodity and their
+/// amounts are equal after normalizing to the same precision (e.g. `1.4` == `1.40`).
 impl PartialEq for CommodityValue {
     fn eq(&self, other: &Self) -> bool {
         if self.commodity != other.commodity {
