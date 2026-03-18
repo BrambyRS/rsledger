@@ -117,6 +117,20 @@ impl std::ops::Sub for &FixedDecimal {
     }
 }
 
+/// Implements `+=` for `FixedDecimal`, delegating to `Add`.
+impl std::ops::AddAssign<&FixedDecimal> for FixedDecimal {
+    fn add_assign(&mut self, other: &Self) {
+        *self = &*self + other;
+    }
+}
+
+/// Implements `-=` for `FixedDecimal`, delegating to `Sub`.
+impl std::ops::SubAssign<&FixedDecimal> for FixedDecimal {
+    fn sub_assign(&mut self, other: &Self) {
+        *self = &*self - other;
+    }
+}
+
 /// Negates a `FixedDecimal` by flipping the sign of its amount.
 impl std::ops::Neg for &FixedDecimal {
     type Output = FixedDecimal;
@@ -271,5 +285,21 @@ mod tests {
         let fd1 = FixedDecimal::from_str("10.00").unwrap();
         let fd2 = FixedDecimal::from_str("25.00").unwrap();
         assert_eq!(&fd1 - &fd2, FixedDecimal::from_str("-15.00").unwrap());
+    }
+
+    #[test]
+    fn test_fixed_decimal_add_assign() {
+        let mut fd1 = FixedDecimal::from_str("100.50").unwrap();
+        let fd2 = FixedDecimal::from_str("23.75").unwrap();
+        fd1 += &fd2;
+        assert_eq!(fd1, FixedDecimal::from_str("124.25").unwrap());
+    }
+
+    #[test]
+    fn test_fixed_decimal_sub_assign() {
+        let mut fd1 = FixedDecimal::from_str("100.50").unwrap();
+        let fd2 = FixedDecimal::from_str("23.25").unwrap();
+        fd1 -= &fd2;
+        assert_eq!(fd1, FixedDecimal::from_str("77.25").unwrap());
     }
 }
