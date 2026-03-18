@@ -76,10 +76,11 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
     let entry: transaction::Transaction = transaction::Transaction::new(
         date_str,
         description_str,
-        account_1_str,
-        amount_1,
-        account_2_str,
-        amount_2);
+        vec![
+            transaction::Posting::new(account_1_str, amount_1),
+            transaction::Posting::new(account_2_str, amount_2),
+        ],
+    );
 
     // Append entry to journal file
     let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
