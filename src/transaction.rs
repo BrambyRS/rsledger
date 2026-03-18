@@ -1,11 +1,20 @@
 pub mod commodity_value;
 pub mod fixed_decimal;
 
+/// Represents a single line in a [`Transaction`], associating an account with an optional amount.
+///
+/// When `amount` is `None`, the posting is an auto-balancing entry whose value is
+/// inferred when resolving the transaction. At most one posting per transaction may
+/// have a `None` amount.
 pub struct Posting {
+    /// The account name (e.g. `"assets:bank"`, `"expenses:food"`).
     account: String,
+    /// The commodity amount to post. `None` indicates an auto-balancing posting.
     amount: Option<commodity_value::CommodityValue>,
 }
 
+/// Formats the posting as `"<account> <amount>"`, or just `"<account>"` when the
+/// amount is `None`.
 impl core::fmt::Display for Posting {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match &self.amount {
@@ -16,6 +25,9 @@ impl core::fmt::Display for Posting {
 }
 
 impl Posting {
+    /// Creates a new `Posting` with the given account name and optional amount.
+    ///
+    /// Pass `None` for `amount` to create an auto-balancing posting.
     pub fn new(account: String, amount: Option<commodity_value::CommodityValue>) -> Self {
         Posting {
             account,
@@ -23,6 +35,7 @@ impl Posting {
         }
     }
 
+    /// Returns a reference to the posting's amount, or `None` if it is an auto-balancing posting.
     pub fn get_amount(&self) -> Option<&commodity_value::CommodityValue> {
         self.amount.as_ref()
     }
@@ -38,6 +51,13 @@ pub struct Transaction {
     postings: Vec<Posting>,
 }
 
+/// Formats the transaction as a journal entry:
+///
+/// ```text
+/// YYYY-MM-DD Description
+///     Account1 123.45 SEK
+///     Account2 -123.45 SEK
+/// ```
 impl core::fmt::Display for Transaction {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{} {}\n", self.date, self.description)?;
@@ -52,7 +72,20 @@ impl core::fmt::Display for Transaction {
 }
 
 impl Transaction {
-    pub fn new (date: String, description: String, postings: Vec<Posting>) -> Self {
+    /// Creates a new `Transaction` with the given date, description, and postings.
+    ///
+    /// # Examples
+    /// ```
+    /// let t = Transaction::new(
+    ///     "2024-01-01".to_string(),
+    ///     "Groceries".to_string(),
+    ///     vec![
+    ///         Posting::new("expenses:food".to_string(), Some(CommodityValue::from_str("50.00 SEK").unwrap())),
+    ///         Posting::new("assets:bank".to_string(), None),
+    ///     ],
+    /// );
+    /// ```
+    pub fn new(date: String, description: String, postings: Vec<Posting>) -> Self {
         Transaction {
             date,
             description,
@@ -60,7 +93,14 @@ impl Transaction {
         }
     }
 
-    /// Validate that the transaction is balanced for each commodity.
+    /// Returns `true` if the transaction is balanced.
+    ///
+    /// A transaction is considered balanced when either:
+    /// - Exactly one posting has a `None` amount (auto-balancing entry), or
+    /// - All postings have explicit amounts and the sum for every commodity is zero.
+    ///
+    /// Returns `false` if more than one posting has a `None` amount, or if any
+    /// commodity's postings do not sum to zero.
     pub fn validate(&self) -> bool {
         // If there is a None amount, the transaction is auto balanced
         // More than a single None amount makes the transaction invalid
@@ -106,7 +146,10 @@ impl Transaction {
 mod tests {
     use super::*;
 
-    // Transaction tests
+    // -------------------------------------------------------------------------
+    // Display formatting tests
+    // -------------------------------------------------------------------------
+
     #[test]
     fn test_transaction_display_two_postings() {
         let transaction: Transaction = Transaction::new(
@@ -137,6 +180,10 @@ mod tests {
         let expected_display = "2024-01-01 Test Transaction\n\tAccount 1 100.00 GBP\n\tAccount 2 -50.00 GBP\n\tAccount 3 -50.00 GBP\n\n";
         assert_eq!(format!("{}", transaction), expected_display);
     }
+
+    // -------------------------------------------------------------------------
+    // Validate tests: explicit amounts
+    // -------------------------------------------------------------------------
 
     #[test]
     fn test_transaction_validate_balanced_single_commodity() {
