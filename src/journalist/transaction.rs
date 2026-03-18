@@ -27,13 +27,13 @@ pub struct Transaction {
     /// Description of the transaction.
     description: String,
     /// Account and amount pairs. For a simple double-entry transaction, there would be two posts with opposite amounts.
-    posts: Vec<Posting>,
+    postings: Vec<Posting>,
 }
 
 impl core::fmt::Display for Transaction {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{} {}\n", self.date, self.description)?;
-        for post in &self.posts {
+        for post in &self.postings {
             match write!(f, "\t{}\n", post) {
                 Ok(_) => {},
                 Err(e) => return Err(e),
@@ -44,11 +44,11 @@ impl core::fmt::Display for Transaction {
 }
 
 impl Transaction {
-    pub fn new (date: String, description: String, posts: Vec<Posting>) -> Self {
+    pub fn new (date: String, description: String, postings: Vec<Posting>) -> Self {
         Transaction {
             date,
             description,
-            posts,
+            postings,
         }
     }
 }
