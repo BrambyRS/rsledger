@@ -22,32 +22,6 @@ impl core::fmt::Display for CommodityValue {
     }
 }
 
-impl std::ops::Neg for CommodityValue {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        CommodityValue {
-            amount: -self.amount,
-            precision: self.precision,
-            commodity: self.commodity,
-        }
-    }
-}
-
-impl PartialEq for CommodityValue {
-    fn eq(&self, other: &Self) -> bool {
-        if self.precision > other.precision {
-            let factor = 10_i64.pow((self.precision - other.precision) as u32);
-            self.amount == other.amount * factor && self.commodity == other.commodity
-        } else if self.precision < other.precision {
-            let factor = 10_i64.pow((other.precision - self.precision) as u32);
-            self.amount * factor == other.amount && self.commodity == other.commodity
-        } else {
-            self.amount == other.amount && self.commodity == other.commodity
-        }
-    }
-}
-
 impl CommodityValue {
     pub fn from_str(amount_str: &str) -> Result<Self, String> {
         // First split the string into the amount part and the commodity part
@@ -90,12 +64,88 @@ impl CommodityValue {
         })
     }
 
+    /*
+    Utliity function to align the precision of two CommodityValues for mathematical operations and comparisons. It returns the aligned amounts and the max precision.
+    */
+    fn align_precision(&self, other: &Self) -> (i64, i64, u8) {
+        let max_precision: u8 = std::cmp::max(self.precision, other.precision);
+        let self_amount_aligned = self.amount * 10_i64.pow((max_precision - self.precision) as u32);
+        let other_amount_aligned = other.amount * 10_i64.pow((max_precision - other.precision) as u32);
+        return (self_amount_aligned, other_amount_aligned, max_precision);
+    }
+
     pub fn same_commodity(&self, other: &Self) -> bool {
         self.commodity == other.commodity
     }
 
     pub fn same_amount(&self, other: &Self) -> bool {
-        self.amount == other.amount
+        self.amount == other.amount && self.precision == other.precision
+    }
+}
+
+/*
+Mathematical operations and comparisons for CommodityValue
+- Addition and Subtraction: We can add or subtract two CommodityValues if they have the same commodity. The precision will be aligned before performing the operation.
+- Negation: We can negate a CommodityValue by negating the amount.
+- Equality: Two CommodityValues are equal if they have the same commodity and the same amount (taking into account the precision).
+*/
+
+impl std::ops::Add for CommodityValue {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        if self.commodity != other.commodity {
+            panic!("Cannot add CommodityValues with different commodities.");
+        }
+
+        let (self_amount_aligned, other_amount_aligned, max_precision) = self.align_precision(&other);
+
+        CommodityValue {
+            amount: self_amount_aligned + other_amount_aligned,
+            precision: max_precision,
+            commodity: self.commodity,
+        }
+    }
+}
+
+impl std::ops::Sub for CommodityValue {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        if self.commodity != other.commodity {
+            panic!("Cannot subtract CommodityValues with different commodities.");
+        }
+
+        let (self_amount_aligned, other_amount_aligned, max_precision) = self.align_precision(&other);
+
+        CommodityValue {
+            amount: self_amount_aligned - other_amount_aligned,
+            precision: max_precision,
+            commodity: self.commodity,
+        }
+    }
+}
+
+impl std::ops::Neg for CommodityValue {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        CommodityValue {
+            amount: -self.amount,
+            precision: self.precision,
+            commodity: self.commodity,
+        }
+    }
+}
+
+impl PartialEq for CommodityValue {
+    fn eq(&self, other: &Self) -> bool {
+        if self.commodity != other.commodity {
+            return false;
+        }
+
+        let (self_amount_aligned, other_amount_aligned, _) = self.align_precision(other);
+        return self_amount_aligned == other_amount_aligned;
     }
 }
 
@@ -103,11 +153,13 @@ impl CommodityValue {
 mod tests {
     use super::*;
 
-    // CommodityValue tests
+    // -------------------------------------------------------------------------
+    // from_str parsing tests
+    // -------------------------------------------------------------------------
+
     #[test]
     fn test_commodity_value_from_str_nominal_format() {
-        let amount_str = "123.45 SEK";
-        let commodity_value = CommodityValue::from_str(amount_str).unwrap();
+        let commodity_value = CommodityValue::from_str("123.45 SEK").unwrap();
         assert_eq!(commodity_value.amount, 12345);
         assert_eq!(commodity_value.precision, 2);
         assert_eq!(commodity_value.commodity, "SEK");
@@ -115,8 +167,7 @@ mod tests {
 
     #[test]
     fn test_commodity_value_from_str_no_decimal() {
-        let amount_str: &str = "123 SEK";
-        let commodity_value: CommodityValue = CommodityValue::from_str(amount_str).unwrap();
+        let commodity_value = CommodityValue::from_str("123 SEK").unwrap();
         assert_eq!(commodity_value.amount, 123);
         assert_eq!(commodity_value.precision, 0);
         assert_eq!(commodity_value.commodity, "SEK");
@@ -124,8 +175,7 @@ mod tests {
 
     #[test]
     fn test_commodity_value_from_str_high_precision() {
-        let amount_str: &str = "123.4567 USD";
-        let commodity_value: CommodityValue = CommodityValue::from_str(amount_str).unwrap();
+        let commodity_value = CommodityValue::from_str("123.4567 USD").unwrap();
         assert_eq!(commodity_value.amount, 1234567);
         assert_eq!(commodity_value.precision, 4);
         assert_eq!(commodity_value.commodity, "USD");
@@ -133,8 +183,7 @@ mod tests {
 
     #[test]
     fn test_commodity_value_from_str_commodity_with_spaces() {
-        let amount_str: &str = "123.45 Gold Bar";
-        let commodity_value: CommodityValue = CommodityValue::from_str(amount_str).unwrap();
+        let commodity_value = CommodityValue::from_str("123.45 Gold Bar").unwrap();
         assert_eq!(commodity_value.amount, 12345);
         assert_eq!(commodity_value.precision, 2);
         assert_eq!(commodity_value.commodity, "Gold Bar");
@@ -142,8 +191,7 @@ mod tests {
 
     #[test]
     fn test_commodity_value_from_str_negative() {
-        let amount_str: &str = "-123.45 SEK";
-        let commodity_value: CommodityValue = CommodityValue::from_str(amount_str).unwrap();
+        let commodity_value = CommodityValue::from_str("-123.45 SEK").unwrap();
         assert_eq!(commodity_value.amount, -12345);
         assert_eq!(commodity_value.precision, 2);
         assert_eq!(commodity_value.commodity, "SEK");
@@ -151,124 +199,153 @@ mod tests {
 
     #[test]
     fn test_commodity_value_from_str_invalid_format() {
-        let amount_str: &str = "123.45.67 SEK";
-        let commodity_value_invalid_format: Result<CommodityValue, String> = CommodityValue::from_str(amount_str);
-        assert!(commodity_value_invalid_format.is_err());
+        assert!(CommodityValue::from_str("123.45.67 SEK").is_err());
     }
 
     #[test]
     fn test_commodity_value_from_str_invalid() {
-        let amount_str: &str = "invalid_amount";
-        let commodity_value_invalid: Result<CommodityValue, String> = CommodityValue::from_str(amount_str);
-        assert!(commodity_value_invalid.is_err());
+        assert!(CommodityValue::from_str("invalid_amount").is_err());
     }
+
+    // -------------------------------------------------------------------------
+    // Display formatting tests
+    // -------------------------------------------------------------------------
 
     #[test]
     fn test_commodity_value_display_nominal_format() {
-        let commodity_value: CommodityValue = match CommodityValue::from_str("123.45 SEK") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-        let expected_display = "123.45 SEK";
-        assert_eq!(format!("{}", commodity_value), expected_display);
+        let cv = CommodityValue::from_str("123.45 SEK").unwrap();
+        assert_eq!(format!("{}", cv), "123.45 SEK");
     }
 
     #[test]
     fn test_commodity_value_display_no_decimal() {
-        let commodity_value: CommodityValue = match CommodityValue::from_str("123 SEK") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-        let expected_display = "123 SEK";
-        assert_eq!(format!("{}", commodity_value), expected_display);
+        let cv = CommodityValue::from_str("123 SEK").unwrap();
+        assert_eq!(format!("{}", cv), "123 SEK");
     }
 
     #[test]
     fn test_commodity_value_display_different_precision() {
-        let commodity_value: CommodityValue = match CommodityValue::from_str("123.4567 Gold Bar") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-        let expected_display = "123.4567 Gold Bar";
-        assert_eq!(format!("{}", commodity_value), expected_display);
+        let cv = CommodityValue::from_str("123.4567 Gold Bar").unwrap();
+        assert_eq!(format!("{}", cv), "123.4567 Gold Bar");
     }
 
     #[test]
     fn test_commodity_value_display_negative() {
-        let commodity_value: CommodityValue = match CommodityValue::from_str("-123.45 SEK") {
-                Ok(val) => val,
-                Err(e) => panic!("Failed to parse amount string: {}", e),
-            };
-
-        let expected_display = "-123.45 SEK";
-        assert_eq!(format!("{}", commodity_value), expected_display);
+        let cv = CommodityValue::from_str("-123.45 SEK").unwrap();
+        assert_eq!(format!("{}", cv), "-123.45 SEK");
     }
+
+    // -------------------------------------------------------------------------
+    // Equality tests
+    // -------------------------------------------------------------------------
 
     #[test]
     fn test_commodity_value_equality_same_precision() {
-        let commodity_value_1: CommodityValue = match CommodityValue::from_str("123.45 SEK") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-        let commodity_value_2: CommodityValue = match CommodityValue::from_str("123.45 SEK") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-        assert_eq!(commodity_value_1, commodity_value_2);
+        let cv1 = CommodityValue::from_str("123.45 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("123.45 SEK").unwrap();
+        assert_eq!(cv1, cv2);
     }
 
     #[test]
     fn test_commodity_value_equality_different_precision() {
-        let commodity_value_1: CommodityValue = match CommodityValue::from_str("123.4 SEK") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-        let commodity_value_2: CommodityValue = match CommodityValue::from_str("123.40 SEK") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-        assert_eq!(commodity_value_1, commodity_value_2);
+        let cv1 = CommodityValue::from_str("123.4 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("123.40 SEK").unwrap();
+        assert_eq!(cv1, cv2);
     }
 
     #[test]
     fn test_commodity_value_equality_different_commodities() {
-        let commodity_value_1: CommodityValue = match CommodityValue::from_str("123.45 SEK") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-        let commodity_value_2: CommodityValue = match CommodityValue::from_str("123.45 USD") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-
-        assert_ne!(commodity_value_1, commodity_value_2);
+        let cv1 = CommodityValue::from_str("123.45 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("123.45 USD").unwrap();
+        assert_ne!(cv1, cv2);
     }
 
     #[test]
     fn test_commodity_value_equality_different_precision_and_commodities() {
-        let commodity_value_1: CommodityValue = match CommodityValue::from_str("123.4 SEK") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-        let commodity_value_2: CommodityValue = match CommodityValue::from_str("123.40 USD") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };  
-        
-        assert_ne!(commodity_value_1, commodity_value_2);
+        let cv1 = CommodityValue::from_str("123.4 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("123.40 USD").unwrap();
+        assert_ne!(cv1, cv2);
     }
+
+    // -------------------------------------------------------------------------
+    // Arithmetic tests: negation, addition, subtraction
+    // -------------------------------------------------------------------------
 
     #[test]
     fn test_commodity_value_negation() {
-        let commodity_value: CommodityValue = match CommodityValue::from_str("123.45 SEK") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-        let negated_commodity_value = -commodity_value.clone();
-        let expected_negated_commodity_value: CommodityValue = match CommodityValue::from_str("-123.45 SEK") {
-            Ok(val) => val,
-            Err(e) => panic!("Failed to parse amount string: {}", e),
-        };
-        assert_eq!(negated_commodity_value, expected_negated_commodity_value);
+        let cv = CommodityValue::from_str("123.45 SEK").unwrap();
+        assert_eq!(-cv, CommodityValue::from_str("-123.45 SEK").unwrap());
+    }
+
+    #[test]
+    fn test_commodity_value_addition_same_precision() {
+        let cv1 = CommodityValue::from_str("100.50 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("23.75 SEK").unwrap();
+        assert_eq!(cv1 + cv2, CommodityValue::from_str("124.25 SEK").unwrap());
+    }
+
+    #[test]
+    fn test_commodity_value_addition_different_precision() {
+        let cv1 = CommodityValue::from_str("100.5 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("23.75 SEK").unwrap();
+        assert_eq!(cv1 + cv2, CommodityValue::from_str("124.25 SEK").unwrap());
+    }
+
+    #[test]
+    fn test_commodity_value_addition_to_zero() {
+        let cv1 = CommodityValue::from_str("50.00 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("-50.00 SEK").unwrap();
+        assert_eq!(cv1 + cv2, CommodityValue::from_str("0.00 SEK").unwrap());
+    }
+
+    #[test]
+    fn test_commodity_value_addition_negative() {
+        let cv1 = CommodityValue::from_str("-10.00 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("-5.00 SEK").unwrap();
+        assert_eq!(cv1 + cv2, CommodityValue::from_str("-15.00 SEK").unwrap());
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_commodity_value_addition_different_commodities_panics() {
+        let cv1 = CommodityValue::from_str("10.00 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("10.00 USD").unwrap();
+        let _ = cv1 + cv2;
+    }
+
+    #[test]
+    fn test_commodity_value_subtraction_same_precision() {
+        let cv1 = CommodityValue::from_str("100.50 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("23.25 SEK").unwrap();
+        assert_eq!(cv1 - cv2, CommodityValue::from_str("77.25 SEK").unwrap());
+    }
+
+    #[test]
+    fn test_commodity_value_subtraction_different_precision() {
+        let cv1 = CommodityValue::from_str("100.5 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("23.25 SEK").unwrap();
+        assert_eq!(cv1 - cv2, CommodityValue::from_str("77.25 SEK").unwrap());
+    }
+
+    #[test]
+    fn test_commodity_value_subtraction_to_zero() {
+        let cv1 = CommodityValue::from_str("50.00 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("50.00 SEK").unwrap();
+        assert_eq!(cv1 - cv2, CommodityValue::from_str("0.00 SEK").unwrap());
+    }
+
+    #[test]
+    fn test_commodity_value_subtraction_to_negative() {
+        let cv1 = CommodityValue::from_str("10.00 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("25.00 SEK").unwrap();
+        assert_eq!(cv1 - cv2, CommodityValue::from_str("-15.00 SEK").unwrap());
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_commodity_value_subtraction_different_commodities_panics() {
+        let cv1 = CommodityValue::from_str("10.00 SEK").unwrap();
+        let cv2 = CommodityValue::from_str("10.00 USD").unwrap();
+        let _ = cv1 - cv2;
     }
 }
