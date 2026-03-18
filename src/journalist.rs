@@ -73,7 +73,7 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
         }
     };
 
-    let entry: transaction::DoubleEntry = transaction::DoubleEntry::new(
+    let entry: transaction::Transaction = transaction::Transaction::new(
         date_str,
         description_str,
         account_1_str,

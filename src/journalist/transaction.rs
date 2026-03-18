@@ -1,9 +1,9 @@
 pub mod commodity_value;
 
 /*
-DoubleEntry struct
+Transaction struct
 */
-pub struct DoubleEntry {
+pub struct Transaction {
     date: String,
     description: String,
     account_1: String,
@@ -12,15 +12,15 @@ pub struct DoubleEntry {
     amount_2: commodity_value::CommodityValue,
 }
 
-impl core::fmt::Display for DoubleEntry {
+impl core::fmt::Display for Transaction {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{} {}\n\t{} {}\n\t{} {}\n\n", self.date, self.description, self.account_1, self.amount_1, self.account_2, self.amount_2)
     }
 }
 
-impl DoubleEntry {
+impl Transaction {
     pub fn new (date: String, description: String, account_1: String, amount_1: commodity_value::CommodityValue, account_2: String, amount_2: commodity_value::CommodityValue) -> Self {
-        DoubleEntry {
+        Transaction {
             date,
             description,
             account_1,
@@ -35,10 +35,10 @@ impl DoubleEntry {
 mod tests {
     use super::*;
 
-    // DoubleEntry tests
+    // Transaction tests
     #[test]
     fn test_double_entry_display() {
-        let double_entry: DoubleEntry = DoubleEntry::new(
+        let double_entry: Transaction = Transaction::new(
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             "Account 1".to_string(),
