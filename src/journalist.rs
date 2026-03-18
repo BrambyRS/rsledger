@@ -1,5 +1,4 @@
 mod input_parser;
-mod transaction;
 
 use std::fs;
 use std::io::{self, Write};
@@ -7,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use crate::Args;
 use crate::config::Config;
+use crate::transaction;
 
 // TODO: Set default config
 pub fn new_journal(args: &Args, config: &Config) -> std::io::Result<()> {
@@ -77,8 +77,8 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
         date_str,
         description_str,
         vec![
-            transaction::Posting::new(account_1_str, amount_1),
-            transaction::Posting::new(account_2_str, amount_2),
+            transaction::Posting::new(account_1_str, Some(amount_1)),
+            transaction::Posting::new(account_2_str, Some(amount_2)),
         ],
     );
 

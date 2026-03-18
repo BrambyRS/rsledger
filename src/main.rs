@@ -2,6 +2,7 @@ use clap::Parser;
 
 mod config;
 mod journalist;
+mod transaction;
 
 #[derive(Parser)]
 #[command(version, about = "Plain text CLI accounting tool inspired by hledger.", long_about = None)]
