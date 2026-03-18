@@ -52,17 +52,17 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
     let account_2_str: String = input_parser::prompt_input("Account 2: ")?;
     let amount_2_str: String = input_parser::prompt_input("Amount: ")?;
 
-    let amount_1 = match transaction::CommodityValue::from_str(&amount_1_str) {
+    let amount_1 = match transaction::commodity_value::CommodityValue::from_str(&amount_1_str) {
         Ok(val) => val,
         Err(e) => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 1'.")),
     };
 
     // If it's empty, we can assume it's the negative of the amount from 'Account 1'.
-    let amount_2: transaction::CommodityValue;
+    let amount_2: transaction::commodity_value::CommodityValue;
     if amount_2_str.len() == 0 {
         amount_2 = -amount_1.clone();
     } else {
-        amount_2 = match transaction::CommodityValue::from_str(&amount_2_str) {
+        amount_2 = match transaction::commodity_value::CommodityValue::from_str(&amount_2_str) {
             Ok(val) => val,
             Err(e) => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 2'.")),
         };
