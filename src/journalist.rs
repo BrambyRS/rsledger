@@ -6,6 +6,8 @@ use crate::Args;
 use crate::config::Config;
 use crate::transaction;
 
+/// Prints `prompt` to stdout, flushes the buffer, reads a line from stdin,
+/// and returns the trimmed result.
 fn prompt_input(prompt: &str) -> io::Result<String> {
     print!("{prompt}");
     io::stdout().flush()?;
@@ -15,10 +17,10 @@ fn prompt_input(prompt: &str) -> io::Result<String> {
     Ok(input.trim().to_string())
 }
 
-// TODO: Set default config
+/// Creates a new, empty journal file at the path resolved from `args` and `config`.
+/// Intermediate directories are created automatically if they do not exist.
 pub fn new_journal(args: &Args, config: &Config) -> std::io::Result<()> {
 
-    // Use the --path if it has been provided
     let journal_file: PathBuf = match get_journal_file_path(args, config) {
         Ok(path) => path,
         Err(e) => return Err(e),
@@ -37,9 +39,14 @@ pub fn new_journal(args: &Args, config: &Config) -> std::io::Result<()> {
     return Ok(());
 }
 
-/*
-Add entry to journal file
-*/
+/// Interactively prompts the user for a date, description, and one or more postings,
+/// then appends the resulting [`transaction::Transaction`] to the journal file.
+///
+/// Postings can be entered as:
+/// - `<account>` — amount will be inferred (auto-balancing posting)
+/// - `<account> <amount> <commodity>` — e.g. `expenses:food 50.00 SEK`
+///
+/// An empty line terminates posting input.
 pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
     // Get Journal path
     let journal_file: PathBuf = match get_journal_file_path(args, config) {
@@ -101,6 +108,11 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
     Ok(())
 }
 
+/// Resolves the journal file path from command-line arguments or the active config.
+///
+/// Returns the path from `--path` if supplied; otherwise constructs the path from
+/// `config.default_journal_folder` and `config.default_journal`. Returns an error
+/// if neither source provides a usable path.
 fn get_journal_file_path(args: &Args, config: &Config) -> std::io::Result<PathBuf> {
     // Use the --path if it has been provided
     if args.journal_path.len() > 0 {
