@@ -19,6 +19,9 @@ struct Args {
 
     #[arg(short = 'j', long = "journal", default_value = "main.journal", help = "File name of journal file in default folder to use.")]
     config_journal: String,
+
+    #[arg(long = "open", help = "When creating a new journal, also add an opening transaction with the current date.")]
+    open: bool,
 }
 
 fn main() {
