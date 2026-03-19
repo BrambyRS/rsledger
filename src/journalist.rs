@@ -101,6 +101,11 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
         postings,
     );
 
+    // Validate the transaction before writing to the journal
+    if !entry.validate() {
+        return Err(io::Error::new(io::ErrorKind::InvalidInput, "Transaction is not balanced. Please ensure that the amounts sum to zero."));
+    }
+
     // Append entry to journal file
     let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
     write!(file, "{entry}")?;
