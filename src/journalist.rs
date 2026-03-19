@@ -51,41 +51,47 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
         return Err(io::Error::new(io::ErrorKind::NotFound, format!("Journal file {} not found.", journal_file.display())));
     }
     
+    println!("\nAdding entry to journal: {}", journal_file.display());
+    println!("Enter postings on the format '<account> <amount> <commodity>'");
+    println!("example: 'expenses:food 50.00 SEK') such that all are balanced.");
+    println!("If you leave an amount blank, it will be inferred.");
+    println!("Keep adding as many postings as you want, and then enter an empty line to finish the transaction.\n");
     let date_str: String = prompt_input("Date (YYYY-MM-DD): ")?;
     let description_str: String = prompt_input("Description: ")?;
-    let account_1_str: String = prompt_input("Account 1: ")?;
-    let amount_1_str: String = prompt_input("Amount: ")?;
-    let account_2_str: String = prompt_input("Account 2: ")?;
-    let amount_2_str: String = prompt_input("Amount: ")?;
+    let mut postings: Vec<transaction::Posting> = Vec::new();
 
-    let amount_1 = match transaction::commodity_value::CommodityValue::from_str(&amount_1_str) {
-        Ok(val) => val,
-        Err(e) => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 1'.")),
-    };
-
-    // If it's empty, we can assume it's the negative of the amount from 'Account 1'.
-    let amount_2: transaction::commodity_value::CommodityValue;
-    if amount_2_str.len() == 0 {
-        amount_2 = -&amount_1;
-    } else {
-        amount_2 = match transaction::commodity_value::CommodityValue::from_str(&amount_2_str) {
-            Ok(val) => val,
-            Err(e) => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid amount format for 'Amount 2'.")),
-        };
-
-        // If the currency is the same, validate that the amount is the negative of the amount from 'Account 1'.
-        if amount_2.same_commodity(&amount_1) && !amount_2.same_amount(&(-&amount_1)) {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Amount for 'Account 2' must be the negative of the amount from 'Account 1' when the currency is the same."));
+    loop {
+        let posting_input: String = prompt_input("Posting: ")?;
+        if posting_input.len() == 0 {
+            break;
         }
-    };
+        let parts: Vec<&str> = posting_input.split_whitespace().collect();
+        if parts.len() == 1 {
+            let account_str: String = parts[0].to_string();
+            let amount: Option<transaction::commodity_value::CommodityValue> = None;
+
+            postings.push(transaction::Posting::new(account_str, amount));
+        } else if parts.len() == 3 {
+            let account_str: String = parts[0].to_string();
+            let amount_str: String = parts[1..].join(" ");
+            let amount = match transaction::commodity_value::CommodityValue::from_str(&amount_str) {
+                Ok(val) => Some(val),
+                Err(_) => {
+                    println!("Invalid amount format. Please enter a valid commodity amount (e.g. '50.00 SEK').");
+                    continue;
+                }
+            };
+            postings.push(transaction::Posting::new(account_str, amount));
+        } else {
+            println!("Invalid posting format. Please enter in the format '<account> <amount> <commodity>' (e.g. 'expenses:food 50.00 SEK') or '<account>' (e.g. 'assets:bank' for an auto-balancing posting).");
+            continue;
+        }
+    }
 
     let entry: transaction::Transaction = transaction::Transaction::new(
         date_str,
         description_str,
-        vec![
-            transaction::Posting::new(account_1_str, Some(amount_1)),
-            transaction::Posting::new(account_2_str, Some(amount_2)),
-        ],
+        postings,
     );
 
     // Append entry to journal file
