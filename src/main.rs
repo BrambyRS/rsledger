@@ -1,27 +1,47 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 mod config;
 mod journalist;
 mod transaction;
 
+#[derive(Subcommand)]
+enum Command {
+    New {
+        // When creating a new journal, also add an opening transaction with the current date.
+        #[arg(long = "open", help = "When creating a new journal, also add an opening transaction with the current date.")]
+        open: bool,
+    },
+    Add,
+    Config {
+        #[arg(short = 'f', long = "folder", default_value = "", help = "Journal folder to set as default.")]
+        config_folder: String,
+
+        #[arg(short = 'j', long = "journal", default_value = "main.journal", help = "File name of journal file in default folder to use.")]
+        config_journal: String,
+    },
+}
+
 #[derive(Parser)]
 #[command(version, about = "Plain text CLI accounting tool inspired by hledger.", long_about = None)]
 struct Args {
-    // Entry point
-    entry_point: String,
+    #[command(subcommand, help = "Entry point to execute.")]
+    command: Command,
 
     // Options related to journal file and configuration
     #[arg(short = 'p', long = "path", default_value = "", help = "Path to the journal file to use.")]
     journal_path: String,
+}
 
-    #[arg(short = 'f', long = "folder", default_value = "", help = "Journal folder to set as default.")]
-    config_folder: String,
-
-    #[arg(short = 'j', long = "journal", default_value = "main.journal", help = "File name of journal file in default folder to use.")]
-    config_journal: String,
-
-    #[arg(long = "open", help = "When creating a new journal, also add an opening transaction with the current date.")]
-    open: bool,
+fn get_journal_file_path(args: &Args, config: &config::Config) -> std::io::Result<std::path::PathBuf> {
+    if args.journal_path.len() > 0 {
+        Ok(std::path::PathBuf::from(&args.journal_path))
+    } else {
+        if config.default_journal_folder.len() == 0 || config.default_journal.len() == 0 {
+            Err(std::io::Error::new(std::io::ErrorKind::NotFound, "No journal path provided and default journal not set in config."))
+        } else {
+            Ok(std::path::Path::new(&config.default_journal_folder).join(&config.default_journal))
+        }
+    }
 }
 
 fn main() {
@@ -31,23 +51,35 @@ fn main() {
     // Load config
     let mut config: config::Config = config::Config::load();
 
+    // Resolve journal file path
+    let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(&args, &config);
+
     // Handle entry point
-    match args.entry_point.as_str() {
-        "new" => {
-            if let Err(e) = journalist::new_journal(&args, &config) {
-                eprintln!("Error creating journal: {}", e);
+    match args.command {
+        Command::New { open } => {
+            match journal_file {
+                Err(e) => eprintln!("Error resolving journal file path: {}", e),
+                Ok(path) => {
+                    if let Err(e) = journalist::new_journal(&path, open) {
+                        eprintln!("Error creating journal: {}", e);
+                    }
+                }
             }
         }
-        "add" => {
-            if let Err(e) = journalist::add_entry(&args, &config) {
-                eprintln!("Error adding entry: {}", e);
+        Command::Add => {
+            match journal_file {
+                Err(e) => eprintln!("Error resolving journal file path: {}", e),
+                Ok(path) => {
+                    if let Err(e) = journalist::add_entry(&path) {
+                        eprintln!("Error adding entry: {}", e);
+                    }
+                }
             }
         }
-        "config" => {
-            if let Err(e) = config::edit_config(&args, &mut config) {
+        Command::Config { config_folder, config_journal } => {
+            if let Err(e) = config::edit_config(config_folder, config_journal, &mut config) {
                 eprintln!("Error editing config: {}", e);
             }
         }
-        _ => eprintln!("Unknown entry point: {}", args.entry_point)
     }
 }

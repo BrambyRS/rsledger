@@ -1,4 +1,3 @@
-use crate::Args;
 use dirs;
 use serde::{Serialize, Deserialize};
 use std::path::PathBuf;
@@ -60,18 +59,18 @@ impl Config {
     }
 }
 
-pub fn edit_config(args: &Args, config: &mut Config) -> std::io::Result<()> {
+pub fn edit_config(config_folder: String, config_journal: String, config: &mut Config) -> std::io::Result<()> {
     // Check that at least one of the config options is provided
-    if args.config_folder.len() == 0 && args.config_journal.len() == 0 {
+    if config_folder.len() == 0 && config_journal.len() == 0 {
         return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "At least one config option must be provided."));
     }
 
-    if args.config_folder.len() > 0 {
-        config.set_default_journal_folder(args.config_folder.clone());
+    if config_folder.len() > 0 {
+        config.set_default_journal_folder(config_folder.clone());
     }
 
-    if args.config_journal.len() > 0 {
-        config.set_default_journal(args.config_journal.clone());
+    if config_journal.len() > 0 {
+        config.set_default_journal(config_journal.clone());
     }
 
     config.save();

@@ -1,9 +1,6 @@
 use std::fs;
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
 
-use crate::Args;
-use crate::config::Config;
 use crate::transaction;
 
 /// Prints `prompt` to stdout, flushes the buffer, reads a line from stdin,
@@ -21,14 +18,8 @@ fn prompt_input(prompt: &str) -> io::Result<String> {
 /// Intermediate directories are created automatically if they do not exist.
 /// If the flag --open is provided, an opening transaction with the current date
 /// is also added to the journal.
-pub fn new_journal(args: &Args, config: &Config) -> std::io::Result<()> {
-
-    let journal_file: PathBuf = match get_journal_file_path(args, config) {
-        Ok(path) => path,
-        Err(e) => return Err(e),
-    };
-
-    // Create the directory if it doesn't exist
+pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> std::io::Result<()> {
+// Create the directory if it doesn't exist
     if let Some(parent) = journal_file.parent() {
         if !parent.exists() {
             fs::create_dir_all(parent)?;
@@ -38,7 +29,7 @@ pub fn new_journal(args: &Args, config: &Config) -> std::io::Result<()> {
     // Create an empty journal file
     fs::File::create(journal_file)?;
 
-    if args.open {
+    if create_opening {
         // If --open flag is provided, add an opening transaction with the current date
 
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
@@ -82,7 +73,7 @@ pub fn new_journal(args: &Args, config: &Config) -> std::io::Result<()> {
         );
 
         // Append opening transaction to journal file
-        let mut file = fs::OpenOptions::new().append(true).open(get_journal_file_path(args, config)?)?;
+        let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
         write!(file, "{opening_transaction}")?;
     }
 
@@ -97,13 +88,7 @@ pub fn new_journal(args: &Args, config: &Config) -> std::io::Result<()> {
 /// - `<account> <amount> <commodity>` — e.g. `expenses:food 50.00 SEK`
 ///
 /// An empty line terminates posting input.
-pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
-    // Get Journal path
-    let journal_file: PathBuf = match get_journal_file_path(args, config) {
-        Ok(path) => path,
-        Err(e) => return Err(e),
-    };
-
+pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
     if !journal_file.exists() {
         return Err(io::Error::new(io::ErrorKind::NotFound, format!("Journal file {} not found.", journal_file.display())));
     }
@@ -161,22 +146,4 @@ pub fn add_entry(args: &Args, config: &Config) -> std::io::Result<()> {
     write!(file, "{entry}")?;
 
     Ok(())
-}
-
-/// Resolves the journal file path from command-line arguments or the active config.
-///
-/// Returns the path from `--path` if supplied; otherwise constructs the path from
-/// `config.default_journal_folder` and `config.default_journal`. Returns an error
-/// if neither source provides a usable path.
-fn get_journal_file_path(args: &Args, config: &Config) -> std::io::Result<PathBuf> {
-    // Use the --path if it has been provided
-    if args.journal_path.len() > 0 {
-        return Ok(PathBuf::from(&args.journal_path));
-    } else {
-        // Otherwise, use the default journal from config
-        if config.default_journal_folder.len() == 0 || config.default_journal.len() == 0 {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "No journal path provided and default journal not set in config."));
-        }
-        return Ok(Path::new(&config.default_journal_folder).join(&config.default_journal));
-    }
 }
