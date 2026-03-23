@@ -1,2 +1,4 @@
 # RSLEDGER
-Broadly based on [`hledger`](https://github.com/simonmichael/hledger) with some tailoring to what I needed/wanted.
+## Custom CSV Importer
+
+Used to aggregate and consolidate several CSV exports to a `hledger` journal file.
