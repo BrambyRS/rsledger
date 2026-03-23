@@ -7,6 +7,8 @@ use toml;
 pub struct Config {
     pub default_journal_folder: String,
     pub default_journal: String,
+    pub default_stock_prices_journal: String,
+    pub default_exchange_rates_journal: String,
 }
 
 impl Config {
@@ -27,6 +29,8 @@ impl Config {
             return Config {
                 default_journal_folder: "".to_string(),
                 default_journal: "".to_string(),
+                default_stock_prices_journal: "".to_string(),
+                default_exchange_rates_journal: "".to_string(),
             };
         }
     }
@@ -57,11 +61,19 @@ impl Config {
     pub fn set_default_journal(&mut self, journal: String) {
         self.default_journal = journal;
     }
+
+    pub fn set_default_stock_prices_journal(&mut self, journal: String) {
+        self.default_stock_prices_journal = journal;
+    }
+
+    pub fn set_default_exchange_rates_journal(&mut self, journal: String) {
+        self.default_exchange_rates_journal = journal;
+    }
 }
 
-pub fn edit_config(config_folder: String, config_journal: String, config: &mut Config) -> std::io::Result<()> {
+pub fn edit_config(config_folder: String, config_journal: String, config_stock_prices_journal: String, config_exchange_rates_journal: String, config: &mut Config) -> std::io::Result<()> {
     // Check that at least one of the config options is provided
-    if config_folder.len() == 0 && config_journal.len() == 0 {
+    if config_folder.len() == 0 && config_journal.len() == 0 && config_stock_prices_journal.len() == 0 && config_exchange_rates_journal.len() == 0 {
         return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "At least one config option must be provided."));
     }
 
@@ -71,6 +83,14 @@ pub fn edit_config(config_folder: String, config_journal: String, config: &mut C
 
     if config_journal.len() > 0 {
         config.set_default_journal(config_journal.clone());
+    }
+
+    if config_stock_prices_journal.len() > 0 {
+        config.set_default_stock_prices_journal(config_stock_prices_journal.clone());
+    }
+
+    if config_exchange_rates_journal.len() > 0 {
+        config.set_default_exchange_rates_journal(config_exchange_rates_journal.clone());
     }
 
     config.save();

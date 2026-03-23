@@ -18,6 +18,12 @@ enum Command {
 
         #[arg(short = 'j', long = "journal", default_value = "main.journal", help = "File name of journal file in default folder to use.")]
         config_journal: String,
+
+        #[arg(short = 's', long = "stock-prices-journal", default_value = "stock_prices.journal", help = "File name of journal file in default folder to use for stock prices.")]
+        config_stock_prices_journal: String,
+
+        #[arg(short = 'e', long = "exchange-rates-journal", default_value = "exchange_rates.journal", help = "File name of journal file in default folder to use for exchange rates.")]
+        config_exchange_rates_journal: String,
     },
 }
 
@@ -76,10 +82,11 @@ fn main() {
                 }
             }
         }
-        Command::Config { config_folder, config_journal } => {
-            if let Err(e) = config::edit_config(config_folder, config_journal, &mut config) {
+        Command::Config { config_folder, config_journal, config_stock_prices_journal, config_exchange_rates_journal } => {
+            if let Err(e) = config::edit_config(config_folder, config_journal, config_stock_prices_journal, config_exchange_rates_journal, &mut config) {
                 eprintln!("Error editing config: {}", e);
             }
+            config.save();
         }
     }
 }
