@@ -177,7 +177,7 @@ mod tests {
             ],
         );
 
-        let expected_display = "2024-01-01 Test Transaction\n\tAccount 1 100.00 GBP\n\tAccount 2 -50.00 GBP\n\tAccount 3 -50.00 GBP\n\n";
+        let expected_display = "2024-01-01 Test Transaction\n\tAccount 1 100 GBP\n\tAccount 2 -50 GBP\n\tAccount 3 -50 GBP\n\n";
         assert_eq!(format!("{}", transaction), expected_display);
     }
 

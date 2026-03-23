@@ -18,8 +18,8 @@ impl FixedDecimal {
 
     /// Parses a `FixedDecimal` from a bare number string such as `"123.45"` or `"-10"`.
     ///
-    /// No commodity is expected. The string must contain at most one decimal point and
-    /// consist only of digits and an optional leading minus sign.
+    /// Reduces the value to the lowest possible precision by removing any trailing zeros
+    /// after the decimal point. For example, `"1.40"` is parsed as `amount = 14`, `precision = 1`.
     ///
     /// # Errors
     /// Returns an `Err` if the string has multiple decimal points or contains
@@ -38,8 +38,17 @@ impl FixedDecimal {
                 Ok(FixedDecimal { amount, precision: 0 })
             }
             2 => {
-                let precision = parts[1].len() as u8;
-                let joined = parts.join("");
+                // Walk the decimal parts from the end, until the first non-zero is found
+                let mut precision = parts[1].len() as u8;
+                for ch in parts[1].chars().rev() {
+                    if ch == '0' {
+                        precision -= 1;
+                    } else {
+                        break;
+                    }
+                }
+                let decimal_part = &parts[1][..precision as usize];
+                let joined = format!("{}{}", parts[0], decimal_part);
                 let amount = joined.parse::<i64>()
                     .map_err(|_| format!("Invalid decimal format: '{}'.", s))?;
                 Ok(FixedDecimal { amount, precision })
@@ -180,6 +189,27 @@ mod tests {
     }
 
     #[test]
+    fn test_fixed_decimal_from_str_trailing_zeros() {
+        let fd = FixedDecimal::from_str("1.40").unwrap();
+        assert_eq!(fd.raw_amount(), 14);
+        assert_eq!(fd.precision(), 1);
+    }
+
+    #[test]
+    fn test_fixed_decimal_multiple_trailing_zeros() {
+        let fd = FixedDecimal::from_str("1.4000").unwrap();
+        assert_eq!(fd.raw_amount(), 14);
+        assert_eq!(fd.precision(), 1);
+    }
+
+    #[test]
+    fn test_fixed_decimal_all_trailing_zeros() {
+        let fd = FixedDecimal::from_str("1.000").unwrap();
+        assert_eq!(fd.raw_amount(), 1);
+        assert_eq!(fd.precision(), 0);
+    }
+
+    #[test]
     fn test_fixed_decimal_from_str_invalid_multiple_dots() {
         assert!(FixedDecimal::from_str("1.2.3").is_err());
     }
@@ -214,7 +244,7 @@ mod tests {
     #[test]
     fn test_fixed_decimal_display_trailing_zeros() {
         let fd = FixedDecimal::from_str("1.40").unwrap();
-        assert_eq!(format!("{}", fd), "1.40");
+        assert_eq!(format!("{}", fd), "1.4");
     }
 
     // -------------------------------------------------------------------------
