@@ -1,10 +1,11 @@
+use std::hash::Hash;
 use super::fixed_decimal::FixedDecimal;
 
 /// Represents a monetary or commodity amount with a fixed-precision integer representation.
 ///
 /// The numeric amount is stored as a [`FixedDecimal`] to avoid floating-point precision
 /// issues. For example, `123.45 SEK` stores `amount = FixedDecimal { 12345, 2 }`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 pub struct CommodityValue {
     /// The scaled decimal amount.
     amount: FixedDecimal,

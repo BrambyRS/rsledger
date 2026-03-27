@@ -1,8 +1,10 @@
+use std::hash::Hash;
+
 /// A fixed-precision decimal number stored as a scaled integer.
 ///
 /// Arithmetic operations on `FixedDecimal` are independent of any commodity.
 /// For example, `123.45` is stored as `amount = 12345`, `precision = 2`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 pub struct FixedDecimal {
     /// The scaled integer amount. Divide by `10^precision` to get the real value.
     amount: i64,

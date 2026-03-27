@@ -1,11 +1,15 @@
 pub mod commodity_value;
 pub mod fixed_decimal;
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
 /// Represents a single line in a [`Transaction`], associating an account with an optional amount.
 ///
 /// When `amount` is `None`, the posting is an auto-balancing entry whose value is
 /// inferred when resolving the transaction. At most one posting per transaction may
 /// have a `None` amount.
+#[derive(Hash)]
 pub struct Posting {
     /// The account name (e.g. `"assets:bank"`, `"expenses:food"`).
     account: String,
@@ -68,6 +72,25 @@ impl core::fmt::Display for Transaction {
             }
         }
         write!(f, "\n")
+    }
+}
+
+impl Hash for Transaction {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // Don't include the description as it has no real function
+        // We want to be able to detect duplicates even if the descriptions differ
+        self.date.hash(state);
+        // Hash each posting independently then sort the sub-hashes so that
+        // posting order does not affect the transaction hash.
+        let mut posting_hashes: Vec<u64> = self.postings.iter().map(|p| {
+            let mut h = DefaultHasher::new();
+            p.hash(&mut h);
+            h.finish()
+        }).collect();
+        posting_hashes.sort_unstable();
+        for h in posting_hashes {
+            h.hash(state);
+        }
     }
 }
 
@@ -325,5 +348,176 @@ mod tests {
             ],
         );
         assert!(transaction.validate());
+    }
+
+    // -------------------------------------------------------------------------
+    // Hashing tests
+    // -------------------------------------------------------------------------
+
+    fn hash_of<T: Hash>(value: &T) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        let mut hasher = DefaultHasher::new();
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[test]
+    fn test_transaction_hash_same_input_is_stable() {
+        let make = || Transaction::new(
+            "2024-01-01".to_string(),
+            "Groceries".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+            ],
+        );
+        assert_eq!(hash_of(&make()), hash_of(&make()));
+    }
+
+    #[test]
+    fn test_transaction_hash_description_ignored() {
+        let t1 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Description A".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+            ],
+        );
+        let t2 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Description B".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+            ],
+        );
+        assert_eq!(hash_of(&t1), hash_of(&t2));
+    }
+
+    #[test]
+    fn test_transaction_hash_different_date_differs() {
+        let t1 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+            ],
+        );
+        let t2 = Transaction::new(
+            "2024-02-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+            ],
+        );
+        assert_ne!(hash_of(&t1), hash_of(&t2));
+    }
+
+    #[test]
+    fn test_transaction_hash_different_account_differs() {
+        let t1 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+            ],
+        );
+        let t2 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("expenses:other".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+            ],
+        );
+        assert_ne!(hash_of(&t1), hash_of(&t2));
+    }
+
+    #[test]
+    fn test_transaction_hash_different_amount_differs() {
+        let t1 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+            ],
+        );
+        let t2 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("99.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-99.00 SEK").unwrap())),
+            ],
+        );
+        assert_ne!(hash_of(&t1), hash_of(&t2));
+    }
+
+    #[test]
+    fn test_transaction_hash_different_commodity_differs() {
+        let t1 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+            ],
+        );
+        let t2 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 GBP").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap())),
+            ],
+        );
+        assert_ne!(hash_of(&t1), hash_of(&t2));
+    }
+
+    #[test]
+    fn test_transaction_hash_different_posting_order() {
+        let t1 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+            ],
+        );
+        let t2 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+            ],
+        );
+        assert_eq!(hash_of(&t1), hash_of(&t2));
+    }
+
+    #[test]
+    fn test_transaction_hash_none_amount_differs_from_explicit() {
+        let t1 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), None),
+            ],
+        );
+        let t2 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+            ],
+        );
+        assert_ne!(hash_of(&t1), hash_of(&t2));
     }
 }
