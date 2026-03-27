@@ -8,21 +8,44 @@ mod transaction;
 enum Command {
     New {
         // When creating a new journal, also add an opening transaction with the current date.
-        #[arg(long = "open", help = "When creating a new journal, also add an opening transaction with the current date.")]
+        #[arg(
+            long = "open",
+            help = "When creating a new journal, also add an opening transaction with the current date."
+        )]
         open: bool,
     },
     Add,
     Config {
-        #[arg(short = 'f', long = "folder", default_value = "", help = "Journal folder to set as default.")]
+        #[arg(
+            short = 'f',
+            long = "folder",
+            default_value = "",
+            help = "Journal folder to set as default."
+        )]
         config_folder: String,
 
-        #[arg(short = 'j', long = "journal", default_value = "main.journal", help = "File name of journal file in default folder to use.")]
+        #[arg(
+            short = 'j',
+            long = "journal",
+            default_value = "main.journal",
+            help = "File name of journal file in default folder to use."
+        )]
         config_journal: String,
 
-        #[arg(short = 's', long = "stock-prices-journal", default_value = "stock_prices.journal", help = "File name of journal file in default folder to use for stock prices.")]
+        #[arg(
+            short = 's',
+            long = "stock-prices-journal",
+            default_value = "stock_prices.journal",
+            help = "File name of journal file in default folder to use for stock prices."
+        )]
         config_stock_prices_journal: String,
 
-        #[arg(short = 'e', long = "exchange-rates-journal", default_value = "exchange_rates.journal", help = "File name of journal file in default folder to use for exchange rates.")]
+        #[arg(
+            short = 'e',
+            long = "exchange-rates-journal",
+            default_value = "exchange_rates.journal",
+            help = "File name of journal file in default folder to use for exchange rates."
+        )]
         config_exchange_rates_journal: String,
     },
 }
@@ -34,16 +57,27 @@ struct Args {
     command: Command,
 
     // Options related to journal file and configuration
-    #[arg(short = 'p', long = "path", default_value = "", help = "Path to the journal file to use.")]
+    #[arg(
+        short = 'p',
+        long = "path",
+        default_value = "",
+        help = "Path to the journal file to use."
+    )]
     journal_path: String,
 }
 
-fn get_journal_file_path(args: &Args, config: &config::Config) -> std::io::Result<std::path::PathBuf> {
+fn get_journal_file_path(
+    args: &Args,
+    config: &config::Config,
+) -> std::io::Result<std::path::PathBuf> {
     if args.journal_path.len() > 0 {
         Ok(std::path::PathBuf::from(&args.journal_path))
     } else {
         if config.default_journal_folder.len() == 0 || config.default_journal.len() == 0 {
-            Err(std::io::Error::new(std::io::ErrorKind::NotFound, "No journal path provided and default journal not set in config."))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "No journal path provided and default journal not set in config.",
+            ))
         } else {
             Ok(std::path::Path::new(&config.default_journal_folder).join(&config.default_journal))
         }
@@ -62,28 +96,35 @@ fn main() {
 
     // Handle entry point
     match args.command {
-        Command::New { open } => {
-            match journal_file {
-                Err(e) => eprintln!("Error resolving journal file path: {}", e),
-                Ok(path) => {
-                    if let Err(e) = journalist::new_journal(&path, open) {
-                        eprintln!("Error creating journal: {}", e);
-                    }
+        Command::New { open } => match journal_file {
+            Err(e) => eprintln!("Error resolving journal file path: {}", e),
+            Ok(path) => {
+                if let Err(e) = journalist::new_journal(&path, open) {
+                    eprintln!("Error creating journal: {}", e);
                 }
             }
-        }
-        Command::Add => {
-            match journal_file {
-                Err(e) => eprintln!("Error resolving journal file path: {}", e),
-                Ok(path) => {
-                    if let Err(e) = journalist::add_entry(&path) {
-                        eprintln!("Error adding entry: {}", e);
-                    }
+        },
+        Command::Add => match journal_file {
+            Err(e) => eprintln!("Error resolving journal file path: {}", e),
+            Ok(path) => {
+                if let Err(e) = journalist::add_entry(&path) {
+                    eprintln!("Error adding entry: {}", e);
                 }
             }
-        }
-        Command::Config { config_folder, config_journal, config_stock_prices_journal, config_exchange_rates_journal } => {
-            if let Err(e) = config::edit_config(config_folder, config_journal, config_stock_prices_journal, config_exchange_rates_journal, &mut config) {
+        },
+        Command::Config {
+            config_folder,
+            config_journal,
+            config_stock_prices_journal,
+            config_exchange_rates_journal,
+        } => {
+            if let Err(e) = config::edit_config(
+                config_folder,
+                config_journal,
+                config_stock_prices_journal,
+                config_exchange_rates_journal,
+                &mut config,
+            ) {
                 eprintln!("Error editing config: {}", e);
             }
             config.save();

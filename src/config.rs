@@ -1,5 +1,5 @@
 use dirs;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use toml;
 
@@ -13,7 +13,7 @@ pub struct Config {
 
 impl Config {
     pub fn load() -> Self {
-        // 
+        //
         let config_dir: PathBuf = match dirs::config_dir() {
             Some(dir) => dir,
             None => panic!("Could not determine config directory."),
@@ -22,8 +22,9 @@ impl Config {
         let config_file = config_dir.join("rsledger").join("config.toml");
 
         if config_file.exists() {
-            let config_str: String = std::fs::read_to_string(config_file).expect("Failed to read config file.");
-            return toml::from_str(&config_str).expect("Failed to parse config file.")
+            let config_str: String =
+                std::fs::read_to_string(config_file).expect("Failed to read config file.");
+            return toml::from_str(&config_str).expect("Failed to parse config file.");
         } else {
             // If the config file doesn't exist, return a default config.
             return Config {
@@ -71,10 +72,23 @@ impl Config {
     }
 }
 
-pub fn edit_config(config_folder: String, config_journal: String, config_stock_prices_journal: String, config_exchange_rates_journal: String, config: &mut Config) -> std::io::Result<()> {
+pub fn edit_config(
+    config_folder: String,
+    config_journal: String,
+    config_stock_prices_journal: String,
+    config_exchange_rates_journal: String,
+    config: &mut Config,
+) -> std::io::Result<()> {
     // Check that at least one of the config options is provided
-    if config_folder.len() == 0 && config_journal.len() == 0 && config_stock_prices_journal.len() == 0 && config_exchange_rates_journal.len() == 0 {
-        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "At least one config option must be provided."));
+    if config_folder.len() == 0
+        && config_journal.len() == 0
+        && config_stock_prices_journal.len() == 0
+        && config_exchange_rates_journal.len() == 0
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "At least one config option must be provided.",
+        ));
     }
 
     if config_folder.len() > 0 {

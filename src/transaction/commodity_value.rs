@@ -1,5 +1,5 @@
-use std::hash::Hash;
 use super::fixed_decimal::FixedDecimal;
+use std::hash::Hash;
 
 /// Represents a monetary or commodity amount with a fixed-precision integer representation.
 ///
@@ -38,7 +38,10 @@ impl CommodityValue {
         // The commodity part can have spaces,
         let parts: Vec<&str> = amount_str.split_whitespace().collect();
         if parts.len() < 2 {
-            return Err(format!("Invalid amount format: '{}'. Expected format: '<amount> <commodity>'.", amount_str));
+            return Err(format!(
+                "Invalid amount format: '{}'. Expected format: '<amount> <commodity>'.",
+                amount_str
+            ));
         }
 
         let amount_part: &str = parts[0];

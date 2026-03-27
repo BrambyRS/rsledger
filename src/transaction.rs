@@ -33,10 +33,7 @@ impl Posting {
     ///
     /// Pass `None` for `amount` to create an auto-balancing posting.
     pub fn new(account: String, amount: Option<commodity_value::CommodityValue>) -> Self {
-        Posting {
-            account,
-            amount,
-        }
+        Posting { account, amount }
     }
 
     /// Returns a reference to the posting's amount, or `None` if it is an auto-balancing posting.
@@ -67,7 +64,7 @@ impl core::fmt::Display for Transaction {
         write!(f, "{} {}\n", self.date, self.description)?;
         for post in &self.postings {
             match write!(f, "\t{}\n", post) {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => return Err(e),
             }
         }
@@ -82,11 +79,15 @@ impl Hash for Transaction {
         self.date.hash(state);
         // Hash each posting independently then sort the sub-hashes so that
         // posting order does not affect the transaction hash.
-        let mut posting_hashes: Vec<u64> = self.postings.iter().map(|p| {
-            let mut h = DefaultHasher::new();
-            p.hash(&mut h);
-            h.finish()
-        }).collect();
+        let mut posting_hashes: Vec<u64> = self
+            .postings
+            .iter()
+            .map(|p| {
+                let mut h = DefaultHasher::new();
+                p.hash(&mut h);
+                h.finish()
+            })
+            .collect();
         posting_hashes.sort_unstable();
         for h in posting_hashes {
             h.hash(state);
@@ -143,12 +144,16 @@ impl Transaction {
         // If no conclusion was reached, check that the transaction is balanced for each commodity.
         // Sum amounts by commodity
         // Total possible number of unique commodities is equal to the number of postings, so we can set the initial capacity of the HashMap to that.
-        let mut totals_per_commodity: std::collections::HashMap<String, fixed_decimal::FixedDecimal> = std::collections::HashMap::with_capacity(self.postings.len());
+        let mut totals_per_commodity: std::collections::HashMap<
+            String,
+            fixed_decimal::FixedDecimal,
+        > = std::collections::HashMap::with_capacity(self.postings.len());
         for post in &self.postings {
             if let Some(amount) = post.get_amount() {
                 let this_commodity: String = amount.commodity().to_string();
                 let this_amount: fixed_decimal::FixedDecimal = amount.amount().clone();
-                totals_per_commodity.entry(this_commodity.clone())
+                totals_per_commodity
+                    .entry(this_commodity.clone())
                     .and_modify(|total| *total += &this_amount)
                     .or_insert(this_amount);
             }
@@ -179,12 +184,19 @@ mod tests {
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             vec![
-                Posting::new("Account 1".to_string(), Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap())),
-                Posting::new("Account 2".to_string(), Some(commodity_value::CommodityValue::from_str("-123.45 SEK").unwrap())),
+                Posting::new(
+                    "Account 1".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "Account 2".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-123.45 SEK").unwrap()),
+                ),
             ],
         );
 
-        let expected_display = "2024-01-01 Test Transaction\n\tAccount 1 123.45 SEK\n\tAccount 2 -123.45 SEK\n\n";
+        let expected_display =
+            "2024-01-01 Test Transaction\n\tAccount 1 123.45 SEK\n\tAccount 2 -123.45 SEK\n\n";
         assert_eq!(format!("{}", transaction), expected_display);
     }
 
@@ -194,9 +206,18 @@ mod tests {
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             vec![
-                Posting::new("Account 1".to_string(), Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap())),
-                Posting::new("Account 2".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap())),
-                Posting::new("Account 3".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap())),
+                Posting::new(
+                    "Account 1".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
+                ),
+                Posting::new(
+                    "Account 2".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
+                ),
+                Posting::new(
+                    "Account 3".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
+                ),
             ],
         );
 
@@ -214,9 +235,18 @@ mod tests {
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             vec![
-                Posting::new("Account 1".to_string(), Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap())),
-                Posting::new("Account 2".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap())),
-                Posting::new("Account 3".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap())),
+                Posting::new(
+                    "Account 1".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
+                ),
+                Posting::new(
+                    "Account 2".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
+                ),
+                Posting::new(
+                    "Account 3".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
+                ),
             ],
         );
         assert!(transaction.validate());
@@ -228,9 +258,18 @@ mod tests {
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             vec![
-                Posting::new("Account 1".to_string(), Some(commodity_value::CommodityValue::from_str("100.00 SEK").unwrap())),
-                Posting::new("Account 2".to_string(), Some(commodity_value::CommodityValue::from_str("-30.00 SEK").unwrap())),
-                Posting::new("Account 3".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new(
+                    "Account 1".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "Account 2".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-30.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "Account 3".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
             ],
         );
         assert!(!transaction.validate());
@@ -242,11 +281,26 @@ mod tests {
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             vec![
-                Posting::new("Account 1".to_string(), Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap())),
-                Posting::new("Account 2".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap())),
-                Posting::new("Account 3".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap())),
-                Posting::new("Account 4".to_string(), Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap())),
-                Posting::new("Account 5".to_string(), Some(commodity_value::CommodityValue::from_str("-200.00 SEK").unwrap())),
+                Posting::new(
+                    "Account 1".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
+                ),
+                Posting::new(
+                    "Account 2".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
+                ),
+                Posting::new(
+                    "Account 3".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
+                ),
+                Posting::new(
+                    "Account 4".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "Account 5".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-200.00 SEK").unwrap()),
+                ),
             ],
         );
         assert!(transaction.validate());
@@ -258,11 +312,26 @@ mod tests {
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             vec![
-                Posting::new("Account 1".to_string(), Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap())),
-                Posting::new("Account 2".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap())),
-                Posting::new("Account 3".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap())),
-                Posting::new("Account 4".to_string(), Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap())),
-                Posting::new("Account 5".to_string(), Some(commodity_value::CommodityValue::from_str("-150.00 SEK").unwrap())),
+                Posting::new(
+                    "Account 1".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
+                ),
+                Posting::new(
+                    "Account 2".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
+                ),
+                Posting::new(
+                    "Account 3".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
+                ),
+                Posting::new(
+                    "Account 4".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "Account 5".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-150.00 SEK").unwrap()),
+                ),
             ],
         );
         assert!(!transaction.validate());
@@ -284,11 +353,15 @@ mod tests {
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             vec![
-                Posting::new("Account 1".to_string(), Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap())),
+                Posting::new(
+                    "Account 1".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap()),
+                ),
                 Posting::new("Account 2".to_string(), None),
             ],
         );
-        let expected_display = "2024-01-01 Test Transaction\n\tAccount 1 123.45 SEK\n\tAccount 2\n\n";
+        let expected_display =
+            "2024-01-01 Test Transaction\n\tAccount 1 123.45 SEK\n\tAccount 2\n\n";
         assert_eq!(format!("{}", transaction), expected_display);
     }
 
@@ -302,7 +375,10 @@ mod tests {
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             vec![
-                Posting::new("Account 1".to_string(), Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap())),
+                Posting::new(
+                    "Account 1".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap()),
+                ),
                 Posting::new("Account 2".to_string(), None),
             ],
         );
@@ -316,7 +392,10 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 Posting::new("Account 1".to_string(), None),
-                Posting::new("Account 2".to_string(), Some(commodity_value::CommodityValue::from_str("-123.45 SEK").unwrap())),
+                Posting::new(
+                    "Account 2".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-123.45 SEK").unwrap()),
+                ),
             ],
         );
         assert!(transaction.validate());
@@ -328,7 +407,10 @@ mod tests {
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             vec![
-                Posting::new("Account 1".to_string(), Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap())),
+                Posting::new(
+                    "Account 1".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap()),
+                ),
                 Posting::new("Account 2".to_string(), None),
                 Posting::new("Account 3".to_string(), None),
             ],
@@ -342,8 +424,14 @@ mod tests {
             "2024-01-01".to_string(),
             "Test Transaction".to_string(),
             vec![
-                Posting::new("Account 1".to_string(), Some(commodity_value::CommodityValue::from_str("100.00 SEK").unwrap())),
-                Posting::new("Account 2".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new(
+                    "Account 1".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "Account 2".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
                 Posting::new("Account 3".to_string(), None),
             ],
         );
@@ -363,14 +451,22 @@ mod tests {
 
     #[test]
     fn test_transaction_hash_same_input_is_stable() {
-        let make = || Transaction::new(
-            "2024-01-01".to_string(),
-            "Groceries".to_string(),
-            vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
-            ],
-        );
+        let make = || {
+            Transaction::new(
+                "2024-01-01".to_string(),
+                "Groceries".to_string(),
+                vec![
+                    Posting::new(
+                        "expenses:food".to_string(),
+                        Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                    ),
+                    Posting::new(
+                        "assets:bank".to_string(),
+                        Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                    ),
+                ],
+            )
+        };
         assert_eq!(hash_of(&make()), hash_of(&make()));
     }
 
@@ -380,16 +476,28 @@ mod tests {
             "2024-01-01".to_string(),
             "Description A".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
             ],
         );
         let t2 = Transaction::new(
             "2024-01-01".to_string(),
             "Description B".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
             ],
         );
         assert_eq!(hash_of(&t1), hash_of(&t2));
@@ -401,16 +509,28 @@ mod tests {
             "2024-01-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
             ],
         );
         let t2 = Transaction::new(
             "2024-02-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
             ],
         );
         assert_ne!(hash_of(&t1), hash_of(&t2));
@@ -422,16 +542,28 @@ mod tests {
             "2024-01-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
             ],
         );
         let t2 = Transaction::new(
             "2024-01-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("expenses:other".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:other".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
             ],
         );
         assert_ne!(hash_of(&t1), hash_of(&t2));
@@ -443,16 +575,28 @@ mod tests {
             "2024-01-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
             ],
         );
         let t2 = Transaction::new(
             "2024-01-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("99.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-99.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("99.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-99.00 SEK").unwrap()),
+                ),
             ],
         );
         assert_ne!(hash_of(&t1), hash_of(&t2));
@@ -464,16 +608,28 @@ mod tests {
             "2024-01-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
             ],
         );
         let t2 = Transaction::new(
             "2024-01-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 GBP").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 GBP").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
+                ),
             ],
         );
         assert_ne!(hash_of(&t1), hash_of(&t2));
@@ -485,16 +641,28 @@ mod tests {
             "2024-01-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
             ],
         );
         let t2 = Transaction::new(
             "2024-01-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
             ],
         );
         assert_eq!(hash_of(&t1), hash_of(&t2));
@@ -506,7 +674,10 @@ mod tests {
             "2024-01-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
                 Posting::new("assets:bank".to_string(), None),
             ],
         );
@@ -514,8 +685,14 @@ mod tests {
             "2024-01-01".to_string(),
             "Test".to_string(),
             vec![
-                Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-                Posting::new("assets:bank".to_string(), Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap())),
+                Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
             ],
         );
         assert_ne!(hash_of(&t1), hash_of(&t2));

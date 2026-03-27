@@ -35,9 +35,13 @@ impl FixedDecimal {
         let parts: Vec<&str> = s.split('.').collect();
         match parts.len() {
             1 => {
-                let amount = parts[0].parse::<i64>()
+                let amount = parts[0]
+                    .parse::<i64>()
                     .map_err(|_| format!("Invalid decimal format: '{}'.", s))?;
-                Ok(FixedDecimal { amount, precision: 0 })
+                Ok(FixedDecimal {
+                    amount,
+                    precision: 0,
+                })
             }
             2 => {
                 // Walk the decimal parts from the end, until the first non-zero is found
@@ -51,7 +55,8 @@ impl FixedDecimal {
                 }
                 let decimal_part = &parts[1][..precision as usize];
                 let joined = format!("{}{}", parts[0], decimal_part);
-                let amount = joined.parse::<i64>()
+                let amount = joined
+                    .parse::<i64>()
                     .map_err(|_| format!("Invalid decimal format: '{}'.", s))?;
                 Ok(FixedDecimal { amount, precision })
             }
@@ -88,7 +93,12 @@ impl core::fmt::Display for FixedDecimal {
         } else {
             let int_part = self.amount / 10_i64.pow(self.precision as u32);
             let decimal_part = (self.amount.abs() % 10_i64.pow(self.precision as u32)).abs();
-            write!(f, "{}.{}", int_part, format!("{:0width$}", decimal_part, width = self.precision as usize))
+            write!(
+                f,
+                "{}.{}",
+                int_part,
+                format!("{:0width$}", decimal_part, width = self.precision as usize)
+            )
         }
     }
 }
