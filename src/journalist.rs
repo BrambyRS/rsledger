@@ -1,3 +1,6 @@
+mod csv_parser;
+mod journal_parser;
+
 use std::fs;
 use std::io::{self, Write};
 
