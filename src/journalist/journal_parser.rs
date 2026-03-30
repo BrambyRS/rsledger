@@ -160,6 +160,7 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::File;
     use std::io::BufReader;
 
     #[test]
