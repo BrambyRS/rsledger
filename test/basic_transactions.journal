@@ -1,0 +1,107 @@
+; basic_transactions.journal
+; Covers the most common everyday transaction patterns:
+;   - Opening balances (auto-balancing equity posting)
+;   - Cleared (*) and pending (!) status flags
+;   - Transaction codes in parentheses
+;   - Simple expense & income entries
+;   - Internal transfers
+;   - Credit card usage and repayment
+;   - Loan drawdown and repayment
+;   - Cash withdrawal
+
+; ── Opening balances ──────────────────────────────────────────────────────────
+
+; Auto-balancing equity posting: no amount on the last line.
+; The parser must infer it as the negated sum of all other postings.
+2026-01-01 Opening balance
+    assets:bank:checking      50000.00 SEK
+    assets:bank:savings       20000.00 SEK
+    assets:cash                2000.00 SEK
+    liabilities:credit-card   -5000.00 SEK
+    equity:opening-balance
+
+; ── Income ────────────────────────────────────────────────────────────────────
+
+; Cleared transaction: all postings explicitly balanced.
+2026-01-25 * Salary January
+    assets:bank:checking      35000.00 SEK
+    income:salary            -35000.00 SEK
+
+2026-02-25 * Salary February
+    assets:bank:checking      35000.00 SEK
+    income:salary            -35000.00 SEK
+
+; Interest on savings account.
+2026-02-28 * SEB Bank | Savings interest
+    assets:bank:savings          85.50 SEK
+    income:interest             -85.50 SEK
+
+; ── Expenses ─────────────────────────────────────────────────────────────────
+
+; Pending transaction: awaiting settlement.
+2026-01-28 ! Rent February
+    expenses:housing:rent     12000.00 SEK
+    assets:bank:checking     -12000.00 SEK
+
+; Transaction with a reference code.
+2026-01-30 * (POS-20260130-001) Hemköp | Groceries
+    expenses:food:groceries     850.50 SEK
+    liabilities:credit-card    -850.50 SEK
+
+; Auto-balancing posting: parser infers assets:bank:checking amount.
+2026-02-01 Spotify AB | Monthly subscription
+    expenses:entertainment      119.00 SEK
+    assets:bank:checking
+
+; Split expense across two categories in one transaction.
+2026-02-05 Restaurant dinner — split bill
+    expenses:food:restaurants   400.00 SEK
+    expenses:entertainment      200.00 SEK
+    liabilities:credit-card    -600.00 SEK
+
+; Four-posting transaction split over multiple expense accounts.
+2026-02-14 Supermarket — weekly shop
+    expenses:food:groceries    1200.00 SEK
+    expenses:health              95.00 SEK
+    expenses:entertainment       55.00 SEK
+    liabilities:credit-card   -1350.00 SEK
+
+; ── Transfers ────────────────────────────────────────────────────────────────
+
+; Internal transfer between asset accounts.
+2026-02-10 Transfer checking → savings
+    assets:bank:savings       10000.00 SEK
+    assets:bank:checking     -10000.00 SEK
+
+; Cash withdrawal from ATM.
+2026-03-25 ATM withdrawal
+    assets:cash                1000.00 SEK
+    assets:bank:checking      -1000.00 SEK
+
+; ── Credit card ──────────────────────────────────────────────────────────────
+
+; Credit card repayment reduces the liability to zero.
+2026-03-10 * Credit card bill payment March
+    liabilities:credit-card    6950.50 SEK
+    assets:bank:checking      -6950.50 SEK
+
+; ── Loan ─────────────────────────────────────────────────────────────────────
+
+; Loan drawdown creates a new liability and credits the bank account.
+2026-03-15 Personal loan disbursement
+    assets:bank:checking      50000.00 SEK
+    liabilities:loan         -50000.00 SEK
+
+; Loan repayment: principal, interest, and bank charge split across postings.
+2026-03-20 Loan repayment March
+    liabilities:loan           1500.00 SEK
+    expenses:utilities          350.00 SEK
+    expenses:bank-charges        25.00 SEK
+    assets:bank:checking      -1875.00 SEK
+
+; ── Rent (now cleared) ───────────────────────────────────────────────────────
+
+; The January pending rent clears in March.
+2026-03-01 * Rent February — cleared
+    liabilities:credit-card       0.00 SEK
+    expenses:housing:rent         0.00 SEK

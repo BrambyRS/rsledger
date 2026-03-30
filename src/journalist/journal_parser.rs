@@ -176,4 +176,32 @@ mod tests {
             "2025-04-03 Test transaction\n\tassets:bank -435 GBP\n\texpenses:travel:flights\n\n"
         );
     }
+
+    #[test]
+    fn test_parse_basic_transactions() {
+        let file = File::open("test/basic_transactions.journal").unwrap();
+        let mut lines = BufReader::new(file).lines().peekable();
+        let transactions = parse_journal(&mut lines).unwrap();
+
+        assert_eq!(transactions.len(), 15);
+
+        // Opening balance: auto-balance posting (None amount) on the last line.
+        assert_eq!(
+            format!("{}", transactions[0]),
+            "2026-01-01 Opening balance\n\
+             \tassets:bank:checking 50000 SEK\n\
+             \tassets:bank:savings 20000 SEK\n\
+             \tassets:cash 2000 SEK\n\
+             \tliabilities:credit-card -5000 SEK\n\
+             \tequity:opening-balance\n\n"
+        );
+
+        // Spotify subscription: second posting is auto-balance (no amount).
+        assert_eq!(
+            format!("{}", transactions[6]),
+            "2026-02-01 Spotify AB | Monthly subscription\n\
+             \texpenses:entertainment 119 SEK\n\
+             \tassets:bank:checking\n\n"
+        );
+    }
 }
