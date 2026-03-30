@@ -1,8 +1,6 @@
 use crate::transaction;
 use crate::transaction::commodity_value::CommodityValue;
-use crate::transaction::fixed_decimal::FixedDecimal;
 
-use std::fs::File;
 use std::io::BufRead;
 use std::io::Lines;
 use std::iter::Peekable;
