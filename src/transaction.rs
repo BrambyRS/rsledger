@@ -6,6 +6,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
 /// Represents a financial transaction with a date, description, and multiple posts (account and amount pairs).
+#[derive(Hash)]
 pub struct Transaction {
     /// Date of the transaction in YYYY-MM-DD format.
     date: String,
@@ -32,29 +33,6 @@ impl core::fmt::Display for Transaction {
             }
         }
         write!(f, "\n")
-    }
-}
-
-impl Hash for Transaction {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        // Don't include the description as it has no real function
-        // We want to be able to detect duplicates even if the descriptions differ
-        self.date.hash(state);
-        // Hash each posting independently then sort the sub-hashes so that
-        // posting order does not affect the transaction hash.
-        let mut posting_hashes: Vec<u64> = self
-            .postings
-            .iter()
-            .map(|p| {
-                let mut h = DefaultHasher::new();
-                p.hash(&mut h);
-                h.finish()
-            })
-            .collect();
-        posting_hashes.sort_unstable();
-        for h in posting_hashes {
-            h.hash(state);
-        }
     }
 }
 
@@ -132,7 +110,31 @@ impl Transaction {
         return true;
     }
 
-    /// Returns a hash of only part of the transaction's data
+    /// Returns a hash of the transaction based on the date and all postings.
+    ///
+    /// This is used for comparing if two transactions are *functionally identical*
+    /// (same date, accounts, and amounts) even if they have different descriptions
+    /// or different posting order. This is useful for identifying duplicate transactions.
+    pub fn functional_hash(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        self.date.hash(&mut hasher);
+        let mut posting_hashes: Vec<u64> = self
+            .postings
+            .iter()
+            .map(|p| {
+                let mut h = DefaultHasher::new();
+                p.hash(&mut h);
+                h.finish()
+            })
+            .collect();
+        posting_hashes.sort_unstable();
+        for h in posting_hashes {
+            h.hash(&mut hasher);
+        }
+        hasher.finish()
+    }
+
+    /// Returns a hash of only part of the transaction's data.
     ///
     /// This is used for hashing a transaction based only on the date, description,
     /// and first posting. This is useful for identifying duplicate transactions during
@@ -421,13 +423,6 @@ mod tests {
     // Hashing tests
     // -------------------------------------------------------------------------
 
-    fn hash_of<T: Hash>(value: &T) -> u64 {
-        use std::collections::hash_map::DefaultHasher;
-        let mut hasher = DefaultHasher::new();
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-
     #[test]
     fn test_transaction_hash_same_input_is_stable() {
         let make = || {
@@ -446,7 +441,7 @@ mod tests {
                 ],
             )
         };
-        assert_eq!(hash_of(&make()), hash_of(&make()));
+        assert_eq!(make().functional_hash(), make().functional_hash());
     }
 
     #[test]
@@ -479,7 +474,7 @@ mod tests {
                 ),
             ],
         );
-        assert_eq!(hash_of(&t1), hash_of(&t2));
+        assert_eq!(t1.functional_hash(), t2.functional_hash());
     }
 
     #[test]
@@ -512,7 +507,7 @@ mod tests {
                 ),
             ],
         );
-        assert_ne!(hash_of(&t1), hash_of(&t2));
+        assert_ne!(t1.functional_hash(), t2.functional_hash());
     }
 
     #[test]
@@ -545,7 +540,7 @@ mod tests {
                 ),
             ],
         );
-        assert_ne!(hash_of(&t1), hash_of(&t2));
+        assert_ne!(t1.functional_hash(), t2.functional_hash());
     }
 
     #[test]
@@ -578,7 +573,7 @@ mod tests {
                 ),
             ],
         );
-        assert_ne!(hash_of(&t1), hash_of(&t2));
+        assert_ne!(t1.functional_hash(), t2.functional_hash());
     }
 
     #[test]
@@ -611,7 +606,7 @@ mod tests {
                 ),
             ],
         );
-        assert_ne!(hash_of(&t1), hash_of(&t2));
+        assert_ne!(t1.functional_hash(), t2.functional_hash());
     }
 
     #[test]
@@ -644,7 +639,7 @@ mod tests {
                 ),
             ],
         );
-        assert_eq!(hash_of(&t1), hash_of(&t2));
+        assert_eq!(t1.functional_hash(), t2.functional_hash());
     }
 
     #[test]
@@ -674,7 +669,7 @@ mod tests {
                 ),
             ],
         );
-        assert_ne!(hash_of(&t1), hash_of(&t2));
+        assert_ne!(t1.functional_hash(), t2.functional_hash());
     }
 
     // -------------------------------------------------------------------------
