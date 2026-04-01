@@ -131,6 +131,22 @@ impl Transaction {
 
         return true;
     }
+
+    /// Returns a hash of only part of the transaction's data
+    ///
+    /// This is used for hashing a transaction based only on the date, description,
+    /// and first posting. This is useful for identifying duplicate transactions during
+    /// CSV import in cases where it can't be fully classified and compared to the full
+    /// transaction.
+    fn partial_hash(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        self.date.hash(&mut hasher);
+        self.description.hash(&mut hasher);
+        if let Some(first_post) = self.postings.first() {
+            first_post.hash(&mut hasher);
+        }
+        hasher.finish()
+    }
 }
 
 #[cfg(test)]
@@ -659,5 +675,136 @@ mod tests {
             ],
         );
         assert_ne!(hash_of(&t1), hash_of(&t2));
+    }
+
+    // -------------------------------------------------------------------------
+    // Partial hash tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_partial_hash_same_input_is_stable() {
+        let make = || {
+            Transaction::new(
+                "2024-01-01".to_string(),
+                "Groceries".to_string(),
+                vec![
+                    posting::Posting::new(
+                        "expenses:food".to_string(),
+                        Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                    ),
+                    posting::Posting::new(
+                        "assets:bank".to_string(),
+                        Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                    ),
+                ],
+            )
+        };
+        assert_eq!(make().partial_hash(), make().partial_hash());
+    }
+
+    #[test]
+    fn test_partial_hash_different_date_differs() {
+        let t1 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![posting::Posting::new(
+                "expenses:food".to_string(),
+                Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+            )],
+        );
+        let t2 = Transaction::new(
+            "2024-02-01".to_string(),
+            "Test".to_string(),
+            vec![posting::Posting::new(
+                "expenses:food".to_string(),
+                Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+            )],
+        );
+        assert_ne!(t1.partial_hash(), t2.partial_hash());
+    }
+
+    #[test]
+    fn test_partial_hash_description_included() {
+        // Unlike the full Hash impl, partial_hash includes the description.
+        let t1 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Description A".to_string(),
+            vec![posting::Posting::new(
+                "expenses:food".to_string(),
+                Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+            )],
+        );
+        let t2 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Description B".to_string(),
+            vec![posting::Posting::new(
+                "expenses:food".to_string(),
+                Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+            )],
+        );
+        assert_ne!(t1.partial_hash(), t2.partial_hash());
+    }
+
+    #[test]
+    fn test_partial_hash_different_first_posting_differs() {
+        let t1 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![posting::Posting::new(
+                "expenses:food".to_string(),
+                Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+            )],
+        );
+        let t2 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![posting::Posting::new(
+                "expenses:food".to_string(),
+                Some(commodity_value::CommodityValue::from_str("99.00 SEK").unwrap()),
+            )],
+        );
+        assert_ne!(t1.partial_hash(), t2.partial_hash());
+    }
+
+    #[test]
+    fn test_partial_hash_only_first_posting_considered() {
+        // Same date, description, and first posting — second posting differs.
+        // partial_hash should be identical.
+        let t1 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                posting::Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:bank".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
+            ],
+        );
+        let t2 = Transaction::new(
+            "2024-01-01".to_string(),
+            "Test".to_string(),
+            vec![
+                posting::Posting::new(
+                    "expenses:food".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:savings".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
+                ),
+            ],
+        );
+        assert_eq!(t1.partial_hash(), t2.partial_hash());
+    }
+
+    #[test]
+    fn test_partial_hash_no_postings_is_stable() {
+        let t1 = Transaction::new("2024-01-01".to_string(), "Test".to_string(), vec![]);
+        let t2 = Transaction::new("2024-01-01".to_string(), "Test".to_string(), vec![]);
+        assert_eq!(t1.partial_hash(), t2.partial_hash());
     }
 }
