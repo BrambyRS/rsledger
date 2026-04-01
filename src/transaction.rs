@@ -138,7 +138,7 @@ impl Transaction {
     /// and first posting. This is useful for identifying duplicate transactions during
     /// CSV import in cases where it can't be fully classified and compared to the full
     /// transaction.
-    fn partial_hash(&self) -> u64 {
+    pub fn partial_hash(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
         self.date.hash(&mut hasher);
         self.description.hash(&mut hasher);
