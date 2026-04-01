@@ -107,7 +107,7 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
     // Stop either when the next line is empty,
     // when the next line starts with a non-whitespace character,
     // or when we reach the end of the file
-    let mut postings: Vec<transaction::Posting> = Vec::new();
+    let mut postings: Vec<transaction::posting::Posting> = Vec::new();
     loop {
         let line = match journal_lines.next() {
             Some(Ok(l)) => l,
@@ -145,7 +145,7 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
                 }
             }
         };
-        let posting = transaction::Posting::new(account_str.to_string(), amount);
+        let posting = transaction::posting::Posting::new(account_str.to_string(), amount);
 
         postings.push(posting);
     }

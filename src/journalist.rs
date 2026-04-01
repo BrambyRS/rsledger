@@ -50,7 +50,7 @@ pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> s
         println!(
             "The transaction will be balanced automatically against equity:opening-balance.\n"
         );
-        let mut postings: Vec<transaction::Posting> = Vec::new();
+        let mut postings: Vec<transaction::posting::Posting> = Vec::new();
 
         loop {
             let posting_input: String = prompt_input("Posting: ")?;
@@ -72,7 +72,7 @@ pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> s
                         continue;
                     }
                 };
-                postings.push(transaction::Posting::new(account_str, amount));
+                postings.push(transaction::posting::Posting::new(account_str, amount));
             } else {
                 println!(
                     "Invalid posting format. Please enter in the format '<account> <amount> <commodity>' (e.g. 'assets:bank 1000.00 SEK')."
@@ -81,7 +81,7 @@ pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> s
             }
         }
 
-        postings.push(transaction::Posting::new(
+        postings.push(transaction::posting::Posting::new(
             "equity:opening-balance".to_string(),
             None,
         ));
@@ -122,7 +122,7 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
     );
     let date_str: String = prompt_input("Date (YYYY-MM-DD): ")?;
     let description_str: String = prompt_input("Description: ")?;
-    let mut postings: Vec<transaction::Posting> = Vec::new();
+    let mut postings: Vec<transaction::posting::Posting> = Vec::new();
 
     loop {
         let posting_input: String = prompt_input("Posting: ")?;
@@ -134,7 +134,7 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
             let account_str: String = parts[0].to_string();
             let amount: Option<transaction::commodity_value::CommodityValue> = None;
 
-            postings.push(transaction::Posting::new(account_str, amount));
+            postings.push(transaction::posting::Posting::new(account_str, amount));
         } else if parts.len() == 3 {
             let account_str: String = parts[0].to_string();
             let amount_str: String = parts[1..].join(" ");
@@ -147,7 +147,7 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
                     continue;
                 }
             };
-            postings.push(transaction::Posting::new(account_str, amount));
+            postings.push(transaction::posting::Posting::new(account_str, amount));
         } else {
             println!(
                 "Invalid posting format. Please enter in the format '<account> <amount> <commodity>' (e.g. 'expenses:food 50.00 SEK') or '<account>' (e.g. 'assets:bank' for an auto-balancing posting)."
