@@ -172,7 +172,7 @@ mod tests {
         assert_eq!(transactions.len(), 1);
         assert_eq!(
             format!("{}", transactions[0]),
-            "2025-04-03 Test transaction\n\tassets:bank -435 GBP\n\texpenses:travel:flights\n\n"
+            "2025-04-03 Test transaction\n\tassets:bank  -435 GBP\n\texpenses:travel:flights\n\n"
         );
     }
 
@@ -188,10 +188,10 @@ mod tests {
         assert_eq!(
             format!("{}", transactions[0]),
             "2026-01-01 Opening balance\n\
-             \tassets:bank:checking 50000 SEK\n\
-             \tassets:bank:savings 20000 SEK\n\
-             \tassets:cash 2000 SEK\n\
-             \tliabilities:credit-card -5000 SEK\n\
+             \tassets:bank:checking  50000 SEK\n\
+             \tassets:bank:savings  20000 SEK\n\
+             \tassets:cash  2000 SEK\n\
+             \tliabilities:credit-card  -5000 SEK\n\
              \tequity:opening-balance\n\n"
         );
 
@@ -199,7 +199,7 @@ mod tests {
         assert_eq!(
             format!("{}", transactions[6]),
             "2026-02-01 Spotify AB | Monthly subscription\n\
-             \texpenses:entertainment 119 SEK\n\
+             \texpenses:entertainment  119 SEK\n\
              \tassets:bank:checking\n\n"
         );
     }

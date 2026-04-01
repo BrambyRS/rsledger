@@ -20,7 +20,7 @@ pub struct Posting {
 impl core::fmt::Display for Posting {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match &self.amount {
-            Some(amount) => write!(f, "{} {}", self.account, amount),
+            Some(amount) => write!(f, "{}  {}", self.account, amount),
             None => write!(f, "{}", self.account),
         }
     }

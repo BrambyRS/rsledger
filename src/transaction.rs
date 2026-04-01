@@ -159,7 +159,7 @@ mod tests {
         );
 
         let expected_display =
-            "2024-01-01 Test Transaction\n\tAccount 1 123.45 SEK\n\tAccount 2 -123.45 SEK\n\n";
+            "2024-01-01 Test Transaction\n\tAccount 1  123.45 SEK\n\tAccount 2  -123.45 SEK\n\n";
         assert_eq!(format!("{}", transaction), expected_display);
     }
 
@@ -184,7 +184,7 @@ mod tests {
             ],
         );
 
-        let expected_display = "2024-01-01 Test Transaction\n\tAccount 1 100 GBP\n\tAccount 2 -50 GBP\n\tAccount 3 -50 GBP\n\n";
+        let expected_display = "2024-01-01 Test Transaction\n\tAccount 1  100 GBP\n\tAccount 2  -50 GBP\n\tAccount 3  -50 GBP\n\n";
         assert_eq!(format!("{}", transaction), expected_display);
     }
 
@@ -324,7 +324,7 @@ mod tests {
             ],
         );
         let expected_display =
-            "2024-01-01 Test Transaction\n\tAccount 1 123.45 SEK\n\tAccount 2\n\n";
+            "2024-01-01 Test Transaction\n\tAccount 1  123.45 SEK\n\tAccount 2\n\n";
         assert_eq!(format!("{}", transaction), expected_display);
     }
 
