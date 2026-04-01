@@ -34,6 +34,11 @@ impl Posting {
         Posting { account, amount }
     }
 
+    /// Account getter function
+    pub fn get_account(&self) -> &String {
+        &self.account
+    }
+
     /// Returns a reference to the posting's amount, or `None` if it is an auto-balancing posting.
     pub fn get_amount(&self) -> Option<&commodity_value::CommodityValue> {
         self.amount.as_ref()
