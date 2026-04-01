@@ -31,7 +31,7 @@ fn is_date(s: &str) -> bool {
 }
 
 /// Parses a journal file and returns a vector of transactions.
-fn parse_journal<R: BufRead>(
+pub fn parse_journal<R: BufRead>(
     journal_lines: &mut Peekable<Lines<R>>,
 ) -> Result<Vec<transaction::Transaction>, Box<dyn std::error::Error>> {
     let mut transactions: Vec<transaction::Transaction> = Vec::new();
