@@ -1,21 +1,11 @@
+pub mod avanza_parser;
+
 use crate::journalist::journal_parser;
+use crate::journalist::prompt_input;
 use crate::transaction;
 
-use std::io::BufRead;
-use std::io::Lines;
+use std::io::{BufRead, Lines, Write};
 use std::iter::Peekable;
-
-// TODO:
-// - [x] Read and hash transactions in current journal
-//     - [x] Implement hashing of transactions
-//     - [x] Implement comparison of transaction hashes
-//     - [x] Implement journal parser
-// - [ ] Implement rules for classifying transactions
-// - [ ] Implement rules for skipping transactions I want to enter explicitly
-// - [ ] Implement interactive prompt for manual classification when auto fails
-// - [ ] Implement skipping of pre-existing transactions
-// - [ ] Implement matching of transactions between accounts to remove duplicates
-// - [ ] Implement reading of prices sheet for stock prices
 
 /// A struct that combines the transaction with its functional and partial hashes for easy comparison
 struct HashedTransaction {
@@ -59,6 +49,128 @@ fn read_and_hash_journal(journal_path: std::path::PathBuf) -> Option<Vec<HashedT
         .collect();
 
     return Some(hashed_transactions);
+}
+
+/// Enum representing a candidate transaction from the CSV
+/// It can either be classifiable (i.e all the postings could be automatically resolved)
+/// or unclassifiable (i.e. postings need manual review)
+pub enum ImportCandidate {
+    /// A fully classified transaction to add as it is
+    Classified(transaction::Transaction),
+    /// An unclassifiable transaction for the user to classify manually (should only have the first posting defined)
+    Unclassified(transaction::Transaction),
+}
+
+/// Trait for csv importers.
+///
+/// Each CSV importer can define arbitrarily complex logic to parse a CSV
+/// and classify the transactions it contains. It must then return a list of
+/// `ImportCandidate` objects.
+pub trait CSVImporter {
+    fn import_csv(&self, csv_path: std::path::PathBuf) -> Vec<ImportCandidate>;
+}
+
+/// Handles the ImportCandidate objects and deduplicates against existing transactions in the journal.
+///
+/// For classified candidates, it skips those which already exist in the journal by checking
+/// the functional hash. For unclassified candidates, it checks against the partial hash
+/// and prompts the user to either confirm the match or to classify the transaction manually,
+/// and then have it added to the journal as a new transaction.
+fn deduplicate_transactions(
+    existing_transactions: Vec<HashedTransaction>,
+    candidates: Vec<ImportCandidate>,
+) -> Vec<transaction::Transaction> {
+    let mut new_transactions: Vec<transaction::Transaction> = Vec::with_capacity(candidates.len());
+
+    for candidate in candidates {
+        match candidate {
+            ImportCandidate::Classified(c) => {
+                let candidate_hash: u64 = c.functional_hash();
+                if existing_transactions
+                    .iter()
+                    .any(|t| t.functional_hash == candidate_hash)
+                {
+                    // Skip this transaction as it already exists in the journal
+                    continue;
+                } else {
+                    new_transactions.push(c);
+                }
+            }
+            ImportCandidate::Unclassified(u) => {
+                // Compute the equivalent of the partial hash for this unclassified transaction
+                let candidate_partial_hash: u64 = u.partial_hash();
+                for existing in &existing_transactions {
+                    if existing.partial_hash == candidate_partial_hash {
+                        // Ask the user if they want to classify this transaction as the existing one
+                        println!("Found a potential match for an unclassified transaction:");
+                        println!("Existing transaction: {}", existing.transaction);
+                        println!("Unclassified transaction: {}", u);
+
+                        let user_input: String = prompt_input(
+                            "Do you want to classify this transaction as the existing one? (y/n) ",
+                        )
+                        .unwrap();
+                        if user_input.to_lowercase() == "y" {
+                            // User confirmed the match, so we skip adding this transaction
+                            break;
+                        }
+                    }
+                }
+
+                // If we get here, it means there were no approved matches
+                let user_classification: String = prompt_input("Please enter the account to balance this transaction against (e.g. 'expenses:food'): ")
+                    .unwrap();
+                let second_posting = transaction::posting::Posting::new(user_classification, None);
+                let classified_transaction = transaction::Transaction::new(
+                    u.get_date().to_string(),
+                    u.get_description().to_string(),
+                    vec![u.get_postings()[0].clone(), second_posting],
+                );
+                new_transactions.push(classified_transaction);
+            }
+        }
+    }
+
+    return new_transactions;
+}
+
+/// Main function to handle the CSV import process
+///
+/// 1. Reads and hashes existing transactions in the journal
+/// 2. Uses the provided CSVImporter to parse the CSV and get a list of ImportCandidates
+/// 3. Deduplicates the candidates against existing transactions and prompts the user for manual classification when needed
+/// 4. Appends the new transactions to the journal file
+pub fn import_transactions_from_csv(
+    csv_importer: &dyn CSVImporter,
+    csv_path: &std::path::PathBuf,
+    journal_path: &std::path::PathBuf,
+) -> std::io::Result<()> {
+    let existing_transactions: Vec<HashedTransaction> =
+        match read_and_hash_journal(journal_path.clone()) {
+            Some(t) => t,
+            None => {
+                eprintln!(
+                    "Error reading and hashing existing transactions from {}. Aborting import.",
+                    journal_path.display()
+                );
+                return Ok(());
+            }
+        };
+
+    let candidates: Vec<ImportCandidate> = csv_importer.import_csv(csv_path.clone());
+
+    let new_transactions: Vec<transaction::Transaction> =
+        deduplicate_transactions(existing_transactions, candidates);
+
+    let mut file = std::fs::OpenOptions::new()
+        .append(true)
+        .open(&journal_path)?;
+
+    for transaction in new_transactions {
+        write!(file, "{}", transaction)?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
