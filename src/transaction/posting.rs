@@ -7,7 +7,7 @@ use std::hash::Hash;
 /// When `amount` is `None`, the posting is an auto-balancing entry whose value is
 /// inferred when resolving the transaction. At most one posting per transaction may
 /// have a `None` amount.
-#[derive(Hash)]
+#[derive(Hash, Clone)]
 pub struct Posting {
     /// The account name (e.g. `"assets:bank"`, `"expenses:food"`).
     account: String,
