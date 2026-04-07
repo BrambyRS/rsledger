@@ -1,4 +1,4 @@
-mod csv_parser;
+pub mod csv_parser;
 mod journal_parser;
 
 use std::fs;

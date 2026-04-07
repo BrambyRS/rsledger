@@ -1,8 +1,13 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 mod config;
 mod journalist;
 mod transaction;
+
+#[derive(ValueEnum, Clone)]
+enum ParserOptions {
+    Avanza,
+}
 
 #[derive(Subcommand)]
 enum Command {
@@ -15,6 +20,13 @@ enum Command {
         open: bool,
     },
     Add,
+    Import {
+        #[arg(help = "CSV file to import from.")]
+        csv_file: String,
+
+        #[arg(help = "Parser logic to use when importing the CSV file.")]
+        parser: ParserOptions,
+    },
     Config {
         #[arg(
             short = 'f',
@@ -109,6 +121,22 @@ fn main() {
             Ok(path) => {
                 if let Err(e) = journalist::add_entry(&path) {
                     eprintln!("Error adding entry: {}", e);
+                }
+            }
+        },
+        Command::Import { csv_file, parser } => match journal_file {
+            Err(e) => eprintln!("Error resolving journal file path: {}", e),
+            Ok(path) => {
+                let parser = match parser {
+                    ParserOptions::Avanza => journalist::csv_parser::avanza_parser::AvanzaParser,
+                };
+
+                let csv_file = std::path::PathBuf::from(csv_file);
+
+                if let Err(e) =
+                    journalist::csv_parser::import_transactions_from_csv(&parser, &csv_file, &path)
+                {
+                    eprintln!("Error importing CSV: {}", e);
                 }
             }
         },
