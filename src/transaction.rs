@@ -149,6 +149,20 @@ impl Transaction {
         }
         hasher.finish()
     }
+
+    // Getters
+
+    pub fn get_date(&self) -> &String {
+        &self.date
+    }
+
+    pub fn get_description(&self) -> &String {
+        &self.description
+    }
+
+    pub fn get_postings(&self) -> &Vec<posting::Posting> {
+        &self.postings
+    }
 }
 
 #[cfg(test)]
