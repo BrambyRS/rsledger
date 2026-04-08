@@ -127,14 +127,16 @@ fn main() {
         Command::Import { csv_file, parser } => match journal_file {
             Err(e) => eprintln!("Error resolving journal file path: {}", e),
             Ok(path) => {
-                let parser = match parser {
-                    ParserOptions::Avanza => journalist::csv_parser::avanza_parser::AvanzaParser,
+                let parser: Box<dyn journalist::csv_parser::CSVImporter> = match parser {
+                    ParserOptions::Avanza => {
+                        Box::new(journalist::csv_parser::avanza_parser::AvanzaParser)
+                    }
                 };
 
                 let csv_file = std::path::PathBuf::from(csv_file);
 
                 if let Err(e) =
-                    journalist::csv_parser::import_transactions_from_csv(&parser, &csv_file, &path)
+                    journalist::csv_parser::import_transactions_from_csv(&*parser, &csv_file, &path)
                 {
                     eprintln!("Error importing CSV: {}", e);
                 }
