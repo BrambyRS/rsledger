@@ -7,6 +7,8 @@ mod transaction;
 #[derive(ValueEnum, Clone)]
 enum ParserOptions {
     Avanza,
+    HSBCDebit,
+    HSBCCredit,
 }
 
 #[derive(Subcommand)]
@@ -26,6 +28,13 @@ enum Command {
 
         #[arg(help = "Parser logic to use when importing the CSV file.")]
         parser: ParserOptions,
+
+        #[arg(
+            long = "rule-sheet",
+            help = "Path to a .toml file containing classification rulest to apply when importing the transactions. If not provided, no classification rules will be applied.",
+            default_value = ""
+        )]
+        rule_sheet: String,
     },
     Config {
         #[arg(
@@ -124,12 +133,28 @@ fn main() {
                 }
             }
         },
-        Command::Import { csv_file, parser } => match journal_file {
+        Command::Import {
+            csv_file,
+            parser,
+            rule_sheet,
+        } => match journal_file {
             Err(e) => eprintln!("Error resolving journal file path: {}", e),
             Ok(path) => {
                 let parser: Box<dyn journalist::csv_parser::CSVImporter> = match parser {
                     ParserOptions::Avanza => {
                         Box::new(journalist::csv_parser::avanza_parser::AvanzaParser)
+                    }
+                    ParserOptions::HSBCDebit => {
+                        Box::new(journalist::csv_parser::hsbc_parser::HSBCParser::new(
+                            "assets:bank:hsbc".to_string(),
+                            std::path::PathBuf::from(&rule_sheet),
+                        ))
+                    }
+                    ParserOptions::HSBCCredit => {
+                        Box::new(journalist::csv_parser::hsbc_parser::HSBCParser::new(
+                            "liabilities:credit:hsbc-credit-card".to_string(),
+                            std::path::PathBuf::from(&rule_sheet),
+                        ))
                     }
                 };
 

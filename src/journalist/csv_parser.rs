@@ -1,4 +1,5 @@
 pub mod avanza_parser;
+pub mod hsbc_parser;
 
 use crate::journalist::journal_parser;
 use crate::journalist::prompt_input;
