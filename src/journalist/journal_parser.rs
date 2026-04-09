@@ -100,6 +100,13 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
             )));
         }
     };
+    // Trim any trailing comments and whitespace
+    let first_line = first_line
+        .split(';')
+        .next()
+        .expect("Unexpected comment in transaction header line.")
+        .trim_end()
+        .to_string();
     let date_str = first_line[..10].to_string();
     let description = first_line[11..].trim().to_string();
     // Expect lines with leading whitespace to be postings
@@ -115,7 +122,12 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
         };
 
         // Remove any comment
-        let line: String = line.split(';').next().unwrap_or("").to_string();
+        let line: String = line
+            .split(';')
+            .next()
+            .expect("Unexpected comment in posting line.")
+            .trim_end()
+            .to_string();
 
         // Skip if the line is empty or does not start with whitespace
         if line.trim().len() == 0 {
