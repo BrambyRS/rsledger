@@ -100,9 +100,8 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
             )));
         }
     };
-    let mut tokens = first_line.split_whitespace();
-    let date_str = tokens.next().unwrap_or("");
-    let description = tokens.collect::<Vec<&str>>().join(" ");
+    let date_str = first_line[..10].to_string();
+    let description = first_line[11..].trim().to_string();
     // Expect lines with leading whitespace to be postings
     // Stop either when the next line is empty,
     // when the next line starts with a non-whitespace character,
