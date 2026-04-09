@@ -233,7 +233,10 @@ impl csv_parser::CSVImporter for AvanzaParser {
                             .unwrap(),
                         ),
                     ),
-                    transaction::posting::Posting::new("expenses:interest".to_string(), None),
+                    transaction::posting::Posting::new(
+                        "expenses:bank:avanza:interest".to_string(),
+                        None,
+                    ),
                 ];
 
                 import_candidates.push(csv_parser::ImportCandidate::Classified(
