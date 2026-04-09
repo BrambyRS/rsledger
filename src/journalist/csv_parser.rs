@@ -99,12 +99,15 @@ fn deduplicate_transactions(
             ImportCandidate::Unclassified(u) => {
                 // Compute the equivalent of the partial hash for this unclassified transaction
                 let candidate_partial_hash: u64 = u.partial_hash();
+                let mut skip: bool = false;
+
                 for existing in &existing_transactions {
                     if existing.partial_hash == candidate_partial_hash {
                         // Ask the user if they want to classify this transaction as the existing one
-                        println!("Found a potential match for an unclassified transaction:");
-                        println!("Existing transaction: {}", existing.transaction);
-                        println!("Unclassified transaction: {}", u);
+                        println!("Found a potential match for the unclassified transaction:");
+                        println!("{}", u);
+                        println!("With as the existing transaction:");
+                        println!("{}", existing.transaction);
 
                         let user_input: String = prompt_input(
                             "Do you want to classify this transaction as the existing one? (y/n) ",
@@ -112,21 +115,29 @@ fn deduplicate_transactions(
                         .unwrap();
                         if user_input.to_lowercase() == "y" {
                             // User confirmed the match, so we skip adding this transaction
+                            skip = true;
                             break;
                         }
                     }
                 }
 
-                // If we get here, it means there were no approved matches
-                let user_classification: String = prompt_input("Please enter the account to balance this transaction against (e.g. 'expenses:food'): ")
+                // If we get here and skip is false, it means there were no approved matches
+                if !skip {
+                    println!("{u}");
+                    let user_classification: String = prompt_input("Please enter the account to balance this transaction against (e.g. 'expenses:food') or leave empty to skip: ")
                     .unwrap();
-                let second_posting = transaction::posting::Posting::new(user_classification, None);
-                let classified_transaction = transaction::Transaction::new(
-                    u.get_date().to_string(),
-                    u.get_description().to_string(),
-                    vec![u.get_postings()[0].clone(), second_posting],
-                );
-                new_transactions.push(classified_transaction);
+                    if user_classification.is_empty() {
+                        continue;
+                    }
+                    let second_posting =
+                        transaction::posting::Posting::new(user_classification, None);
+                    let classified_transaction = transaction::Transaction::new(
+                        u.get_date().to_string(),
+                        u.get_description().to_string(),
+                        vec![u.get_postings()[0].clone(), second_posting],
+                    );
+                    new_transactions.push(classified_transaction);
+                }
             }
         }
     }
