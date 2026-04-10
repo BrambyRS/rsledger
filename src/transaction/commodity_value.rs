@@ -9,13 +9,18 @@ use std::hash::Hash;
 pub struct CommodityValue {
     /// The scaled decimal amount.
     amount: FixedDecimal,
-    /// Name of the commodity (e.g. `"SEK"`, `"GBP"`, `"Gold Bar"`).
+    /// Name of the commodity (e.g. `SEK`, `GBP`, `Gold Bar`). Always stored without quotes.
     commodity: String,
 }
 
 impl core::fmt::Display for CommodityValue {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        write!(f, "{} {}", self.amount, self.commodity)
+        // Print with quotes if the commodity contains a space for hledger compatibility
+        if self.commodity.contains(' ') {
+            write!(f, "{}  \"{}\"", self.amount, self.commodity)
+        } else {
+            write!(f, "{}  {}", self.amount, self.commodity)
+        }
     }
 }
 
@@ -46,6 +51,17 @@ impl CommodityValue {
 
         let amount_part: &str = parts[0];
         let commodity_part: String = parts[1..].join(" ");
+
+        // Strip surrounding quotes if present (e.g. when reading back from a journal file).
+        // The commodity is always stored unquoted; quotes are added at display time.
+        let commodity_part = if commodity_part.starts_with('"')
+            && commodity_part.ends_with('"')
+            && commodity_part.len() >= 2
+        {
+            commodity_part[1..commodity_part.len() - 1].to_string()
+        } else {
+            commodity_part
+        };
 
         let amount = FixedDecimal::from_str(amount_part)
             .map_err(|_| format!("Invalid amount format: '{}'.", amount_part))?;
