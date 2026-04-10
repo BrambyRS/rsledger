@@ -9,6 +9,9 @@ enum ParserOptions {
     Avanza,
     HSBCDebit,
     HSBCCredit,
+    SebDebit,
+    SebSavings,
+    Volksbank,
 }
 
 #[derive(Subcommand)]
@@ -156,6 +159,24 @@ fn main() {
                             std::path::PathBuf::from(&rule_sheet),
                         ))
                     }
+                    ParserOptions::SebDebit => {
+                        Box::new(journalist::csv_parser::seb_parser::SebParser::new(
+                            "assets:bank:seb-lönekonto".to_string(),
+                            std::path::PathBuf::from(&rule_sheet),
+                        ))
+                    }
+                    ParserOptions::SebSavings => {
+                        Box::new(journalist::csv_parser::seb_parser::SebParser::new(
+                            "assets:bank:seb-sparkonto".to_string(),
+                            std::path::PathBuf::from(&rule_sheet),
+                        ))
+                    }
+                    ParserOptions::Volksbank => Box::new(
+                        journalist::csv_parser::volksbank_parser::VolksbankParser::new(
+                            "assets:bank:volksbank".to_string(),
+                            std::path::PathBuf::from(&rule_sheet),
+                        ),
+                    ),
                 };
 
                 let csv_file = std::path::PathBuf::from(csv_file);

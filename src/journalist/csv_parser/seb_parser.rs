@@ -4,15 +4,16 @@ use crate::transaction;
 
 use std::path::PathBuf;
 
-pub struct HSBCParser {
+pub struct SebParser {
     rules: Vec<RegexRule>,
     account: String,
 }
 
-impl csv_parser::CSVImporter for HSBCParser {
+impl csv_parser::CSVImporter for SebParser {
     fn import_csv(&self, csv_path: PathBuf) -> Vec<csv_parser::ImportCandidate> {
         let mut reader = match csv::ReaderBuilder::new()
-            .has_headers(false)
+            .has_headers(true)
+            .delimiter(b';')
             .from_path(&csv_path)
         {
             Ok(r) => r,
@@ -24,14 +25,9 @@ impl csv_parser::CSVImporter for HSBCParser {
 
         let mut import_candidates: Vec<csv_parser::ImportCandidate> = Vec::new();
 
-        // HSBC CSVs do not have a header, so we can start parsing immediately
-        // There are only three columns: Date, Description, Amount
-        // Separator is ","
-        // Date is on the format DD/MM/YYYY
-        // Description is just free text
-        // Amount is either \d+.\d{2} or \"\d+,\d+.\d{2}\" (with thousands separator)
-        let date_regex = regex::Regex::new(r"^\d{2}/\d{2}/\d{4}$").unwrap();
-
+        // SEB CSVs have one header row (skipped by has_headers(true)).
+        // Columns (0-based): 0=date (YYYY-MM-DD), 3=description, 4=amount
+        // Decimal character is '.'. Commodity is always SEK.
         for result in reader.records() {
             let record = match result {
                 Ok(r) => r,
@@ -41,33 +37,20 @@ impl csv_parser::CSVImporter for HSBCParser {
                 }
             };
 
-            if record.len() != 3 {
+            if record.len() < 5 {
                 eprintln!(
-                    "Invalid line format (expected 3 columns), got {}. Skipping.",
+                    "Invalid line format (expected at least 5 columns), got {}. Skipping.",
                     record.len()
                 );
                 continue;
             }
 
-            let date_str_raw = record[0].trim();
-            let description_str = record[1].trim();
-            let amount_str_raw = record[2].trim();
+            let date_str = record[0].trim().to_string();
+            let description_str = record[3].trim();
+            let amount_str_raw = record[4].trim();
 
-            let date_str = if !date_regex.is_match(date_str_raw) {
-                eprintln!("Invalid date format '{}'. Skipping.", date_str_raw);
-                continue;
-            } else {
-                // Convert to YYYY-MM-DD format
-                let date_parts: Vec<&str> = date_str_raw.split('/').collect();
-                format!("{}-{}-{}", date_parts[2], date_parts[1], date_parts[0])
-            };
+            let amount_str = format!("{} SEK", amount_str_raw);
 
-            // The csv crate strips surrounding quotes, so we only need to remove
-            // the thousands separator before appending the commodity.
-            let amount_str = format!("{} GBP", amount_str_raw.replace(",", ""));
-
-            // We will try to match the description against the rules to classify the transactions
-            // that can be classified
             let mut classified = false;
             for rule in &self.rules {
                 if rule.pattern.is_match(description_str) {
@@ -136,8 +119,8 @@ impl csv_parser::CSVImporter for HSBCParser {
     }
 }
 
-impl HSBCParser {
-    pub fn new(account: String, rule_sheet: PathBuf) -> HSBCParser {
+impl SebParser {
+    pub fn new(account: String, rule_sheet: PathBuf) -> SebParser {
         let rules: Vec<RegexRule> = match read_rule_sheet(rule_sheet) {
             Ok(rules) => rules,
             Err(_) => {
@@ -146,6 +129,6 @@ impl HSBCParser {
             }
         };
 
-        return HSBCParser { rules, account };
+        return SebParser { rules, account };
     }
 }

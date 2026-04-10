@@ -4,15 +4,16 @@ use crate::transaction;
 
 use std::path::PathBuf;
 
-pub struct HSBCParser {
+pub struct VolksbankParser {
     rules: Vec<RegexRule>,
     account: String,
 }
 
-impl csv_parser::CSVImporter for HSBCParser {
+impl csv_parser::CSVImporter for VolksbankParser {
     fn import_csv(&self, csv_path: PathBuf) -> Vec<csv_parser::ImportCandidate> {
         let mut reader = match csv::ReaderBuilder::new()
-            .has_headers(false)
+            .has_headers(true)
+            .delimiter(b';')
             .from_path(&csv_path)
         {
             Ok(r) => r,
@@ -24,14 +25,13 @@ impl csv_parser::CSVImporter for HSBCParser {
 
         let mut import_candidates: Vec<csv_parser::ImportCandidate> = Vec::new();
 
-        // HSBC CSVs do not have a header, so we can start parsing immediately
-        // There are only three columns: Date, Description, Amount
-        // Separator is ","
-        // Date is on the format DD/MM/YYYY
-        // Description is just free text
-        // Amount is either \d+.\d{2} or \"\d+,\d+.\d{2}\" (with thousands separator)
-        let date_regex = regex::Regex::new(r"^\d{2}/\d{2}/\d{4}$").unwrap();
-
+        // Volksbank CSVs have one header row (skipped by has_headers(true)).
+        // Columns (0-based):
+        //   4  = date (DD.MM.YYYY)
+        //   6  = description part 1
+        //   10 = description part 2
+        //   11 = amount ('.' thousands sep, ',' decimal sep)
+        //   12 = commodity
         for result in reader.records() {
             let record = match result {
                 Ok(r) => r,
@@ -41,36 +41,41 @@ impl csv_parser::CSVImporter for HSBCParser {
                 }
             };
 
-            if record.len() != 3 {
+            if record.len() < 13 {
                 eprintln!(
-                    "Invalid line format (expected 3 columns), got {}. Skipping.",
+                    "Invalid line format (expected at least 13 columns), got {}. Skipping.",
                     record.len()
                 );
                 continue;
             }
 
-            let date_str_raw = record[0].trim();
-            let description_str = record[1].trim();
-            let amount_str_raw = record[2].trim();
-
-            let date_str = if !date_regex.is_match(date_str_raw) {
+            // Date: DD.MM.YYYY → YYYY-MM-DD
+            let date_str_raw = record[4].trim();
+            let date_parts: Vec<&str> = date_str_raw.split('.').collect();
+            if date_parts.len() != 3 {
                 eprintln!("Invalid date format '{}'. Skipping.", date_str_raw);
                 continue;
-            } else {
-                // Convert to YYYY-MM-DD format
-                let date_parts: Vec<&str> = date_str_raw.split('/').collect();
-                format!("{}-{}-{}", date_parts[2], date_parts[1], date_parts[0])
+            }
+            let date_str = format!("{}-{}-{}", date_parts[2], date_parts[1], date_parts[0]);
+
+            // Description: concatenate col 6 and col 10, separated by a space if both non-empty
+            let desc1 = record[6].trim();
+            let desc2 = record[10].trim();
+            let description_str = match (desc1.is_empty(), desc2.is_empty()) {
+                (false, false) => format!("{} {}", desc1, desc2),
+                (false, true) => desc1.to_string(),
+                (true, false) => desc2.to_string(),
+                (true, true) => String::new(),
             };
 
-            // The csv crate strips surrounding quotes, so we only need to remove
-            // the thousands separator before appending the commodity.
-            let amount_str = format!("{} GBP", amount_str_raw.replace(",", ""));
+            // Amount: strip '.' (thousands sep), replace ',' with '.' (decimal sep)
+            let amount_raw = record[11].trim().replace('.', "").replace(',', ".");
+            let commodity = record[12].trim();
+            let amount_str = format!("{} {}", amount_raw, commodity);
 
-            // We will try to match the description against the rules to classify the transactions
-            // that can be classified
             let mut classified = false;
             for rule in &self.rules {
-                if rule.pattern.is_match(description_str) {
+                if rule.pattern.is_match(&description_str) {
                     match &rule.action {
                         RuleAction::AssignAccount(against_account) => {
                             let mut postings: Vec<transaction::posting::Posting> = Vec::new();
@@ -97,7 +102,7 @@ impl csv_parser::CSVImporter for HSBCParser {
                             ));
                             let transaction = transaction::Transaction::new(
                                 date_str.clone(),
-                                description_str.to_string(),
+                                description_str.clone(),
                                 postings,
                             );
                             import_candidates
@@ -127,7 +132,7 @@ impl csv_parser::CSVImporter for HSBCParser {
                     ),
                 )];
                 let transaction =
-                    transaction::Transaction::new(date_str, description_str.to_string(), postings);
+                    transaction::Transaction::new(date_str, description_str, postings);
                 import_candidates.push(csv_parser::ImportCandidate::Unclassified(transaction));
             }
         }
@@ -136,8 +141,8 @@ impl csv_parser::CSVImporter for HSBCParser {
     }
 }
 
-impl HSBCParser {
-    pub fn new(account: String, rule_sheet: PathBuf) -> HSBCParser {
+impl VolksbankParser {
+    pub fn new(account: String, rule_sheet: PathBuf) -> VolksbankParser {
         let rules: Vec<RegexRule> = match read_rule_sheet(rule_sheet) {
             Ok(rules) => rules,
             Err(_) => {
@@ -146,6 +151,6 @@ impl HSBCParser {
             }
         };
 
-        return HSBCParser { rules, account };
+        return VolksbankParser { rules, account };
     }
 }
