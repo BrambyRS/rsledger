@@ -1,0 +1,7 @@
+[[rules]]
+pattern = "^SALARY"
+action = "SKIP"
+
+[[rules]]
+pattern = "^RENT"
+action = "Skip"

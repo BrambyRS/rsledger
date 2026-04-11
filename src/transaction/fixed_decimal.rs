@@ -1,8 +1,10 @@
+use std::hash::Hash;
+
 /// A fixed-precision decimal number stored as a scaled integer.
 ///
 /// Arithmetic operations on `FixedDecimal` are independent of any commodity.
 /// For example, `123.45` is stored as `amount = 12345`, `precision = 2`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 pub struct FixedDecimal {
     /// The scaled integer amount. Divide by `10^precision` to get the real value.
     amount: i64,
@@ -18,8 +20,8 @@ impl FixedDecimal {
 
     /// Parses a `FixedDecimal` from a bare number string such as `"123.45"` or `"-10"`.
     ///
-    /// No commodity is expected. The string must contain at most one decimal point and
-    /// consist only of digits and an optional leading minus sign.
+    /// Reduces the value to the lowest possible precision by removing any trailing zeros
+    /// after the decimal point. For example, `"1.40"` is parsed as `amount = 14`, `precision = 1`.
     ///
     /// # Errors
     /// Returns an `Err` if the string has multiple decimal points or contains
@@ -33,14 +35,28 @@ impl FixedDecimal {
         let parts: Vec<&str> = s.split('.').collect();
         match parts.len() {
             1 => {
-                let amount = parts[0].parse::<i64>()
+                let amount = parts[0]
+                    .parse::<i64>()
                     .map_err(|_| format!("Invalid decimal format: '{}'.", s))?;
-                Ok(FixedDecimal { amount, precision: 0 })
+                Ok(FixedDecimal {
+                    amount,
+                    precision: 0,
+                })
             }
             2 => {
-                let precision = parts[1].len() as u8;
-                let joined = parts.join("");
-                let amount = joined.parse::<i64>()
+                // Walk the decimal parts from the end, until the first non-zero is found
+                let mut precision = parts[1].len() as u8;
+                for ch in parts[1].chars().rev() {
+                    if ch == '0' {
+                        precision -= 1;
+                    } else {
+                        break;
+                    }
+                }
+                let decimal_part = &parts[1][..precision as usize];
+                let joined = format!("{}{}", parts[0], decimal_part);
+                let amount = joined
+                    .parse::<i64>()
                     .map_err(|_| format!("Invalid decimal format: '{}'.", s))?;
                 Ok(FixedDecimal { amount, precision })
             }
@@ -50,12 +66,12 @@ impl FixedDecimal {
 
     /// The raw scaled integer. Divide by `10^precision()` to get the real value.
     pub fn raw_amount(&self) -> i64 {
-        self.amount
+        return self.amount;
     }
 
     /// Number of decimal places used in the scaled representation.
     pub fn precision(&self) -> u8 {
-        self.precision
+        return self.precision;
     }
 
     /// Aligns the precision of `self` and `other` to the same scale.
@@ -66,18 +82,24 @@ impl FixedDecimal {
         let max_precision = std::cmp::max(self.precision, other.precision);
         let self_aligned = self.amount * 10_i64.pow((max_precision - self.precision) as u32);
         let other_aligned = other.amount * 10_i64.pow((max_precision - other.precision) as u32);
-        (self_aligned, other_aligned, max_precision)
+
+        return (self_aligned, other_aligned, max_precision);
     }
 }
 
 impl core::fmt::Display for FixedDecimal {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         if self.precision == 0 {
-            write!(f, "{}", self.amount)
+            return write!(f, "{}", self.amount);
         } else {
             let int_part = self.amount / 10_i64.pow(self.precision as u32);
             let decimal_part = (self.amount.abs() % 10_i64.pow(self.precision as u32)).abs();
-            write!(f, "{}.{}", int_part, format!("{:0width$}", decimal_part, width = self.precision as usize))
+            return write!(
+                f,
+                "{}.{}",
+                int_part,
+                format!("{:0width$}", decimal_part, width = self.precision as usize)
+            );
         }
     }
 }
@@ -180,6 +202,27 @@ mod tests {
     }
 
     #[test]
+    fn test_fixed_decimal_from_str_trailing_zeros() {
+        let fd = FixedDecimal::from_str("1.40").unwrap();
+        assert_eq!(fd.raw_amount(), 14);
+        assert_eq!(fd.precision(), 1);
+    }
+
+    #[test]
+    fn test_fixed_decimal_multiple_trailing_zeros() {
+        let fd = FixedDecimal::from_str("1.4000").unwrap();
+        assert_eq!(fd.raw_amount(), 14);
+        assert_eq!(fd.precision(), 1);
+    }
+
+    #[test]
+    fn test_fixed_decimal_all_trailing_zeros() {
+        let fd = FixedDecimal::from_str("1.000").unwrap();
+        assert_eq!(fd.raw_amount(), 1);
+        assert_eq!(fd.precision(), 0);
+    }
+
+    #[test]
     fn test_fixed_decimal_from_str_invalid_multiple_dots() {
         assert!(FixedDecimal::from_str("1.2.3").is_err());
     }
@@ -214,7 +257,7 @@ mod tests {
     #[test]
     fn test_fixed_decimal_display_trailing_zeros() {
         let fd = FixedDecimal::from_str("1.40").unwrap();
-        assert_eq!(format!("{}", fd), "1.40");
+        assert_eq!(format!("{}", fd), "1.4");
     }
 
     // -------------------------------------------------------------------------

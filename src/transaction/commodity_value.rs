@@ -1,20 +1,26 @@
 use super::fixed_decimal::FixedDecimal;
+use std::hash::Hash;
 
 /// Represents a monetary or commodity amount with a fixed-precision integer representation.
 ///
 /// The numeric amount is stored as a [`FixedDecimal`] to avoid floating-point precision
 /// issues. For example, `123.45 SEK` stores `amount = FixedDecimal { 12345, 2 }`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 pub struct CommodityValue {
     /// The scaled decimal amount.
     amount: FixedDecimal,
-    /// Name of the commodity (e.g. `"SEK"`, `"GBP"`, `"Gold Bar"`).
+    /// Name of the commodity (e.g. `SEK`, `GBP`, `Gold Bar`). Always stored without quotes.
     commodity: String,
 }
 
 impl core::fmt::Display for CommodityValue {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        write!(f, "{} {}", self.amount, self.commodity)
+        // Print with quotes if the commodity contains a space for hledger compatibility
+        if self.commodity.contains(' ') {
+            write!(f, "{} \"{}\"", self.amount, self.commodity)
+        } else {
+            write!(f, "{} {}", self.amount, self.commodity)
+        }
     }
 }
 
@@ -37,11 +43,25 @@ impl CommodityValue {
         // The commodity part can have spaces,
         let parts: Vec<&str> = amount_str.split_whitespace().collect();
         if parts.len() < 2 {
-            return Err(format!("Invalid amount format: '{}'. Expected format: '<amount> <commodity>'.", amount_str));
+            return Err(format!(
+                "Invalid amount format: '{}'. Expected format: '<amount> <commodity>'.",
+                amount_str
+            ));
         }
 
         let amount_part: &str = parts[0];
         let commodity_part: String = parts[1..].join(" ");
+
+        // Strip surrounding quotes if present (e.g. when reading back from a journal file).
+        // The commodity is always stored unquoted; quotes are added at display time.
+        let commodity_part = if commodity_part.starts_with('"')
+            && commodity_part.ends_with('"')
+            && commodity_part.len() >= 2
+        {
+            commodity_part[1..commodity_part.len() - 1].to_string()
+        } else {
+            commodity_part
+        };
 
         let amount = FixedDecimal::from_str(amount_part)
             .map_err(|_| format!("Invalid amount format: '{}'.", amount_part))?;
@@ -218,13 +238,23 @@ mod tests {
     #[test]
     fn test_commodity_value_display_different_precision() {
         let cv = CommodityValue::from_str("123.4567 Gold Bar").unwrap();
-        assert_eq!(format!("{}", cv), "123.4567 Gold Bar");
+        assert_eq!(format!("{}", cv), "123.4567 \"Gold Bar\"");
     }
 
     #[test]
     fn test_commodity_value_display_negative() {
         let cv = CommodityValue::from_str("-123.45 SEK").unwrap();
         assert_eq!(format!("{}", cv), "-123.45 SEK");
+    }
+
+    #[test]
+    fn test_commodity_with_spaces_display_round_trip() {
+        // Parsing unquoted "Gold Bar" should store it unquoted; display should add quotes;
+        // re-parsing that quoted form should produce the same value.
+        let original = CommodityValue::from_str("123.45 Gold Bar").unwrap();
+        assert_eq!(format!("{}", original), "123.45 \"Gold Bar\"");
+        let reparsed = CommodityValue::from_str(&format!("{}", original)).unwrap();
+        assert_eq!(original, reparsed);
     }
 
     // -------------------------------------------------------------------------

@@ -1,0 +1,13 @@
+[[rules]]
+pattern = "^GROCERY STORE"
+action = "assign_account"
+account = "expenses:food:groceries"
+
+[[rules]]
+pattern = "NETFLIX|SPOTIFY"
+action = "assign_account"
+account = "expenses:entertainment:subscriptions"
+
+[[rules]]
+pattern = "^INTERNAL TRANSFER"
+action = "skip"
