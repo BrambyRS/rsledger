@@ -66,12 +66,12 @@ impl FixedDecimal {
 
     /// The raw scaled integer. Divide by `10^precision()` to get the real value.
     pub fn raw_amount(&self) -> i64 {
-        self.amount
+        return self.amount;
     }
 
     /// Number of decimal places used in the scaled representation.
     pub fn precision(&self) -> u8 {
-        self.precision
+        return self.precision;
     }
 
     /// Aligns the precision of `self` and `other` to the same scale.
@@ -82,23 +82,24 @@ impl FixedDecimal {
         let max_precision = std::cmp::max(self.precision, other.precision);
         let self_aligned = self.amount * 10_i64.pow((max_precision - self.precision) as u32);
         let other_aligned = other.amount * 10_i64.pow((max_precision - other.precision) as u32);
-        (self_aligned, other_aligned, max_precision)
+
+        return (self_aligned, other_aligned, max_precision);
     }
 }
 
 impl core::fmt::Display for FixedDecimal {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         if self.precision == 0 {
-            write!(f, "{}", self.amount)
+            return write!(f, "{}", self.amount);
         } else {
             let int_part = self.amount / 10_i64.pow(self.precision as u32);
             let decimal_part = (self.amount.abs() % 10_i64.pow(self.precision as u32)).abs();
-            write!(
+            return write!(
                 f,
                 "{}.{}",
                 int_part,
                 format!("{:0width$}", decimal_part, width = self.precision as usize)
-            )
+            );
         }
     }
 }

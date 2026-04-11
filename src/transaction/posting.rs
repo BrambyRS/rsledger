@@ -15,7 +15,7 @@ pub struct Posting {
     amount: Option<commodity_value::CommodityValue>,
 }
 
-/// Formats the posting as `"<account> <amount>"`, or just `"<account>"` when the
+/// Formats the posting as `"<account>  <amount>"` (two or more spaces), or just `"<account>"` when the
 /// amount is `None`.
 impl core::fmt::Display for Posting {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
@@ -31,16 +31,18 @@ impl Posting {
     ///
     /// Pass `None` for `amount` to create an auto-balancing posting.
     pub fn new(account: String, amount: Option<commodity_value::CommodityValue>) -> Self {
-        Posting { account, amount }
+        return Posting { account, amount };
     }
 
+    #[allow(dead_code)]
     /// Account getter function
     pub fn get_account(&self) -> &String {
-        &self.account
+        return &self.account;
     }
 
+    #[allow(dead_code)]
     /// Returns a reference to the posting's amount, or `None` if it is an auto-balancing posting.
     pub fn get_amount(&self) -> Option<&commodity_value::CommodityValue> {
-        self.amount.as_ref()
+        return self.amount.as_ref();
     }
 }

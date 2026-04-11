@@ -17,9 +17,9 @@ impl core::fmt::Display for CommodityValue {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         // Print with quotes if the commodity contains a space for hledger compatibility
         if self.commodity.contains(' ') {
-            write!(f, "{}  \"{}\"", self.amount, self.commodity)
+            write!(f, "{} \"{}\"", self.amount, self.commodity)
         } else {
-            write!(f, "{}  {}", self.amount, self.commodity)
+            write!(f, "{} {}", self.amount, self.commodity)
         }
     }
 }
@@ -238,13 +238,23 @@ mod tests {
     #[test]
     fn test_commodity_value_display_different_precision() {
         let cv = CommodityValue::from_str("123.4567 Gold Bar").unwrap();
-        assert_eq!(format!("{}", cv), "123.4567 Gold Bar");
+        assert_eq!(format!("{}", cv), "123.4567 \"Gold Bar\"");
     }
 
     #[test]
     fn test_commodity_value_display_negative() {
         let cv = CommodityValue::from_str("-123.45 SEK").unwrap();
         assert_eq!(format!("{}", cv), "-123.45 SEK");
+    }
+
+    #[test]
+    fn test_commodity_with_spaces_display_round_trip() {
+        // Parsing unquoted "Gold Bar" should store it unquoted; display should add quotes;
+        // re-parsing that quoted form should produce the same value.
+        let original = CommodityValue::from_str("123.45 Gold Bar").unwrap();
+        assert_eq!(format!("{}", original), "123.45 \"Gold Bar\"");
+        let reparsed = CommodityValue::from_str(&format!("{}", original)).unwrap();
+        assert_eq!(original, reparsed);
     }
 
     // -------------------------------------------------------------------------

@@ -145,7 +145,7 @@ fn main() {
             Ok(path) => {
                 let parser: Box<dyn journalist::csv_parser::CSVImporter> = match parser {
                     ParserOptions::Avanza => {
-                        Box::new(journalist::csv_parser::avanza_parser::AvanzaParser)
+                        Box::new(journalist::csv_parser::avanza_parser::AvanzaParser::new())
                     }
                     ParserOptions::HSBCDebit => {
                         Box::new(journalist::csv_parser::hsbc_parser::HSBCParser::new(

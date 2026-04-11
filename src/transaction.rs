@@ -26,8 +26,8 @@ pub struct Transaction {
 impl core::fmt::Display for Transaction {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{} {}\n", self.date, self.description)?;
-        for post in &self.postings {
-            match write!(f, "\t{}\n", post) {
+        for posting in &self.postings {
+            match write!(f, "\t{}\n", posting) {
                 Ok(_) => {}
                 Err(e) => return Err(e),
             }
@@ -70,8 +70,8 @@ impl Transaction {
         // If there is a None amount, the transaction is auto balanced
         // More than a single None amount makes the transaction invalid
         let mut none_amount_count: usize = 0;
-        for post in &self.postings {
-            if post.get_amount().is_none() {
+        for posting in &self.postings {
+            if posting.get_amount().is_none() {
                 none_amount_count += 1;
                 if none_amount_count > 1 {
                     return false;
@@ -89,8 +89,8 @@ impl Transaction {
             String,
             fixed_decimal::FixedDecimal,
         > = std::collections::HashMap::with_capacity(self.postings.len());
-        for post in &self.postings {
-            if let Some(amount) = post.get_amount() {
+        for posting in &self.postings {
+            if let Some(amount) = posting.get_amount() {
                 let this_commodity: String = amount.commodity().to_string();
                 let this_amount: fixed_decimal::FixedDecimal = amount.amount().clone();
                 totals_per_commodity
