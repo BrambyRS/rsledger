@@ -183,7 +183,7 @@ pub fn import_transactions_from_csv(
         .open(&journal_path)?;
 
     for transaction in new_transactions {
-        write!(file, "{}", transaction)?;
+        write!(file, "\n{}\n", transaction)?;
     }
 
     Ok(())
