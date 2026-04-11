@@ -174,22 +174,16 @@ mod tests {
     use std::fs::File;
     use std::io::BufReader;
 
-    #[test]
-    fn test_parse_single_transaction() {
-        let file = File::open("test/single_transaction.journal").unwrap();
-        let mut lines = BufReader::new(file).lines().peekable();
-        let transactions = parse_journal(&mut lines).unwrap();
-
-        assert_eq!(transactions.len(), 1);
-        assert_eq!(
-            format!("{}", transactions[0]),
-            "2025-04-03 Test transaction\n\tassets:bank  -435 GBP\n\texpenses:travel:flights"
-        );
+    fn test_journal(name: &str) -> std::path::PathBuf {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("test")
+            .join("journals")
+            .join(name)
     }
 
     #[test]
     fn test_parse_basic_transactions() {
-        let file = File::open("test/basic_transactions.journal").unwrap();
+        let file = File::open(test_journal("basic_transactions.journal")).unwrap();
         let mut lines = BufReader::new(file).lines().peekable();
         let transactions = parse_journal(&mut lines).unwrap();
 

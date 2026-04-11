@@ -130,17 +130,29 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
     let entry: transaction::Transaction =
         transaction::Transaction::new(date_str, description_str, postings);
 
+    // Append entry to journal file
+    let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
+    add_transaction_to_file(&mut file, &entry)?;
+
+    Ok(())
+}
+
+/// Appends a transaction to the journal file
+///
+/// Validates that the transaction is balanced before writing.
+/// If the transaction fails validation, an error is returned and the journal file is not modified.
+fn add_transaction_to_file(
+    f: &mut fs::File,
+    transaction: &transaction::Transaction,
+) -> std::io::Result<()> {
     // Validate the transaction before writing to the journal
-    if !entry.validate() {
+    if !transaction.validate() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "Transaction is not balanced. Please ensure that the amounts sum to zero.",
         ));
     }
 
-    // Append entry to journal file
-    let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
-    write!(file, "\n{entry}\n")?;
-
+    write!(f, "\n{transaction}\n")?;
     Ok(())
 }

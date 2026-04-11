@@ -182,9 +182,13 @@ fn main() {
 
                 let csv_file = std::path::PathBuf::from(csv_file);
 
-                if let Err(e) =
-                    journalist::csv_parser::import_transactions_from_csv(&*parser, &csv_file, &path)
-                {
+                if let Err(e) = journalist::csv_parser::import_transactions_from_csv(
+                    &*parser,
+                    &csv_file,
+                    &path,
+                    &mut std::io::stdin().lock(),
+                    &mut std::io::stdout(),
+                ) {
                     eprintln!("Error importing CSV: {}", e);
                 }
             }

@@ -260,32 +260,3 @@ impl AvanzaParser {
         AvanzaParser
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::journalist::csv_parser::{CSVImporter, ImportCandidate};
-    use std::path::PathBuf;
-
-    #[test]
-    #[ignore = "requires local file /Users/rsingh/Desktop/CSVData/transaktioner.csv"]
-    fn import_avanza_csv_writes_classified_to_journal() {
-        let csv_path = PathBuf::from("/Users/rsingh/Desktop/CSVData/transaktioner.csv");
-        let parser = AvanzaParser::new();
-        let candidates = parser.import_csv(csv_path);
-
-        let mut output = String::new();
-        for candidate in candidates {
-            if let ImportCandidate::Classified(t) = candidate {
-                output.push_str(&t.to_string());
-            }
-        }
-
-        let out_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("test")
-            .join("parser_test.journal");
-
-        std::fs::write(&out_path, &output).expect("Failed to write parser_test.journal");
-        println!("Wrote {} bytes to {}", output.len(), out_path.display());
-    }
-}
