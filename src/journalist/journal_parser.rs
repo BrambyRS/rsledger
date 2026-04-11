@@ -107,7 +107,7 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
         .expect("Unexpected comment in transaction header line.")
         .trim_end()
         .to_string();
-    let date_str = first_line[..10].to_string();
+    let date = chrono::NaiveDate::parse_from_str(&first_line[..10], "%Y-%m-%d")?;
     let description = first_line[11..].trim().to_string();
     // Expect lines with leading whitespace to be postings
     // Stop either when the next line is empty,
@@ -163,7 +163,7 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
 
     // Create the transaction
     let transaction: transaction::Transaction =
-        transaction::Transaction::new(date_str.to_string(), description, postings);
+        transaction::Transaction::new(date, description, postings);
 
     Ok(transaction)
 }

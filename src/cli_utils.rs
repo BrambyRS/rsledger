@@ -15,7 +15,28 @@ pub fn prompt_input(
     Ok(input.trim().to_string())
 }
 
-///
+pub fn prompt_for_date(
+    prompt: &str,
+    format: &str,
+    reader: &mut impl std::io::BufRead,
+    writer: &mut impl std::io::Write,
+) -> std::io::Result<chrono::NaiveDate> {
+    loop {
+        let date_input = prompt_input(prompt, reader, writer)?;
+        match chrono::NaiveDate::parse_from_str(&date_input, format) {
+            Ok(date) => return Ok(date),
+            Err(_) => {
+                writeln!(
+                    writer,
+                    "Invalid date format. Please enter a date in the format YYYY-MM-DD (e.g. 2024-03-15)."
+                )?;
+                continue;
+            }
+        }
+    }
+}
+
+/// Prompts the user to enter an account name, and returns it as a string.
 pub fn prompt_for_account(
     prompt: &str,
     reader: &mut impl std::io::BufRead,

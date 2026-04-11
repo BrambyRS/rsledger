@@ -137,7 +137,7 @@ fn deduplicate_transactions(
                     let second_posting =
                         transaction::posting::Posting::new(user_classification, None);
                     let classified_transaction = transaction::Transaction::new(
-                        u.get_date().to_string(),
+                        *u.get_date(),
                         u.get_description().to_string(),
                         vec![u.get_postings()[0].clone(), second_posting],
                     );
@@ -246,7 +246,7 @@ mod tests {
 
         // Transaction index 1: "2026-01-25 * Salary January"
         let expected = transaction::Transaction::new(
-            "2026-01-25".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 25).unwrap(),
             "* Salary January".to_string(),
             vec![
                 Posting::new(
@@ -273,7 +273,7 @@ mod tests {
 
         // Transaction index 6: "2026-02-01 Spotify AB | Monthly subscription" (auto-balance posting)
         let expected = transaction::Transaction::new(
-            "2026-02-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
             "Spotify AB | Monthly subscription".to_string(),
             vec![
                 Posting::new(
@@ -350,7 +350,7 @@ mod tests {
         use std::io::Cursor;
 
         let existing_tx = transaction::Transaction::new(
-            "2026-03-21".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2026, 3, 21).unwrap(),
             "GROCERY STORE (journal description)".to_string(),
             vec![
                 Posting::new(
@@ -367,7 +367,7 @@ mod tests {
         }];
 
         let candidate_tx = transaction::Transaction::new(
-            "2026-03-21".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2026, 3, 21).unwrap(),
             "GROCERY STORE BRACKLEY (different CSV description)".to_string(),
             vec![
                 Posting::new(
@@ -407,7 +407,7 @@ mod tests {
 
         // Existing fully-classified journal entry.
         let existing_tx = transaction::Transaction::new(
-            "2026-03-20".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2026, 3, 20).unwrap(),
             "SOME UNKNOWN SHOP original".to_string(),
             vec![
                 Posting::new(
@@ -425,7 +425,7 @@ mod tests {
 
         // Unclassified candidate: same date + first posting, different description.
         let candidate_tx = transaction::Transaction::new(
-            "2026-03-20".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2026, 3, 20).unwrap(),
             "SOME UNKNOWN SHOP re-import different description".to_string(),
             vec![Posting::new(
                 "assets:bank:hsbc".to_string(),
@@ -462,7 +462,7 @@ mod tests {
 
         // Existing entry stored with minimal precision (as written to the journal).
         let existing_tx = transaction::Transaction::new(
-            "2026-03-21".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2026, 3, 21).unwrap(),
             "GROCERY STORE BRACKLEY".to_string(),
             vec![
                 Posting::new(
@@ -480,7 +480,7 @@ mod tests {
 
         // CSV candidate carries redundant trailing zeros (-25.00 instead of -25).
         let candidate_tx = transaction::Transaction::new(
-            "2026-03-21".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2026, 3, 21).unwrap(),
             "GROCERY STORE BRACKLEY".to_string(),
             vec![
                 Posting::new(

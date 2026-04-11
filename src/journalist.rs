@@ -25,7 +25,7 @@ pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> s
     if create_opening {
         // If --open flag is provided, add an opening transaction with the current date
 
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today: chrono::NaiveDate = chrono::Local::now().date_naive();
 
         println!("\nCreating opening transaction at {today} with description 'Opening balance'.");
         println!(
@@ -114,8 +114,9 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
     println!(
         "Keep adding as many postings as you want, and then enter an empty line to finish the transaction.\n"
     );
-    let date_str: String = cli_utils::prompt_input(
+    let date: chrono::NaiveDate = cli_utils::prompt_for_date(
         "Date (YYYY-MM-DD): ",
+        "%Y-%m-%d",
         &mut std::io::stdin().lock(),
         &mut std::io::stdout(),
     )?;
@@ -128,7 +129,7 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
         cli_utils::prompt_for_postings(&mut std::io::stdin().lock(), &mut std::io::stdout())?;
 
     let entry: transaction::Transaction =
-        transaction::Transaction::new(date_str, description_str, postings);
+        transaction::Transaction::new(date, description_str, postings);
 
     // Append entry to journal file
     let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;

@@ -60,7 +60,17 @@ impl csv_parser::CSVImporter for AvanzaParser {
                 continue;
             }
 
-            let date = columns[0].to_string();
+            let date_str = columns[0].to_string();
+            let date = match chrono::NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+                Ok(d) => d,
+                Err(_) => {
+                    eprintln!(
+                        "Invalid date format in line '{}'. Expected format YYYY-MM-DD.",
+                        this_line
+                    );
+                    continue;
+                }
+            };
             let action = columns[2].to_string();
             let name = columns[3].to_string();
             let amount_commodity = columns[4].to_string().replace(',', ".");

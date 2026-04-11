@@ -108,12 +108,19 @@ impl csv_parser::CSVImporter for DefaultParser {
 
             // --- Date ---
             let date_str_raw = record[self.date_column].trim();
-            let date_str = if self.date_format == "%Y-%m-%d" {
+            let date = if self.date_format == "%Y-%m-%d" {
                 // Already in the target format, no parsing needed
-                date_str_raw.to_string()
+                match chrono::NaiveDate::parse_from_str(date_str_raw, "%Y-%m-%d") {
+                    Ok(d) => d,
+                    Err(_) => {
+                        eprintln!("Invalid date format '{}'. Skipping.", date_str_raw);
+                        continue;
+                    }
+                }
             } else {
                 match chrono::NaiveDate::parse_from_str(date_str_raw, &self.date_format) {
-                    Ok(d) => d.format("%Y-%m-%d").to_string(),
+                    Ok(d) => d,
+
                     Err(_) => {
                         eprintln!("Invalid date format '{}'. Skipping.", date_str_raw);
                         continue;
@@ -171,7 +178,7 @@ impl csv_parser::CSVImporter for DefaultParser {
                             let second_posting =
                                 transaction::posting::Posting::new(against_account.clone(), None);
                             let transaction = transaction::Transaction::new(
-                                date_str.clone(),
+                                date,
                                 description_str.clone(),
                                 vec![first_posting, second_posting],
                             );
@@ -202,7 +209,7 @@ impl csv_parser::CSVImporter for DefaultParser {
                     ),
                 );
                 let transaction =
-                    transaction::Transaction::new(date_str, description_str, vec![posting]);
+                    transaction::Transaction::new(date, description_str, vec![posting]);
                 import_candidates.push(csv_parser::ImportCandidate::Unclassified(transaction));
             }
         }
@@ -290,10 +297,16 @@ mod tests {
         let candidates = parser.import_csv(csv_path("seb_classified.csv"));
 
         if let ImportCandidate::Classified(t) = &candidates[0] {
-            assert_eq!(t.get_date(), "2026-03-21");
+            assert_eq!(
+                *t.get_date(),
+                chrono::NaiveDate::from_ymd_opt(2026, 3, 21).unwrap()
+            );
         }
         if let ImportCandidate::Classified(t) = &candidates[1] {
-            assert_eq!(t.get_date(), "2026-03-20");
+            assert_eq!(
+                *t.get_date(),
+                chrono::NaiveDate::from_ymd_opt(2026, 3, 20).unwrap()
+            );
         }
     }
 
@@ -382,10 +395,16 @@ mod tests {
         let candidates = parser.import_csv(csv_path("volksbank_classified.csv"));
 
         if let ImportCandidate::Classified(t) = &candidates[0] {
-            assert_eq!(t.get_date(), "2026-03-21");
+            assert_eq!(
+                *t.get_date(),
+                chrono::NaiveDate::from_ymd_opt(2026, 3, 21).unwrap()
+            );
         }
         if let ImportCandidate::Classified(t) = &candidates[1] {
-            assert_eq!(t.get_date(), "2026-03-20");
+            assert_eq!(
+                *t.get_date(),
+                chrono::NaiveDate::from_ymd_opt(2026, 3, 20).unwrap()
+            );
         }
     }
 

@@ -9,7 +9,7 @@ use std::hash::{Hash, Hasher};
 #[derive(Hash)]
 pub struct Transaction {
     /// Date of the transaction in YYYY-MM-DD format.
-    date: String,
+    date: chrono::NaiveDate,
     /// Description of the transaction.
     description: String,
     /// Account and amount pairs. For a simple double-entry transaction, there would be two posts with opposite amounts.
@@ -52,7 +52,7 @@ impl Transaction {
     /// # Examples
     /// ```
     /// let t = Transaction::new(
-    ///     "2024-01-01".to_string(),
+    ///     chrono::NaiveDate::from_ymd(2024, 1, 1),
     ///     "Groceries".to_string(),
     ///     vec![
     ///         posting::Posting::new("expenses:food".to_string(), Some(CommodityValue::from_str("50.00 SEK").unwrap())),
@@ -60,7 +60,11 @@ impl Transaction {
     ///     ],
     /// );
     /// ```
-    pub fn new(date: String, description: String, postings: Vec<posting::Posting>) -> Self {
+    pub fn new(
+        date: chrono::NaiveDate,
+        description: String,
+        postings: Vec<posting::Posting>,
+    ) -> Self {
         Transaction {
             date,
             description,
@@ -161,7 +165,7 @@ impl Transaction {
 
     // Getters
 
-    pub fn get_date(&self) -> &String {
+    pub fn get_date(&self) -> &chrono::NaiveDate {
         &self.date
     }
 
@@ -185,7 +189,7 @@ mod tests {
     #[test]
     fn test_transaction_display_two_postings() {
         let transaction: Transaction = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
@@ -207,7 +211,7 @@ mod tests {
     #[test]
     fn test_transaction_display_multiple_postings() {
         let transaction: Transaction = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
@@ -236,7 +240,7 @@ mod tests {
     #[test]
     fn test_transaction_validate_balanced_single_commodity() {
         let transaction: Transaction = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
@@ -259,7 +263,7 @@ mod tests {
     #[test]
     fn test_transaction_validate_unbalanced_single_commodity() {
         let transaction: Transaction = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
@@ -282,7 +286,7 @@ mod tests {
     #[test]
     fn test_transaction_validate_balanced_multiple_commodities() {
         let transaction: Transaction = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
@@ -313,7 +317,7 @@ mod tests {
     #[test]
     fn test_transaction_validate_unbalanced_multiple_commodities() {
         let transaction: Transaction = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
@@ -354,7 +358,7 @@ mod tests {
     #[test]
     fn test_transaction_display_last_posting_no_amount() {
         let transaction: Transaction = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
@@ -375,7 +379,7 @@ mod tests {
     #[test]
     fn test_transaction_validate_single_none_is_valid() {
         let transaction: Transaction = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
@@ -391,7 +395,7 @@ mod tests {
     #[test]
     fn test_transaction_validate_none_not_required_to_be_last() {
         let transaction: Transaction = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new("Account 1".to_string(), None),
@@ -407,7 +411,7 @@ mod tests {
     #[test]
     fn test_transaction_validate_two_none_postings_is_invalid() {
         let transaction: Transaction = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
@@ -424,7 +428,7 @@ mod tests {
     #[test]
     fn test_transaction_validate_single_none_among_many_postings_is_valid() {
         let transaction: Transaction = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
@@ -449,7 +453,7 @@ mod tests {
     fn test_transaction_hash_same_input_is_stable() {
         let make = || {
             Transaction::new(
-                "2024-01-01".to_string(),
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
                 "Groceries".to_string(),
                 vec![
                     posting::Posting::new(
@@ -469,7 +473,7 @@ mod tests {
     #[test]
     fn test_transaction_hash_description_ignored() {
         let t1 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Description A".to_string(),
             vec![
                 posting::Posting::new(
@@ -483,7 +487,7 @@ mod tests {
             ],
         );
         let t2 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Description B".to_string(),
             vec![
                 posting::Posting::new(
@@ -502,7 +506,7 @@ mod tests {
     #[test]
     fn test_transaction_hash_different_date_differs() {
         let t1 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -516,7 +520,7 @@ mod tests {
             ],
         );
         let t2 = Transaction::new(
-            "2024-02-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 2).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -535,7 +539,7 @@ mod tests {
     #[test]
     fn test_transaction_hash_different_account_differs() {
         let t1 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -549,7 +553,7 @@ mod tests {
             ],
         );
         let t2 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -568,7 +572,7 @@ mod tests {
     #[test]
     fn test_transaction_hash_different_amount_differs() {
         let t1 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -582,7 +586,7 @@ mod tests {
             ],
         );
         let t2 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -601,7 +605,7 @@ mod tests {
     #[test]
     fn test_transaction_hash_different_commodity_differs() {
         let t1 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -615,7 +619,7 @@ mod tests {
             ],
         );
         let t2 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -634,7 +638,7 @@ mod tests {
     #[test]
     fn test_transaction_hash_different_posting_order() {
         let t1 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -648,7 +652,7 @@ mod tests {
             ],
         );
         let t2 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -667,7 +671,7 @@ mod tests {
     #[test]
     fn test_transaction_hash_none_amount_differs_from_explicit() {
         let t1 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -678,7 +682,7 @@ mod tests {
             ],
         );
         let t2 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -702,7 +706,7 @@ mod tests {
     fn test_partial_hash_same_input_is_stable() {
         let make = || {
             Transaction::new(
-                "2024-01-01".to_string(),
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
                 "Groceries".to_string(),
                 vec![
                     posting::Posting::new(
@@ -722,7 +726,7 @@ mod tests {
     #[test]
     fn test_partial_hash_different_date_differs() {
         let t1 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![posting::Posting::new(
                 "expenses:food".to_string(),
@@ -730,7 +734,7 @@ mod tests {
             )],
         );
         let t2 = Transaction::new(
-            "2024-02-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 2).unwrap(),
             "Test".to_string(),
             vec![posting::Posting::new(
                 "expenses:food".to_string(),
@@ -744,7 +748,7 @@ mod tests {
     fn test_partial_hash_description_ignored() {
         // Like the full functional_hash, partial_hash excludes the description.
         let t1 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Description A".to_string(),
             vec![posting::Posting::new(
                 "expenses:food".to_string(),
@@ -752,7 +756,7 @@ mod tests {
             )],
         );
         let t2 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Description B".to_string(),
             vec![posting::Posting::new(
                 "expenses:food".to_string(),
@@ -767,7 +771,7 @@ mod tests {
         // partial_hash should match even when descriptions differ, as long as
         // date and first posting are the same.
         let t1 = Transaction::new(
-            "2024-03-15".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Supermarket ACME".to_string(),
             vec![
                 posting::Posting::new(
@@ -778,7 +782,7 @@ mod tests {
             ],
         );
         let t2 = Transaction::new(
-            "2024-03-15".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "ACME Store Purchase".to_string(),
             vec![
                 posting::Posting::new(
@@ -794,7 +798,7 @@ mod tests {
     #[test]
     fn test_partial_hash_different_first_posting_differs() {
         let t1 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![posting::Posting::new(
                 "expenses:food".to_string(),
@@ -802,7 +806,7 @@ mod tests {
             )],
         );
         let t2 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![posting::Posting::new(
                 "expenses:food".to_string(),
@@ -817,7 +821,7 @@ mod tests {
         // Same date, description, and first posting — second posting differs.
         // partial_hash should be identical.
         let t1 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -831,7 +835,7 @@ mod tests {
             ],
         );
         let t2 = Transaction::new(
-            "2024-01-01".to_string(),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![
                 posting::Posting::new(
@@ -849,8 +853,16 @@ mod tests {
 
     #[test]
     fn test_partial_hash_no_postings_is_stable() {
-        let t1 = Transaction::new("2024-01-01".to_string(), "Test".to_string(), vec![]);
-        let t2 = Transaction::new("2024-01-01".to_string(), "Test".to_string(), vec![]);
+        let t1 = Transaction::new(
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            "Test".to_string(),
+            vec![],
+        );
+        let t2 = Transaction::new(
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            "Test".to_string(),
+            vec![],
+        );
         assert_eq!(t1.partial_hash(), t2.partial_hash());
     }
 }
