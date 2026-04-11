@@ -146,14 +146,13 @@ impl Transaction {
 
     /// Returns a hash of only part of the transaction's data.
     ///
-    /// This is used for hashing a transaction based only on the date, description,
-    /// and first posting. This is useful for identifying duplicate transactions during
+    /// This is used for hashing a transaction based only on the date and first posting.
+    /// This is useful for identifying duplicate transactions during
     /// CSV import in cases where it can't be fully classified and compared to the full
     /// transaction.
     pub fn partial_hash(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
         self.date.hash(&mut hasher);
-        self.description.hash(&mut hasher);
         if let Some(first_post) = self.postings.first() {
             first_post.hash(&mut hasher);
         }
@@ -742,8 +741,8 @@ mod tests {
     }
 
     #[test]
-    fn test_partial_hash_description_included() {
-        // Unlike the full Hash impl, partial_hash includes the description.
+    fn test_partial_hash_description_ignored() {
+        // Like the full functional_hash, partial_hash excludes the description.
         let t1 = Transaction::new(
             "2024-01-01".to_string(),
             "Description A".to_string(),
@@ -760,7 +759,36 @@ mod tests {
                 Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
             )],
         );
-        assert_ne!(t1.partial_hash(), t2.partial_hash());
+        assert_eq!(t1.partial_hash(), t2.partial_hash());
+    }
+
+    #[test]
+    fn test_partial_hash_matches_with_different_description() {
+        // partial_hash should match even when descriptions differ, as long as
+        // date and first posting are the same.
+        let t1 = Transaction::new(
+            "2024-03-15".to_string(),
+            "Supermarket ACME".to_string(),
+            vec![
+                posting::Posting::new(
+                    "expenses:groceries".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("120.00 SEK").unwrap()),
+                ),
+                posting::Posting::new("assets:checking".to_string(), None),
+            ],
+        );
+        let t2 = Transaction::new(
+            "2024-03-15".to_string(),
+            "ACME Store Purchase".to_string(),
+            vec![
+                posting::Posting::new(
+                    "expenses:groceries".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("120.00 SEK").unwrap()),
+                ),
+                posting::Posting::new("assets:checking".to_string(), None),
+            ],
+        );
+        assert_eq!(t1.partial_hash(), t2.partial_hash());
     }
 
     #[test]
