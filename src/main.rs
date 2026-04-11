@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
 
+mod cli_utils;
 mod config;
 mod journalist;
 mod transaction;

@@ -4,8 +4,8 @@ pub mod rules;
 pub mod seb_parser;
 pub mod volksbank_parser;
 
+use crate::cli_utils;
 use crate::journalist::journal_parser;
-use crate::journalist::prompt_input;
 use crate::transaction;
 
 use std::io::{BufRead, Lines, Write};
@@ -113,8 +113,10 @@ fn deduplicate_transactions(
                         println!("With as the existing transaction:");
                         println!("{}", existing.transaction);
 
-                        let user_input: String = prompt_input(
+                        let user_input: String = cli_utils::prompt_input(
                             "Do you want to classify this transaction as the existing one? (y/n) ",
+                            &mut std::io::stdin().lock(),
+                            &mut std::io::stdout(),
                         )
                         .unwrap();
                         if user_input.to_lowercase() == "y" {
@@ -127,8 +129,7 @@ fn deduplicate_transactions(
 
                 // If we get here and skip is false, it means there were no approved matches
                 if !skip {
-                    println!("{u}");
-                    let user_classification: String = prompt_input("Please enter the account to balance this transaction against (e.g. 'expenses:food') or leave empty to skip: ")
+                    let user_classification: String = cli_utils::prompt_for_account("Please enter the account to balance this transaction against (e.g. 'expenses:food') or leave empty to skip: ", &mut std::io::stdin().lock(), &mut std::io::stdout())
                     .unwrap();
                     if user_classification.is_empty() {
                         continue;

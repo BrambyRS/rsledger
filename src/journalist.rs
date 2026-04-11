@@ -4,18 +4,8 @@ mod journal_parser;
 use std::fs;
 use std::io::{self, Write};
 
+use crate::cli_utils;
 use crate::transaction;
-
-/// Prints `prompt` to stdout, flushes the buffer, reads a line from stdin,
-/// and returns the trimmed result.
-fn prompt_input(prompt: &str) -> io::Result<String> {
-    print!("{prompt}");
-    io::stdout().flush()?;
-
-    let mut input = String::new();
-    io::stdin().read_line(&mut input)?;
-    Ok(input.trim().to_string())
-}
 
 /// Creates a new journal file at the path resolved from `args` and `config`.
 /// Intermediate directories are created automatically if they do not exist.
@@ -53,7 +43,11 @@ pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> s
         let mut postings: Vec<transaction::posting::Posting> = Vec::new();
 
         loop {
-            let posting_input: String = prompt_input("Posting: ")?;
+            let posting_input: String = cli_utils::prompt_input(
+                "Posting: ",
+                &mut std::io::stdin().lock(),
+                &mut std::io::stdout(),
+            )?;
             if posting_input.len() == 0 {
                 break;
             }
@@ -120,41 +114,18 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
     println!(
         "Keep adding as many postings as you want, and then enter an empty line to finish the transaction.\n"
     );
-    let date_str: String = prompt_input("Date (YYYY-MM-DD): ")?;
-    let description_str: String = prompt_input("Description: ")?;
-    let mut postings: Vec<transaction::posting::Posting> = Vec::new();
-
-    loop {
-        let posting_input: String = prompt_input("Posting: ")?;
-        if posting_input.len() == 0 {
-            break;
-        }
-        let parts: Vec<&str> = posting_input.split_whitespace().collect();
-        if parts.len() == 1 {
-            let account_str: String = parts[0].to_string();
-            let amount: Option<transaction::commodity_value::CommodityValue> = None;
-
-            postings.push(transaction::posting::Posting::new(account_str, amount));
-        } else if parts.len() == 3 {
-            let account_str: String = parts[0].to_string();
-            let amount_str: String = parts[1..].join(" ");
-            let amount = match transaction::commodity_value::CommodityValue::from_str(&amount_str) {
-                Ok(val) => Some(val),
-                Err(_) => {
-                    println!(
-                        "Invalid amount format. Please enter a valid commodity amount (e.g. '50.00 SEK')."
-                    );
-                    continue;
-                }
-            };
-            postings.push(transaction::posting::Posting::new(account_str, amount));
-        } else {
-            println!(
-                "Invalid posting format. Please enter in the format '<account> <amount> <commodity>' (e.g. 'expenses:food 50.00 SEK') or '<account>' (e.g. 'assets:bank' for an auto-balancing posting)."
-            );
-            continue;
-        }
-    }
+    let date_str: String = cli_utils::prompt_input(
+        "Date (YYYY-MM-DD): ",
+        &mut std::io::stdin().lock(),
+        &mut std::io::stdout(),
+    )?;
+    let description_str: String = cli_utils::prompt_input(
+        "Description: ",
+        &mut std::io::stdin().lock(),
+        &mut std::io::stdout(),
+    )?;
+    let postings: Vec<transaction::posting::Posting> =
+        cli_utils::prompt_for_postings(&mut std::io::stdin().lock(), &mut std::io::stdout())?;
 
     let entry: transaction::Transaction =
         transaction::Transaction::new(date_str, description_str, postings);
