@@ -1,0 +1,8 @@
+[[rules]]
+pattern = "^GROCERY STORE"
+action = "assign_account"
+
+[[rules]]
+pattern = "^RENT PAYMENT"
+action = "assign_account"
+account = "expenses:housing:rent"

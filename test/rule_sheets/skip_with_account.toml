@@ -1,0 +1,4 @@
+[[rules]]
+pattern = "^INTERNAL TRANSFER"
+action = "skip"
+account = "should:be:ignored"

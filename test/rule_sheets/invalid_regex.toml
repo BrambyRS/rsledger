@@ -1,0 +1,8 @@
+[[rules]]
+pattern = "[invalid(regex"
+action = "assign_account"
+account = "expenses:misc"
+
+[[rules]]
+pattern = "^VALID PATTERN"
+action = "skip"
