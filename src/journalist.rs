@@ -169,7 +169,7 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
 
     // Append entry to journal file
     let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
-    write!(file, "{entry}")?;
+    write!(file, "\n{entry}\n")?;
 
     Ok(())
 }

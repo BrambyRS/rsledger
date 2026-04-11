@@ -26,13 +26,23 @@ pub struct Transaction {
 impl core::fmt::Display for Transaction {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{} {}\n", self.date, self.description)?;
+        let mut i: usize = 0;
+        let num_postings: usize = self.postings.len();
         for posting in &self.postings {
-            match write!(f, "\t{}\n", posting) {
+            match write!(f, "\t{}", posting) {
                 Ok(_) => {}
                 Err(e) => return Err(e),
             }
+
+            if i < num_postings - 1 {
+                match write!(f, "\n") {
+                    Ok(_) => {}
+                    Err(e) => return Err(e),
+                }
+            }
+            i += 1;
         }
-        write!(f, "\n")
+        return Ok(());
     }
 }
 
@@ -191,7 +201,7 @@ mod tests {
         );
 
         let expected_display =
-            "2024-01-01 Test Transaction\n\tAccount 1  123.45 SEK\n\tAccount 2  -123.45 SEK\n\n";
+            "2024-01-01 Test Transaction\n\tAccount 1  123.45 SEK\n\tAccount 2  -123.45 SEK";
         assert_eq!(format!("{}", transaction), expected_display);
     }
 
@@ -216,7 +226,7 @@ mod tests {
             ],
         );
 
-        let expected_display = "2024-01-01 Test Transaction\n\tAccount 1  100 GBP\n\tAccount 2  -50 GBP\n\tAccount 3  -50 GBP\n\n";
+        let expected_display = "2024-01-01 Test Transaction\n\tAccount 1  100 GBP\n\tAccount 2  -50 GBP\n\tAccount 3  -50 GBP";
         assert_eq!(format!("{}", transaction), expected_display);
     }
 
@@ -355,8 +365,7 @@ mod tests {
                 posting::Posting::new("Account 2".to_string(), None),
             ],
         );
-        let expected_display =
-            "2024-01-01 Test Transaction\n\tAccount 1  123.45 SEK\n\tAccount 2\n\n";
+        let expected_display = "2024-01-01 Test Transaction\n\tAccount 1  123.45 SEK\n\tAccount 2";
         assert_eq!(format!("{}", transaction), expected_display);
     }
 
