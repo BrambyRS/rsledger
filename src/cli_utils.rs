@@ -75,7 +75,10 @@ pub fn prompt_for_postings(
             break;
         }
         let parts: Vec<&str> = posting_input.split_whitespace().collect();
-        if parts.len() == 3 {
+        if parts.len() == 1 {
+            let account_str: String = parts[0].to_string();
+            postings.push(transaction::posting::Posting::new(account_str, None));
+        } else if parts.len() == 3 {
             let account_str: String = parts[0].to_string();
             let amount_str: String = parts[1..].join(" ");
             let amount: Option<transaction::commodity_value::CommodityValue> =
@@ -93,7 +96,7 @@ pub fn prompt_for_postings(
         } else {
             writeln!(
                 writer,
-                "Invalid posting format. Please enter in the format '<account> <amount> <commodity>' (e.g. 'assets:bank 500.00 SEK')."
+                "Invalid posting format. Please enter in the format '<account>' or '<account> <amount> <commodity>' (e.g. 'assets:bank 500.00 SEK')."
             )?;
             continue;
         }
@@ -237,5 +240,25 @@ mod tests {
                 .contains("Invalid amount format"),
             "expected invalid amount message in output"
         );
+    }
+
+    #[test]
+    fn test_prompt_for_postings_account_only_has_none_amount() {
+        let mut input = Cursor::new(b"assets:bank\n\n");
+        let mut output = Vec::new();
+        let postings = prompt_for_postings(&mut input, &mut output).unwrap();
+        assert_eq!(postings.len(), 1);
+        assert_eq!(postings[0].get_account(), "assets:bank");
+        assert!(postings[0].get_amount().is_none());
+    }
+
+    #[test]
+    fn test_prompt_for_postings_mixed_none_and_valued() {
+        let mut input = Cursor::new(b"expenses:food 500 SEK\nassets:bank\n\n");
+        let mut output = Vec::new();
+        let postings = prompt_for_postings(&mut input, &mut output).unwrap();
+        assert_eq!(postings.len(), 2);
+        assert!(postings[0].get_amount().is_some());
+        assert!(postings[1].get_amount().is_none());
     }
 }
