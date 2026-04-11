@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-# Build and test the project
-cargo test --release
-# If tests pass, install the binary to /opt/rsledger
+# Test the code first
+cargo test
+# If tests pass, build and install the binary
+cargo build --release
 mv target/release/rsledger /opt/rsledger
