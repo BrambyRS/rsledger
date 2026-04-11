@@ -1,8 +1,6 @@
 pub mod avanza_parser;
-pub mod hsbc_parser;
+pub mod default_parser;
 pub mod rules;
-pub mod seb_parser;
-pub mod volksbank_parser;
 
 use crate::cli_utils;
 use crate::journalist;
@@ -516,9 +514,19 @@ mod tests {
     #[test]
     fn import_same_csv_twice_only_adds_once() {
         let journal = TempJournal::new_empty();
-        let parser = hsbc_parser::HSBCParser::new(
+        let parser = default_parser::DefaultParser::new(
             "assets:bank:hsbc".to_string(),
+            "GBP".to_string(),
             rule_sheet_path("valid_rules.toml"),
+            ',',
+            false,
+            0,
+            "%d/%m/%Y".to_string(),
+            vec![1],
+            2,
+            None,
+            Some(','),
+            '.',
         );
 
         import_transactions_from_csv(
@@ -562,9 +570,19 @@ mod tests {
     #[test]
     fn import_mixed_csv_twice_partial_match_with_different_description() {
         let journal = TempJournal::new_empty();
-        let parser = hsbc_parser::HSBCParser::new(
+        let parser = default_parser::DefaultParser::new(
             "assets:bank:hsbc".to_string(),
+            "GBP".to_string(),
             rule_sheet_path("valid_rules.toml"),
+            ',',
+            false,
+            0,
+            "%d/%m/%Y".to_string(),
+            vec![1],
+            2,
+            None,
+            Some(','),
+            '.',
         );
 
         // First import: classified transaction added automatically; unclassified one

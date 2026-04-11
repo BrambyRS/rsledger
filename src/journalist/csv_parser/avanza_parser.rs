@@ -1,3 +1,7 @@
+//! This implements a custom CSV parser for Avanza's transaction exports.
+//! All transactions can be perfectly classified, but require custom logic
+//! above what is possible with the regex-based rule system.
+
 use crate::journalist::csv_parser;
 use crate::transaction;
 

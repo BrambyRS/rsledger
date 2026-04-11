@@ -149,35 +149,85 @@ fn main() {
                         Box::new(journalist::csv_parser::avanza_parser::AvanzaParser::new())
                     }
                     ParserOptions::HSBCDebit => {
-                        Box::new(journalist::csv_parser::hsbc_parser::HSBCParser::new(
+                        Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
                             "assets:bank:hsbc".to_string(),
+                            "GBP".to_string(),
                             std::path::PathBuf::from(&rule_sheet),
+                            ',',
+                            false,
+                            0,
+                            "%d/%m/%Y".to_string(),
+                            vec![1],
+                            2,
+                            None,
+                            Some(','),
+                            '.',
                         ))
                     }
                     ParserOptions::HSBCCredit => {
-                        Box::new(journalist::csv_parser::hsbc_parser::HSBCParser::new(
+                        Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
                             "liabilities:credit:hsbc-credit-card".to_string(),
+                            "GBP".to_string(),
                             std::path::PathBuf::from(&rule_sheet),
+                            ',',
+                            false,
+                            0,
+                            "%d/%m/%Y".to_string(),
+                            vec![1],
+                            2,
+                            None,
+                            Some(','),
+                            '.',
                         ))
                     }
                     ParserOptions::SebDebit => {
-                        Box::new(journalist::csv_parser::seb_parser::SebParser::new(
+                        Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
                             "assets:bank:seb-lönekonto".to_string(),
+                            "SEK".to_string(),
                             std::path::PathBuf::from(&rule_sheet),
+                            ';',
+                            true,
+                            0,
+                            "%Y-%m-%d".to_string(),
+                            vec![3],
+                            4,
+                            None,
+                            None,
+                            '.',
                         ))
                     }
                     ParserOptions::SebSavings => {
-                        Box::new(journalist::csv_parser::seb_parser::SebParser::new(
+                        Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
                             "assets:bank:seb-sparkonto".to_string(),
+                            "SEK".to_string(),
                             std::path::PathBuf::from(&rule_sheet),
+                            ';',
+                            true,
+                            0,
+                            "%Y-%m-%d".to_string(),
+                            vec![3],
+                            4,
+                            None,
+                            None,
+                            '.',
                         ))
                     }
-                    ParserOptions::Volksbank => Box::new(
-                        journalist::csv_parser::volksbank_parser::VolksbankParser::new(
+                    ParserOptions::Volksbank => {
+                        Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
                             "assets:bank:volksbank".to_string(),
+                            "EUR".to_string(),
                             std::path::PathBuf::from(&rule_sheet),
-                        ),
-                    ),
+                            ';',
+                            true,
+                            4,
+                            "%d.%m.%Y".to_string(),
+                            vec![6, 10],
+                            11,
+                            Some(12),
+                            Some('.'),
+                            ',',
+                        ))
+                    }
                 };
 
                 let csv_file = std::path::PathBuf::from(csv_file);
