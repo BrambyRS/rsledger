@@ -20,7 +20,7 @@ pub struct AvanzaParser;
 /// Everything comes in and out of assets:bank:avanza
 /// The profit/loss comes from equity:capital-gains
 /// Dividends come from income:dividends
-/// And the fees go into expenses:fees:bank:avanza
+/// And the fees go into expenses:bank:avanza
 ///
 /// Deposits or withdrawals are always assumed to come from assets:bank:seb-lönekonto
 impl csv_parser::CSVImporter for AvanzaParser {
@@ -131,7 +131,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                         ),
                     ),
                     transaction::posting::Posting::new(
-                        "expenses:fees:bank:avanza".to_string(),
+                        "expenses:bank:avanza".to_string(),
                         Some(
                             transaction::commodity_value::CommodityValue::from_str(&fee_amount_str)
                                 .unwrap(),
@@ -180,7 +180,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                         ),
                     ),
                     transaction::posting::Posting::new(
-                        "expenses:fees:bank:avanza".to_string(),
+                        "expenses:bank:avanza".to_string(),
                         Some(
                             transaction::commodity_value::CommodityValue::from_str(&fee_amount_str)
                                 .unwrap(),
