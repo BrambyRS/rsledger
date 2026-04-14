@@ -76,7 +76,10 @@ impl Transaction {
     ///
     /// A transaction is considered balanced when either:
     /// - Exactly one posting has a `None` amount (auto-balancing entry), or
-    /// - All postings have explicit amounts and the sum for every commodity is zero.
+    /// - All postings have explicit amounts with the same commodity, and their sum is zero
+    /// - A transaction comprising multiple commodities must either:
+    ///     - Have the sum for each commodity equal to zero
+    ///     - Have two or more commodities unbalanced, at least one positive and one negative, indicating an exchange is taking place.
     ///
     /// Returns `false` if more than one posting has a `None` amount, or if any
     /// commodity's postings do not sum to zero.
@@ -96,7 +99,6 @@ impl Transaction {
             return true;
         }
 
-        // If no conclusion was reached, check that the transaction is balanced for each commodity.
         // Sum amounts by commodity
         // Total possible number of unique commodities is equal to the number of postings, so we can set the initial capacity of the HashMap to that.
         let mut totals_per_commodity: std::collections::HashMap<
@@ -114,14 +116,32 @@ impl Transaction {
             }
         }
 
-        // Check that all totals are zero
-        for (_, total) in totals_per_commodity {
+        // Collect commodities whose postings do not sum to zero.
+        let mut has_positive = false;
+        let mut has_negative = false;
+        let mut unbalanced_count: usize = 0;
+        for total in totals_per_commodity.values() {
             if total.raw_amount() != 0 {
-                return false;
+                unbalanced_count += 1;
+                if total.raw_amount() > 0 {
+                    has_positive = true;
+                } else {
+                    has_negative = true;
+                }
             }
         }
 
-        return true;
+        // If all commodities are balanced the transaction is valid.
+        if unbalanced_count == 0 {
+            return true;
+        }
+
+        // If there are multiple unbalanced commodities where they flow both in and out it is valid.
+        if unbalanced_count >= 2 && has_positive && has_negative {
+            return true;
+        }
+
+        return false;
     }
 
     /// Returns a hash of the transaction based on the date and all postings.
@@ -339,6 +359,202 @@ mod tests {
                 posting::Posting::new(
                     "Account 5".to_string(),
                     Some(commodity_value::CommodityValue::from_str("-150.00 SEK").unwrap()),
+                ),
+            ],
+        );
+        assert!(!transaction.validate());
+    }
+
+    #[test]
+    fn test_transaction_validate_exchange_two_commodities() {
+        // Two unbalanced commodities with opposite signs → valid exchange
+        let transaction: Transaction = Transaction::new(
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            "Currency Exchange".to_string(),
+            vec![
+                posting::Posting::new(
+                    "assets:gbp".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:sek".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-1500.00 SEK").unwrap()),
+                ),
+            ],
+        );
+        assert!(transaction.validate());
+    }
+
+    #[test]
+    fn test_transaction_validate_exchange_three_commodities_one_balanced() {
+        // Two unbalanced commodities (opposite signs) + one balanced → valid exchange
+        let transaction: Transaction = Transaction::new(
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            "Currency Exchange".to_string(),
+            vec![
+                posting::Posting::new(
+                    "assets:gbp".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:sek".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-1500.00 SEK").unwrap()),
+                ),
+                posting::Posting::new(
+                    "expenses:fees".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("5.00 EUR").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:eur".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-5.00 EUR").unwrap()),
+                ),
+            ],
+        );
+        assert!(transaction.validate());
+    }
+
+    #[test]
+    fn test_transaction_validate_exchange_three_commodities_all_unbalanced() {
+        // Three unbalanced commodities, at least one positive and one negative → valid exchange
+        let transaction: Transaction = Transaction::new(
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            "Multi-Currency Exchange".to_string(),
+            vec![
+                posting::Posting::new(
+                    "assets:gbp".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:sek".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-1500.00 SEK").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:eur".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 EUR").unwrap()),
+                ),
+            ],
+        );
+        assert!(transaction.validate());
+    }
+
+    #[test]
+    fn test_transaction_validate_three_commodities_all_balanced() {
+        // All three commodities individually sum to zero → valid
+        let transaction: Transaction = Transaction::new(
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            "Test Transaction".to_string(),
+            vec![
+                posting::Posting::new(
+                    "assets:gbp".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
+                ),
+                posting::Posting::new(
+                    "expenses:gbp".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-100.00 GBP").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:sek".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap()),
+                ),
+                posting::Posting::new(
+                    "expenses:sek".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-200.00 SEK").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:eur".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 EUR").unwrap()),
+                ),
+                posting::Posting::new(
+                    "expenses:eur".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 EUR").unwrap()),
+                ),
+            ],
+        );
+        assert!(transaction.validate());
+    }
+
+    #[test]
+    fn test_transaction_validate_multi_commodity_both_positive_unbalanced() {
+        // Two unbalanced commodities, both positive → invalid (not a valid exchange)
+        let transaction: Transaction = Transaction::new(
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            "Test Transaction".to_string(),
+            vec![
+                posting::Posting::new(
+                    "assets:gbp".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:sek".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap()),
+                ),
+            ],
+        );
+        assert!(!transaction.validate());
+    }
+
+    #[test]
+    fn test_transaction_validate_multi_commodity_both_negative_unbalanced() {
+        // Two unbalanced commodities, both negative → invalid (not a valid exchange)
+        let transaction: Transaction = Transaction::new(
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            "Test Transaction".to_string(),
+            vec![
+                posting::Posting::new(
+                    "assets:gbp".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-100.00 GBP").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:sek".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-200.00 SEK").unwrap()),
+                ),
+            ],
+        );
+        assert!(!transaction.validate());
+    }
+
+    #[test]
+    fn test_transaction_validate_three_commodities_all_positive_unbalanced() {
+        // Three unbalanced commodities, all positive → invalid
+        let transaction: Transaction = Transaction::new(
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            "Test Transaction".to_string(),
+            vec![
+                posting::Posting::new(
+                    "assets:gbp".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:sek".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:eur".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("50.00 EUR").unwrap()),
+                ),
+            ],
+        );
+        assert!(!transaction.validate());
+    }
+
+    #[test]
+    fn test_transaction_validate_three_commodities_all_negative_unbalanced() {
+        // Three unbalanced commodities, all negative → invalid
+        let transaction: Transaction = Transaction::new(
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            "Test Transaction".to_string(),
+            vec![
+                posting::Posting::new(
+                    "assets:gbp".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-100.00 GBP").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:sek".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-200.00 SEK").unwrap()),
+                ),
+                posting::Posting::new(
+                    "assets:eur".to_string(),
+                    Some(commodity_value::CommodityValue::from_str("-50.00 EUR").unwrap()),
                 ),
             ],
         );
