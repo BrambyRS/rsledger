@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn spot_check_basic_transactions_salary_january() {
-        use crate::transaction::commodity_value::CommodityValue;
+        use crate::commodity_value::CommodityValue;
         use crate::transaction::posting::Posting;
 
         let result = read_and_hash_journal(journal_path("basic_transactions.journal")).unwrap();
@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn spot_check_basic_transactions_spotify_autobalance() {
-        use crate::transaction::commodity_value::CommodityValue;
+        use crate::commodity_value::CommodityValue;
         use crate::transaction::posting::Posting;
 
         let result = read_and_hash_journal(journal_path("basic_transactions.journal")).unwrap();
@@ -349,7 +349,7 @@ mod tests {
     /// must be treated as a duplicate and not added.
     #[test]
     fn classified_dedup_ignores_description() {
-        use crate::transaction::commodity_value::CommodityValue;
+        use crate::commodity_value::CommodityValue;
         use crate::transaction::posting::Posting;
         use std::io::Cursor;
 
@@ -405,7 +405,7 @@ mod tests {
     /// must still be offered as a partial match, and skipped when the user confirms.
     #[test]
     fn unclassified_partial_match_ignores_description() {
-        use crate::transaction::commodity_value::CommodityValue;
+        use crate::commodity_value::CommodityValue;
         use crate::transaction::posting::Posting;
         use std::io::Cursor;
 
@@ -460,7 +460,7 @@ mod tests {
     /// produce identical hashes and must be treated as duplicates.
     #[test]
     fn classified_dedup_handles_redundant_decimal_digits() {
-        use crate::transaction::commodity_value::CommodityValue;
+        use crate::commodity_value::CommodityValue;
         use crate::transaction::posting::Posting;
         use std::io::Cursor;
 

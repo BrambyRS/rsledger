@@ -1,14 +1,15 @@
-use super::fixed_decimal::FixedDecimal;
+pub mod fixed_decimal;
+
 use std::hash::Hash;
 
 /// Represents a monetary or commodity amount with a fixed-precision integer representation.
 ///
-/// The numeric amount is stored as a [`FixedDecimal`] to avoid floating-point precision
-/// issues. For example, `123.45 SEK` stores `amount = FixedDecimal { 12345, 2 }`.
+/// The numeric amount is stored as a [`fixed_decimal::FixedDecimal`] to avoid floating-point precision
+/// issues. For example, `123.45 SEK` stores `amount = fixed_decimal::FixedDecimal { 12345, 2 }`.
 #[derive(Clone, Debug, Hash)]
 pub struct CommodityValue {
     /// The scaled decimal amount.
-    amount: FixedDecimal,
+    amount: fixed_decimal::FixedDecimal,
     /// Name of the commodity (e.g. `SEK`, `GBP`, `Gold Bar`). Always stored without quotes.
     commodity: String,
 }
@@ -63,7 +64,7 @@ impl CommodityValue {
             commodity_part
         };
 
-        let amount = FixedDecimal::from_str(amount_part)
+        let amount = fixed_decimal::FixedDecimal::from_str(amount_part)
             .map_err(|_| format!("Invalid amount format: '{}'.", amount_part))?;
 
         Ok(CommodityValue {
@@ -86,8 +87,8 @@ impl CommodityValue {
             && self.amount.precision() == other.amount.precision()
     }
 
-    /// Returns a reference to the underlying [`FixedDecimal`] amount.
-    pub fn amount(&self) -> &FixedDecimal {
+    /// Returns a reference to the underlying [`fixed_decimal::FixedDecimal`] amount.
+    pub fn amount(&self) -> &fixed_decimal::FixedDecimal {
         &self.amount
     }
 

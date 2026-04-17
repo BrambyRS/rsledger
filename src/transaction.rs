@@ -1,7 +1,6 @@
-pub mod commodity_value;
-pub mod fixed_decimal;
 pub mod posting;
 
+use crate::commodity_value;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -55,7 +54,7 @@ impl Transaction {
     ///     chrono::NaiveDate::from_ymd(2024, 1, 1),
     ///     "Groceries".to_string(),
     ///     vec![
-    ///         posting::Posting::new("expenses:food".to_string(), Some(CommodityValue::from_str("50.00 SEK").unwrap())),
+    ///         posting::Posting::new("expenses:food".to_string(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
     ///         posting::Posting::new("assets:bank".to_string(), None),
     ///     ],
     /// );
@@ -103,12 +102,13 @@ impl Transaction {
         // Total possible number of unique commodities is equal to the number of postings, so we can set the initial capacity of the HashMap to that.
         let mut totals_per_commodity: std::collections::HashMap<
             String,
-            fixed_decimal::FixedDecimal,
+            commodity_value::fixed_decimal::FixedDecimal,
         > = std::collections::HashMap::with_capacity(self.postings.len());
         for posting in &self.postings {
             if let Some(amount) = posting.get_amount() {
                 let this_commodity: String = amount.commodity().to_string();
-                let this_amount: fixed_decimal::FixedDecimal = amount.amount().clone();
+                let this_amount: commodity_value::fixed_decimal::FixedDecimal =
+                    amount.amount().clone();
                 totals_per_commodity
                     .entry(this_commodity.clone())
                     .and_modify(|total| *total += &this_amount)

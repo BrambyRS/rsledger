@@ -2,6 +2,7 @@
 //! All transactions can be perfectly classified, but require custom logic
 //! above what is possible with the regex-based rule system.
 
+use crate::commodity_value;
 use crate::journalist::csv_parser;
 use crate::transaction;
 
@@ -93,10 +94,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                 let postings: Vec<transaction::posting::Posting> = vec![
                     transaction::posting::Posting::new(
                         "assets:bank:avanza".to_string(),
-                        Some(
-                            transaction::commodity_value::CommodityValue::from_str(&amount_str)
-                                .unwrap(),
-                        ),
+                        Some(commodity_value::CommodityValue::from_str(&amount_str).unwrap()),
                     ),
                     transaction::posting::Posting::new(
                         "expenses:bank:internal-transfers".to_string(),
@@ -115,27 +113,17 @@ impl csv_parser::CSVImporter for AvanzaParser {
                     transaction::posting::Posting::new(
                         "assets:bank:avanza".to_string(),
                         Some(
-                            transaction::commodity_value::CommodityValue::from_str(
-                                &commodity_amount_str,
-                            )
-                            .unwrap(),
+                            commodity_value::CommodityValue::from_str(&commodity_amount_str)
+                                .unwrap(),
                         ),
                     ),
                     transaction::posting::Posting::new(
                         "assets:bank:avanza".to_string(),
-                        Some(
-                            transaction::commodity_value::CommodityValue::from_str(
-                                &cash_amount_str,
-                            )
-                            .unwrap(),
-                        ),
+                        Some(commodity_value::CommodityValue::from_str(&cash_amount_str).unwrap()),
                     ),
                     transaction::posting::Posting::new(
                         "expenses:bank:avanza".to_string(),
-                        Some(
-                            transaction::commodity_value::CommodityValue::from_str(&fee_amount_str)
-                                .unwrap(),
-                        ),
+                        Some(commodity_value::CommodityValue::from_str(&fee_amount_str).unwrap()),
                     ),
                 ];
 
@@ -149,7 +137,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                 let profit_str: String = format!("{} SEK", profit);
 
                 let profit_commodity_value =
-                    match transaction::commodity_value::CommodityValue::from_str(&profit_str) {
+                    match commodity_value::CommodityValue::from_str(&profit_str) {
                         Ok(val) => -&val,
                         Err(_) => {
                             eprintln!(
@@ -164,27 +152,17 @@ impl csv_parser::CSVImporter for AvanzaParser {
                     transaction::posting::Posting::new(
                         "assets:bank:avanza".to_string(),
                         Some(
-                            transaction::commodity_value::CommodityValue::from_str(
-                                &commodity_amount_str,
-                            )
-                            .unwrap(),
+                            commodity_value::CommodityValue::from_str(&commodity_amount_str)
+                                .unwrap(),
                         ),
                     ),
                     transaction::posting::Posting::new(
                         "assets:bank:avanza".to_string(),
-                        Some(
-                            transaction::commodity_value::CommodityValue::from_str(
-                                &cash_amount_str,
-                            )
-                            .unwrap(),
-                        ),
+                        Some(commodity_value::CommodityValue::from_str(&cash_amount_str).unwrap()),
                     ),
                     transaction::posting::Posting::new(
                         "expenses:bank:avanza".to_string(),
-                        Some(
-                            transaction::commodity_value::CommodityValue::from_str(&fee_amount_str)
-                                .unwrap(),
-                        ),
+                        Some(commodity_value::CommodityValue::from_str(&fee_amount_str).unwrap()),
                     ),
                     transaction::posting::Posting::new(
                         "equity:capital-gains".to_string(),
@@ -201,12 +179,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                 let postings: Vec<transaction::posting::Posting> = vec![
                     transaction::posting::Posting::new(
                         "assets:bank:avanza".to_string(),
-                        Some(
-                            transaction::commodity_value::CommodityValue::from_str(
-                                &cash_amount_str,
-                            )
-                            .unwrap(),
-                        ),
+                        Some(commodity_value::CommodityValue::from_str(&cash_amount_str).unwrap()),
                     ),
                     transaction::posting::Posting::new("income:dividends".to_string(), None),
                 ];
@@ -220,10 +193,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                 let postings: Vec<transaction::posting::Posting> = vec![
                     transaction::posting::Posting::new(
                         "assets:bank:avanza".to_string(),
-                        Some(
-                            transaction::commodity_value::CommodityValue::from_str(&tax_amount_str)
-                                .unwrap(),
-                        ),
+                        Some(commodity_value::CommodityValue::from_str(&tax_amount_str).unwrap()),
                     ),
                     transaction::posting::Posting::new(
                         "expenses:taxes:withholding".to_string(),
@@ -241,10 +211,8 @@ impl csv_parser::CSVImporter for AvanzaParser {
                     transaction::posting::Posting::new(
                         "assets:bank:avanza".to_string(),
                         Some(
-                            transaction::commodity_value::CommodityValue::from_str(
-                                &interest_amount_str,
-                            )
-                            .unwrap(),
+                            commodity_value::CommodityValue::from_str(&interest_amount_str)
+                                .unwrap(),
                         ),
                     ),
                     transaction::posting::Posting::new(

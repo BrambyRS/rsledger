@@ -1,5 +1,5 @@
+use crate::commodity_value::CommodityValue;
 use crate::transaction;
-use crate::transaction::commodity_value::CommodityValue;
 
 use std::io::BufRead;
 use std::io::Lines;

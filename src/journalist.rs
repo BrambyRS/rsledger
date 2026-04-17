@@ -5,6 +5,7 @@ use std::fs;
 use std::io::{self, Write};
 
 use crate::cli_utils;
+use crate::commodity_value;
 use crate::transaction;
 
 /// Creates a new journal file at the path resolved from `args` and `config`.
@@ -55,9 +56,7 @@ pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> s
             if parts.len() == 3 {
                 let account_str: String = parts[0].to_string();
                 let amount_str: String = parts[1..].join(" ");
-                let amount = match transaction::commodity_value::CommodityValue::from_str(
-                    &amount_str,
-                ) {
+                let amount = match commodity_value::CommodityValue::from_str(&amount_str) {
                     Ok(val) => Some(val),
                     Err(_) => {
                         println!(

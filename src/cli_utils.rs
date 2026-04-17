@@ -1,3 +1,4 @@
+use crate::commodity_value;
 use crate::transaction;
 
 /// Prints `prompt` to stdout, flushes the buffer, reads a line from stdin,
@@ -81,8 +82,8 @@ pub fn prompt_for_postings(
         } else if parts.len() == 3 {
             let account_str: String = parts[0].to_string();
             let amount_str: String = parts[1..].join(" ");
-            let amount: Option<transaction::commodity_value::CommodityValue> =
-                match transaction::commodity_value::CommodityValue::from_str(&amount_str) {
+            let amount: Option<commodity_value::CommodityValue> =
+                match commodity_value::CommodityValue::from_str(&amount_str) {
                     Ok(val) => Some(val),
                     Err(_) => {
                         writeln!(
