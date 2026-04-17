@@ -1,3 +1,4 @@
+pub mod commodity;
 pub mod fixed_decimal;
 
 use std::hash::Hash;
@@ -11,17 +12,12 @@ pub struct CommodityValue {
     /// The scaled decimal amount.
     amount: fixed_decimal::FixedDecimal,
     /// Name of the commodity (e.g. `SEK`, `GBP`, `Gold Bar`). Always stored without quotes.
-    commodity: String,
+    commodity: commodity::Commodity,
 }
 
 impl core::fmt::Display for CommodityValue {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        // Print with quotes if the commodity contains a space for hledger compatibility
-        if self.commodity.contains(' ') {
-            write!(f, "{} \"{}\"", self.amount, self.commodity)
-        } else {
-            write!(f, "{} {}", self.amount, self.commodity)
-        }
+        return write!(f, "{} {}", self.amount, self.commodity);
     }
 }
 
@@ -69,7 +65,9 @@ impl CommodityValue {
 
         Ok(CommodityValue {
             amount,
-            commodity: commodity_part,
+            commodity: commodity::Commodity {
+                name: commodity_part,
+            },
         })
     }
 
@@ -94,7 +92,7 @@ impl CommodityValue {
 
     /// Returns the commodity name.
     pub fn commodity(&self) -> &str {
-        &self.commodity
+        return &self.commodity.name;
     }
 }
 
