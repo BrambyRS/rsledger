@@ -1,5 +1,6 @@
 use std::hash::Hash;
 
+/// Simple struct to hold and format the name of a commodity
 #[derive(Clone, Debug, Hash, PartialEq)]
 pub struct Commodity {
     pub name: String,
