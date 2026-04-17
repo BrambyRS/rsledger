@@ -134,9 +134,7 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
 
     // Append entry to journal file
     let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
-    add_transaction_to_file(&mut file, &entry)?;
-
-    Ok(())
+    return add_transaction_to_file(&mut file, &entry);
 }
 
 /// ADD_TRANSACTION_TO_FILE
@@ -156,6 +154,5 @@ fn add_transaction_to_file(
         ));
     }
 
-    write!(f, "\n{transaction}\n")?;
-    Ok(())
+    return write!(f, "\n{transaction}\n");
 }
