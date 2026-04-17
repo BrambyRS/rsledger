@@ -9,6 +9,7 @@ use crate::transaction;
 use std::io::{BufRead, Lines, Write};
 use std::iter::Peekable;
 
+/// HASED TRANSACTION
 /// A struct that combines the transaction with its functional and partial hashes for easy comparison
 struct HashedTransaction {
     functional_hash: u64,
@@ -53,6 +54,7 @@ fn read_and_hash_journal(journal_path: std::path::PathBuf) -> Option<Vec<HashedT
     return Some(hashed_transactions);
 }
 
+/// IMPORT CANDIDATE
 /// Enum representing a candidate transaction from the CSV
 /// It can either be classifiable (i.e all the postings could be automatically resolved)
 /// or unclassifiable (i.e. postings need manual review)
@@ -63,6 +65,7 @@ pub enum ImportCandidate {
     Unclassified(transaction::Transaction),
 }
 
+/// CSV IMPORTER
 /// Trait for csv importers.
 ///
 /// Each CSV importer can define arbitrarily complex logic to parse a CSV
@@ -72,6 +75,7 @@ pub trait CSVImporter {
     fn import_csv(&self, csv_path: std::path::PathBuf) -> Vec<ImportCandidate>;
 }
 
+/// DEDUPLICATE_TRANSACTIONS
 /// Handles the ImportCandidate objects and deduplicates against existing transactions in the journal.
 ///
 /// For classified candidates, it skips those which already exist in the journal by checking
@@ -154,6 +158,7 @@ fn deduplicate_transactions(
     return new_transactions;
 }
 
+/// IMPORT_TRANSACTIONS_FROM_CSV
 /// Main function to handle the CSV import process
 ///
 /// 1. Reads and hashes existing transactions in the journal

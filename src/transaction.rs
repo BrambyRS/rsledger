@@ -4,6 +4,7 @@ use crate::commodity_value;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
+/// TRANSACTION
 /// Represents a financial transaction with a date, description, and multiple posts (account and amount pairs).
 #[derive(Hash)]
 pub struct Transaction {
@@ -15,6 +16,7 @@ pub struct Transaction {
     postings: Vec<posting::Posting>,
 }
 
+/// DISPLAY
 /// Formats the transaction as a journal entry:
 ///
 /// ```text
@@ -46,6 +48,7 @@ impl core::fmt::Display for Transaction {
 }
 
 impl Transaction {
+    /// NEW
     /// Creates a new `Transaction` with the given date, description, and postings.
     ///
     /// # Examples
@@ -71,6 +74,7 @@ impl Transaction {
         }
     }
 
+    /// VALIDATE
     /// Returns `true` if the transaction is balanced.
     ///
     /// A transaction is considered balanced when either:
@@ -144,6 +148,7 @@ impl Transaction {
         return false;
     }
 
+    /// FUNCTIONAL_HASH
     /// Returns a hash of the transaction based on the date and all postings.
     ///
     /// This is used for comparing if two transactions are *functionally identical*
@@ -168,6 +173,7 @@ impl Transaction {
         hasher.finish()
     }
 
+    /// PARTIAL_HASH
     /// Returns a hash of only part of the transaction's data.
     ///
     /// This is used for hashing a transaction based only on the date and first posting.

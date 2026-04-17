@@ -8,6 +8,7 @@ use crate::cli_utils;
 use crate::commodity_value;
 use crate::transaction;
 
+/// NEW_JOURNAL
 /// Creates a new journal file at the path resolved from `args` and `config`.
 /// Intermediate directories are created automatically if they do not exist.
 /// If the flag --open is provided, an opening transaction with the current date
@@ -90,6 +91,7 @@ pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> s
     return Ok(());
 }
 
+/// ADD_ENTRY
 /// Interactively prompts the user for a date, description, and one or more postings,
 /// then appends the resulting [`transaction::Transaction`] to the journal file.
 ///
@@ -137,6 +139,7 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
     Ok(())
 }
 
+/// ADD_TRANSACTION_TO_FILE
 /// Appends a transaction to the journal file
 ///
 /// Validates that the transaction is balanced before writing.

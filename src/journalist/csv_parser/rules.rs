@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use std::path::PathBuf;
 
+/// RULE ACTION
 /// Possible actions for the RegexRule
 /// AssignAccount: assign the transaction to the specified account
 /// Skip: skip the transaction (do not import it)
@@ -9,12 +10,14 @@ pub enum RuleAction {
     Skip,
 }
 
+/// REGEX RULE
 /// Regexc rule with a pattern and an associated action to take on match.
 pub struct RegexRule {
     pub pattern: regex::Regex,
     pub action: RuleAction,
 }
 
+/// REGEX RULE FROM FILE
 /// Intermediate struct for deserialising RegexRule from file.
 /// This is needed because regex::Regex does not implement Deserialize
 /// so we need to parse the pattern as a string
@@ -25,12 +28,14 @@ struct RegexRuleFromFile {
     account: Option<String>,
 }
 
+/// RULE SHEET FILE
 /// Struct for deserialising the whole rule sheet from file.
 #[derive(Deserialize)]
 struct RuleSheetFile {
     rules: Vec<RegexRuleFromFile>,
 }
 
+/// READ_RULE_SHEET
 /// Reads a rule sheet `.toml` file from the specified path and returns a vector of `RegexRule`s.
 ///
 /// The rule sheet should be a TOML file with the following format:

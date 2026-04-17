@@ -3,6 +3,7 @@ pub mod fixed_decimal;
 
 use std::hash::Hash;
 
+/// COMMODITY VALUE
 /// Represents a monetary or commodity amount with a fixed-precision integer representation.
 ///
 /// The numeric amount is stored as a [`fixed_decimal::FixedDecimal`] to avoid floating-point precision
@@ -22,6 +23,7 @@ impl core::fmt::Display for CommodityValue {
 }
 
 impl CommodityValue {
+    /// FROM_STR
     /// Parses a `CommodityValue` from a string of the form `"<amount> <commodity>"`.
     ///
     /// The commodity name may contain spaces (e.g. `"Gold Bar"`). The amount may
@@ -71,11 +73,13 @@ impl CommodityValue {
         })
     }
 
+    /// SAME_COMMODITY
     /// Returns `true` if both values share the same commodity name.
     pub fn same_commodity(&self, other: &Self) -> bool {
         self.commodity == other.commodity
     }
 
+    /// SAME_AMOUNT
     /// Returns `true` if both values have exactly the same raw amount and precision.
     ///
     /// Unlike `PartialEq`, this does **not** normalize precision, so `1.0` and `1.00`
@@ -85,17 +89,20 @@ impl CommodityValue {
             && self.amount.precision() == other.amount.precision()
     }
 
+    /// AMOUNT (getter)
     /// Returns a reference to the underlying [`fixed_decimal::FixedDecimal`] amount.
     pub fn amount(&self) -> &fixed_decimal::FixedDecimal {
         &self.amount
     }
 
+    /// COMMODITY (getter)
     /// Returns the commodity name.
     pub fn commodity(&self) -> &str {
         return &self.commodity.name;
     }
 }
 
+/// ADD ASSIGN
 /// Implements `+=` for `CommodityValue`, delegating to `Add`.
 ///
 /// # Panics
@@ -106,6 +113,7 @@ impl std::ops::AddAssign<&CommodityValue> for CommodityValue {
     }
 }
 
+/// ADD
 /// Adds two `CommodityValue`s. Precision is aligned automatically.
 ///
 /// # Panics
@@ -124,6 +132,7 @@ impl std::ops::Add for &CommodityValue {
     }
 }
 
+/// SUB
 /// Subtracts one `CommodityValue` from another. Precision is aligned automatically.
 ///
 /// # Panics
@@ -142,6 +151,7 @@ impl std::ops::Sub for &CommodityValue {
     }
 }
 
+/// NEG
 /// Negates a `CommodityValue` by flipping the sign of its amount.
 impl std::ops::Neg for &CommodityValue {
     type Output = CommodityValue;
@@ -154,6 +164,7 @@ impl std::ops::Neg for &CommodityValue {
     }
 }
 
+/// PARTIAL EQ
 /// Two `CommodityValue`s are equal when they share the same commodity and their
 /// amounts are equal after normalizing to the same precision (e.g. `1.4` == `1.40`).
 impl PartialEq for CommodityValue {

@@ -14,6 +14,7 @@ use std::path::PathBuf;
 
 pub struct AvanzaParser;
 
+/// CSV IMPORTER
 /// The import rule for the Avanza CSVs is very basic
 ///
 /// The date format is YYYY-MM-DD in the CSV which is already correct

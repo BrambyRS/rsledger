@@ -5,6 +5,7 @@ use std::io::BufRead;
 use std::io::Lines;
 use std::iter::Peekable;
 
+/// IS_DATE
 /// Checks if a string is in the format YYYY-MM-DD.
 ///
 /// This is a basic check to identify the date format YYYY-MM-DD.
@@ -30,6 +31,7 @@ fn is_date(s: &str) -> bool {
     return true;
 }
 
+/// PARSE_JOURNAL
 /// Parses a journal file and returns a vector of transactions.
 pub fn parse_journal<R: BufRead>(
     journal_lines: &mut Peekable<Lines<R>>,
@@ -86,6 +88,7 @@ pub fn parse_journal<R: BufRead>(
     return Ok(transactions);
 }
 
+/// PARSE_TRANSACTION
 fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
     journal_lines: &mut I,
 ) -> Result<transaction::Transaction, Box<dyn std::error::Error>> {

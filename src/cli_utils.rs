@@ -1,6 +1,7 @@
 use crate::commodity_value;
 use crate::transaction;
 
+/// PROMPT_INPUT
 /// Prints `prompt` to stdout, flushes the buffer, reads a line from stdin,
 /// and returns the trimmed result.
 pub fn prompt_input(
@@ -37,6 +38,7 @@ pub fn prompt_for_date(
     }
 }
 
+/// PROMPT_FOR_ACCOUNT
 /// Prompts the user to enter an account name, and returns it as a string.
 pub fn prompt_for_account(
     prompt: &str,
@@ -57,6 +59,7 @@ pub fn prompt_for_account(
     }
 }
 
+/// PROMPT_FOR_POSTING
 /// Prompts the user to enter one or more postings, and returns them as a vector of [`transaction::posting::Posting`].
 ///
 /// Postings can be entered as:
