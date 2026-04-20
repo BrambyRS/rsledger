@@ -17,6 +17,8 @@ pub fn prompt_input(
     Ok(input.trim().to_string())
 }
 
+/// PROMOT_FOR_DATE
+/// Prompts the user to enter a date in a format specified in the argument and returns a chrono::NaiveDate
 pub fn prompt_for_date(
     prompt: &str,
     format: &str,
@@ -35,6 +37,28 @@ pub fn prompt_for_date(
                 continue;
             }
         }
+    }
+}
+
+/// PROMPT_FOR_COMMODITY_VALUE
+/// Prompts the user for a commodity value
+pub fn prompt_for_value(
+    prompt: &str,
+    reader: &mut impl std::io::BufRead,
+    writer: &mut impl std::io::Write,
+) -> std::io::Result<commodity_value::CommodityValue> {
+    loop {
+        let value_input = prompt_input(prompt, reader, writer)?;
+        match commodity_value::CommodityValue::from_str(&value_input) {
+            Ok(value) => return Ok(value),
+            Err(_) => {
+                writeln!(
+                    writer,
+                    "Invalid date format. Please enter a date in the format YYYY-MM-DD (e.g. 2024-03-15)."
+                )?;
+                continue;
+            }
+        };
     }
 }
 

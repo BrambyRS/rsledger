@@ -6,6 +6,7 @@ use std::io::{self, Write};
 
 use crate::cli_utils;
 use crate::commodity_value;
+use crate::price;
 use crate::transaction;
 
 /// NEW_JOURNAL
@@ -108,7 +109,10 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
         ));
     }
 
-    println!("\nAdding entry to journal: {}", journal_file.display());
+    println!(
+        "\nAdding transaction entry to journal: {}",
+        journal_file.display()
+    );
     println!("Enter postings on the format '<account> <amount> <commodity>'");
     println!("example: 'expenses:food 50.00 SEK') such that all are balanced.");
     println!("If you leave an amount blank, it will be inferred.");
@@ -155,4 +159,56 @@ fn add_transaction_to_file(
     }
 
     return write!(f, "\n{transaction}\n");
+}
+
+/// ADD_PRICE
+/// Prompts the user for inputs to create and add a price directive to a journal file
+fn add_price(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
+    if !journal_file.exists() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("Journal file {} not found.", journal_file.display()),
+        ));
+    }
+
+    println!(
+        "\nAdding price entry to journal: {}",
+        journal_file.display()
+    );
+    let date: chrono::NaiveDate = cli_utils::prompt_for_date(
+        "Date (YYYY-MM-DD): ",
+        "%Y-%m-%d",
+        &mut std::io::stdin().lock(),
+        &mut std::io::stdout(),
+    )?;
+    let commodity: commodity_value::commodity::Commodity = match cli_utils::prompt_input(
+        "Commodity: ",
+        &mut std::io::stdin().lock(),
+        &mut std::io::stdout(),
+    ) {
+        Ok(s) => commodity_value::commodity::Commodity { name: s },
+        Err(e) => {
+            return Err(e);
+        }
+    };
+    let value: commodity_value::CommodityValue = cli_utils::prompt_for_value(
+        "Value: ",
+        &mut std::io::stdin().lock(),
+        &mut std::io::stdout(),
+    )?;
+
+    let entry: price::PriceDirective = price::PriceDirective {
+        date,
+        commodity,
+        value,
+    };
+
+    // Append entry to journal file
+    let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
+    return add_price_to_file(&mut file, &entry);
+}
+
+/// ADD_PRICE_TO_FILE
+fn add_price_to_file(f: &mut fs::File, price: &price::PriceDirective) -> std::io::Result<()> {
+    return write!(f, "{price}\n");
 }

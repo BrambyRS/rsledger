@@ -4,6 +4,7 @@ mod cli_utils;
 mod commodity_value;
 mod config;
 mod journalist;
+mod price;
 mod transaction;
 
 #[derive(ValueEnum, Clone)]
