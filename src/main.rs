@@ -28,6 +28,21 @@ enum Command {
         open: bool,
     },
     Add,
+    Price {
+        #[arg(
+            short = 'e',
+            long = "exchange-rate",
+            help = "Add the entry to the default exchange rates journal file."
+        )]
+        exchange_rate: bool,
+
+        #[arg(
+            short = 'p',
+            long = "price",
+            help = "Add the entry to the default prices journal file."
+        )]
+        price: bool,
+    },
     Import {
         #[arg(help = "CSV file to import from.")]
         csv_file: String,
@@ -93,20 +108,58 @@ struct Args {
     journal_path: String,
 }
 
+enum DefaultJournalTypes {
+    Transactions,
+    ExchangeRates,
+    Prices,
+}
+
 fn get_journal_file_path(
-    args: &Args,
+    path_arg: String,
     config: &config::Config,
+    journal_type: DefaultJournalTypes,
 ) -> std::io::Result<std::path::PathBuf> {
-    if args.journal_path.len() > 0 {
-        Ok(std::path::PathBuf::from(&args.journal_path))
+    if path_arg.len() > 0 {
+        Ok(std::path::PathBuf::from(&path_arg))
     } else {
-        if config.default_journal_folder.len() == 0 || config.default_journal.len() == 0 {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "No journal path provided and default journal not set in config.",
-            ))
-        } else {
-            Ok(std::path::Path::new(&config.default_journal_folder).join(&config.default_journal))
+        match journal_type {
+            DefaultJournalTypes::Transactions => {
+                if config.default_journal_folder.len() == 0 || config.default_journal.len() == 0 {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::NotFound,
+                        "No journal path provided and default journal not set in config.",
+                    ));
+                } else {
+                    return Ok(std::path::Path::new(&config.default_journal_folder)
+                        .join(&config.default_journal));
+                }
+            }
+            DefaultJournalTypes::ExchangeRates => {
+                if config.default_journal_folder.len() == 0
+                    || config.default_exchange_rates_journal.len() == 0
+                {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::NotFound,
+                        "No journal path provided and default exchange rates journal not set in config.",
+                    ));
+                } else {
+                    return Ok(std::path::Path::new(&config.default_journal_folder)
+                        .join(&config.default_exchange_rates_journal));
+                }
+            }
+            DefaultJournalTypes::Prices => {
+                if config.default_journal_folder.len() == 0
+                    || config.default_stock_prices_journal.len() == 0
+                {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::NotFound,
+                        "No journal path provided and default stock prices journal not set in config.",
+                    ));
+                } else {
+                    return Ok(std::path::Path::new(&config.default_journal_folder)
+                        .join(&config.default_stock_prices_journal));
+                }
+            }
         }
     }
 }
@@ -118,133 +171,200 @@ fn main() {
     // Load config
     let mut config: config::Config = config::Config::load();
 
-    // Resolve journal file path
-    let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(&args, &config);
-
     // Handle entry point
     match args.command {
-        Command::New { open } => match journal_file {
-            Err(e) => eprintln!("Error resolving journal file path: {}", e),
-            Ok(path) => {
-                if let Err(e) = journalist::new_journal(&path, open) {
-                    eprintln!("Error creating journal: {}", e);
+        Command::New { open } => {
+            // Resolve journal file path
+            let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(
+                args.journal_path,
+                &config,
+                DefaultJournalTypes::Transactions,
+            );
+            match journal_file {
+                Err(e) => eprintln!("Error resolving journal file path: {}", e),
+                Ok(path) => {
+                    if let Err(e) = journalist::new_journal(&path, open) {
+                        eprintln!("Error creating journal: {}", e);
+                    }
                 }
             }
-        },
-        Command::Add => match journal_file {
-            Err(e) => eprintln!("Error resolving journal file path: {}", e),
-            Ok(path) => {
-                if let Err(e) = journalist::add_entry(&path) {
-                    eprintln!("Error adding entry: {}", e);
+        }
+        Command::Add => {
+            let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(
+                args.journal_path,
+                &config,
+                DefaultJournalTypes::Transactions,
+            );
+            match journal_file {
+                Err(e) => eprintln!("Error resolving journal file path: {}", e),
+                Ok(path) => {
+                    if let Err(e) = journalist::add_entry(&path) {
+                        eprintln!("Error adding entry: {}", e);
+                    }
                 }
             }
-        },
+        }
+        Command::Price {
+            exchange_rate,
+            price,
+        } => {
+            if exchange_rate && price {
+                eprintln!("Cannot be both exchange rate and price at the same time.");
+            } else if exchange_rate {
+                // Resolve journal file path
+                let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(
+                    args.journal_path,
+                    &config,
+                    DefaultJournalTypes::ExchangeRates,
+                );
+                match journal_file {
+                    Err(e) => eprintln!("Error resolving journal file path: {}", e),
+                    Ok(path) => {
+                        if let Err(e) = journalist::add_price(&path) {
+                            eprintln!("Error adding entry: {}", e);
+                        }
+                    }
+                }
+            } else if price {
+                let journal_file: std::io::Result<std::path::PathBuf> =
+                    get_journal_file_path(args.journal_path, &config, DefaultJournalTypes::Prices);
+                match journal_file {
+                    Err(e) => eprintln!("Error resolving journal file path: {}", e),
+                    Ok(path) => {
+                        if let Err(e) = journalist::add_price(&path) {
+                            eprintln!("Error adding entry: {}", e);
+                        }
+                    }
+                }
+            } else {
+                let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(
+                    args.journal_path,
+                    &config,
+                    DefaultJournalTypes::Transactions,
+                );
+                match journal_file {
+                    Err(e) => eprintln!("Error resolving journal file path: {}", e),
+                    Ok(path) => {
+                        if let Err(e) = journalist::add_price(&path) {
+                            eprintln!("Error adding entry: {}", e);
+                        }
+                    }
+                }
+            }
+        }
         Command::Import {
             csv_file,
             parser,
             rule_sheet,
-        } => match journal_file {
-            Err(e) => eprintln!("Error resolving journal file path: {}", e),
-            Ok(path) => {
-                let parser: Box<dyn journalist::csv_parser::CSVImporter> = match parser {
-                    ParserOptions::Avanza => {
-                        Box::new(journalist::csv_parser::avanza_parser::AvanzaParser::new())
-                    }
-                    ParserOptions::HSBCDebit => {
-                        Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
-                            "assets:bank:hsbc".to_string(),
-                            "GBP".to_string(),
-                            std::path::PathBuf::from(&rule_sheet),
-                            ',',
-                            false,
-                            0,
-                            "%d/%m/%Y".to_string(),
-                            vec![1],
-                            2,
-                            None,
-                            Some(','),
-                            '.',
-                        ))
-                    }
-                    ParserOptions::HSBCCredit => {
-                        Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
-                            "liabilities:credit:hsbc-credit-card".to_string(),
-                            "GBP".to_string(),
-                            std::path::PathBuf::from(&rule_sheet),
-                            ',',
-                            false,
-                            0,
-                            "%d/%m/%Y".to_string(),
-                            vec![1],
-                            2,
-                            None,
-                            Some(','),
-                            '.',
-                        ))
-                    }
-                    ParserOptions::SebDebit => {
-                        Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
-                            "assets:bank:seb-lönekonto".to_string(),
-                            "SEK".to_string(),
-                            std::path::PathBuf::from(&rule_sheet),
-                            ';',
-                            true,
-                            0,
-                            "%Y-%m-%d".to_string(),
-                            vec![3],
-                            4,
-                            None,
-                            None,
-                            '.',
-                        ))
-                    }
-                    ParserOptions::SebSavings => {
-                        Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
-                            "assets:bank:seb-sparkonto".to_string(),
-                            "SEK".to_string(),
-                            std::path::PathBuf::from(&rule_sheet),
-                            ';',
-                            true,
-                            0,
-                            "%Y-%m-%d".to_string(),
-                            vec![3],
-                            4,
-                            None,
-                            None,
-                            '.',
-                        ))
-                    }
-                    ParserOptions::Volksbank => {
-                        Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
-                            "assets:bank:volksbank".to_string(),
-                            "EUR".to_string(),
-                            std::path::PathBuf::from(&rule_sheet),
-                            ';',
-                            true,
-                            4,
-                            "%d.%m.%Y".to_string(),
-                            vec![6, 10],
-                            11,
-                            Some(12),
-                            Some('.'),
-                            ',',
-                        ))
-                    }
-                };
+        } => {
+            let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(
+                args.journal_path,
+                &config,
+                DefaultJournalTypes::Transactions,
+            );
+            match journal_file {
+                Err(e) => eprintln!("Error resolving journal file path: {}", e),
+                Ok(path) => {
+                    let parser: Box<dyn journalist::csv_parser::CSVImporter> = match parser {
+                        ParserOptions::Avanza => {
+                            Box::new(journalist::csv_parser::avanza_parser::AvanzaParser::new())
+                        }
+                        ParserOptions::HSBCDebit => {
+                            Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
+                                "assets:bank:hsbc".to_string(),
+                                "GBP".to_string(),
+                                std::path::PathBuf::from(&rule_sheet),
+                                ',',
+                                false,
+                                0,
+                                "%d/%m/%Y".to_string(),
+                                vec![1],
+                                2,
+                                None,
+                                Some(','),
+                                '.',
+                            ))
+                        }
+                        ParserOptions::HSBCCredit => {
+                            Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
+                                "liabilities:credit:hsbc-credit-card".to_string(),
+                                "GBP".to_string(),
+                                std::path::PathBuf::from(&rule_sheet),
+                                ',',
+                                false,
+                                0,
+                                "%d/%m/%Y".to_string(),
+                                vec![1],
+                                2,
+                                None,
+                                Some(','),
+                                '.',
+                            ))
+                        }
+                        ParserOptions::SebDebit => {
+                            Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
+                                "assets:bank:seb-lönekonto".to_string(),
+                                "SEK".to_string(),
+                                std::path::PathBuf::from(&rule_sheet),
+                                ';',
+                                true,
+                                0,
+                                "%Y-%m-%d".to_string(),
+                                vec![3],
+                                4,
+                                None,
+                                None,
+                                '.',
+                            ))
+                        }
+                        ParserOptions::SebSavings => {
+                            Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
+                                "assets:bank:seb-sparkonto".to_string(),
+                                "SEK".to_string(),
+                                std::path::PathBuf::from(&rule_sheet),
+                                ';',
+                                true,
+                                0,
+                                "%Y-%m-%d".to_string(),
+                                vec![3],
+                                4,
+                                None,
+                                None,
+                                '.',
+                            ))
+                        }
+                        ParserOptions::Volksbank => {
+                            Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
+                                "assets:bank:volksbank".to_string(),
+                                "EUR".to_string(),
+                                std::path::PathBuf::from(&rule_sheet),
+                                ';',
+                                true,
+                                4,
+                                "%d.%m.%Y".to_string(),
+                                vec![6, 10],
+                                11,
+                                Some(12),
+                                Some('.'),
+                                ',',
+                            ))
+                        }
+                    };
 
-                let csv_file = std::path::PathBuf::from(csv_file);
+                    let csv_file = std::path::PathBuf::from(csv_file);
 
-                if let Err(e) = journalist::csv_parser::import_transactions_from_csv(
-                    &*parser,
-                    &csv_file,
-                    &path,
-                    &mut std::io::stdin().lock(),
-                    &mut std::io::stdout(),
-                ) {
-                    eprintln!("Error importing CSV: {}", e);
+                    if let Err(e) = journalist::csv_parser::import_transactions_from_csv(
+                        &*parser,
+                        &csv_file,
+                        &path,
+                        &mut std::io::stdin().lock(),
+                        &mut std::io::stdout(),
+                    ) {
+                        eprintln!("Error importing CSV: {}", e);
+                    }
                 }
             }
-        },
+        }
         Command::Config {
             config_folder,
             config_journal,

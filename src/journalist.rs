@@ -163,7 +163,7 @@ fn add_transaction_to_file(
 
 /// ADD_PRICE
 /// Prompts the user for inputs to create and add a price directive to a journal file
-fn add_price(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
+pub fn add_price(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
     if !journal_file.exists() {
         return Err(io::Error::new(
             io::ErrorKind::NotFound,
