@@ -9,6 +9,7 @@ use crate::transaction;
 use std::io::{BufRead, Lines, Write};
 use std::iter::Peekable;
 
+/// HASED TRANSACTION
 /// A struct that combines the transaction with its functional and partial hashes for easy comparison
 struct HashedTransaction {
     functional_hash: u64,
@@ -53,6 +54,7 @@ fn read_and_hash_journal(journal_path: std::path::PathBuf) -> Option<Vec<HashedT
     return Some(hashed_transactions);
 }
 
+/// IMPORT CANDIDATE
 /// Enum representing a candidate transaction from the CSV
 /// It can either be classifiable (i.e all the postings could be automatically resolved)
 /// or unclassifiable (i.e. postings need manual review)
@@ -63,6 +65,7 @@ pub enum ImportCandidate {
     Unclassified(transaction::Transaction),
 }
 
+/// CSV IMPORTER
 /// Trait for csv importers.
 ///
 /// Each CSV importer can define arbitrarily complex logic to parse a CSV
@@ -72,6 +75,7 @@ pub trait CSVImporter {
     fn import_csv(&self, csv_path: std::path::PathBuf) -> Vec<ImportCandidate>;
 }
 
+/// DEDUPLICATE_TRANSACTIONS
 /// Handles the ImportCandidate objects and deduplicates against existing transactions in the journal.
 ///
 /// For classified candidates, it skips those which already exist in the journal by checking
@@ -154,6 +158,7 @@ fn deduplicate_transactions(
     return new_transactions;
 }
 
+/// IMPORT_TRANSACTIONS_FROM_CSV
 /// Main function to handle the CSV import process
 ///
 /// 1. Reads and hashes existing transactions in the journal
@@ -243,7 +248,7 @@ mod tests {
 
     #[test]
     fn spot_check_basic_transactions_salary_january() {
-        use crate::transaction::commodity_value::CommodityValue;
+        use crate::commodity_value::CommodityValue;
         use crate::transaction::posting::Posting;
 
         let result = read_and_hash_journal(journal_path("basic_transactions.journal")).unwrap();
@@ -270,7 +275,7 @@ mod tests {
 
     #[test]
     fn spot_check_basic_transactions_spotify_autobalance() {
-        use crate::transaction::commodity_value::CommodityValue;
+        use crate::commodity_value::CommodityValue;
         use crate::transaction::posting::Posting;
 
         let result = read_and_hash_journal(journal_path("basic_transactions.journal")).unwrap();
@@ -349,7 +354,7 @@ mod tests {
     /// must be treated as a duplicate and not added.
     #[test]
     fn classified_dedup_ignores_description() {
-        use crate::transaction::commodity_value::CommodityValue;
+        use crate::commodity_value::CommodityValue;
         use crate::transaction::posting::Posting;
         use std::io::Cursor;
 
@@ -405,7 +410,7 @@ mod tests {
     /// must still be offered as a partial match, and skipped when the user confirms.
     #[test]
     fn unclassified_partial_match_ignores_description() {
-        use crate::transaction::commodity_value::CommodityValue;
+        use crate::commodity_value::CommodityValue;
         use crate::transaction::posting::Posting;
         use std::io::Cursor;
 
@@ -460,7 +465,7 @@ mod tests {
     /// produce identical hashes and must be treated as duplicates.
     #[test]
     fn classified_dedup_handles_redundant_decimal_digits() {
-        use crate::transaction::commodity_value::CommodityValue;
+        use crate::commodity_value::CommodityValue;
         use crate::transaction::posting::Posting;
         use std::io::Cursor;
 

@@ -1,5 +1,7 @@
+use crate::commodity_value;
 use crate::transaction;
 
+/// PROMPT_INPUT
 /// Prints `prompt` to stdout, flushes the buffer, reads a line from stdin,
 /// and returns the trimmed result.
 pub fn prompt_input(
@@ -15,6 +17,8 @@ pub fn prompt_input(
     Ok(input.trim().to_string())
 }
 
+/// PROMOT_FOR_DATE
+/// Prompts the user to enter a date in a format specified in the argument and returns a chrono::NaiveDate
 pub fn prompt_for_date(
     prompt: &str,
     format: &str,
@@ -36,6 +40,29 @@ pub fn prompt_for_date(
     }
 }
 
+/// PROMPT_FOR_COMMODITY_VALUE
+/// Prompts the user for a commodity value
+pub fn prompt_for_value(
+    prompt: &str,
+    reader: &mut impl std::io::BufRead,
+    writer: &mut impl std::io::Write,
+) -> std::io::Result<commodity_value::CommodityValue> {
+    loop {
+        let value_input = prompt_input(prompt, reader, writer)?;
+        match commodity_value::CommodityValue::from_str(&value_input) {
+            Ok(value) => return Ok(value),
+            Err(_) => {
+                writeln!(
+                    writer,
+                    "Invalid date format. Please enter a date in the format YYYY-MM-DD (e.g. 2024-03-15)."
+                )?;
+                continue;
+            }
+        };
+    }
+}
+
+/// PROMPT_FOR_ACCOUNT
 /// Prompts the user to enter an account name, and returns it as a string.
 pub fn prompt_for_account(
     prompt: &str,
@@ -56,6 +83,7 @@ pub fn prompt_for_account(
     }
 }
 
+/// PROMPT_FOR_POSTING
 /// Prompts the user to enter one or more postings, and returns them as a vector of [`transaction::posting::Posting`].
 ///
 /// Postings can be entered as:
@@ -81,8 +109,8 @@ pub fn prompt_for_postings(
         } else if parts.len() == 3 {
             let account_str: String = parts[0].to_string();
             let amount_str: String = parts[1..].join(" ");
-            let amount: Option<transaction::commodity_value::CommodityValue> =
-                match transaction::commodity_value::CommodityValue::from_str(&amount_str) {
+            let amount: Option<commodity_value::CommodityValue> =
+                match commodity_value::CommodityValue::from_str(&amount_str) {
                     Ok(val) => Some(val),
                     Err(_) => {
                         writeln!(

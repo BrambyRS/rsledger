@@ -1,5 +1,6 @@
 use std::hash::Hash;
 
+/// FIXED DECIMAL
 /// A fixed-precision decimal number stored as a scaled integer.
 ///
 /// Arithmetic operations on `FixedDecimal` are independent of any commodity.
@@ -13,11 +14,13 @@ pub struct FixedDecimal {
 }
 
 impl FixedDecimal {
+    /// NEW
     /// Constructs a `FixedDecimal` directly from its raw components.
     pub fn new(amount: i64, precision: u8) -> Self {
         FixedDecimal { amount, precision }
     }
 
+    /// FROM_STR
     /// Parses a `FixedDecimal` from a bare number string such as `"123.45"` or `"-10"`.
     ///
     /// Reduces the value to the lowest possible precision by removing any trailing zeros
@@ -64,16 +67,19 @@ impl FixedDecimal {
         }
     }
 
+    /// RAW_AMOUNT (getter)
     /// The raw scaled integer. Divide by `10^precision()` to get the real value.
     pub fn raw_amount(&self) -> i64 {
         return self.amount;
     }
 
+    /// PRECISION (getter)
     /// Number of decimal places used in the scaled representation.
     pub fn precision(&self) -> u8 {
         return self.precision;
     }
 
+    /// ALIGN_PRECISION
     /// Aligns the precision of `self` and `other` to the same scale.
     ///
     /// Returns `(self_amount, other_amount, max_precision)` where both amounts
@@ -87,6 +93,7 @@ impl FixedDecimal {
     }
 }
 
+/// DISPLAY
 impl core::fmt::Display for FixedDecimal {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         if self.precision == 0 {
@@ -104,6 +111,7 @@ impl core::fmt::Display for FixedDecimal {
     }
 }
 
+/// PARTIAL EQ
 /// Two `FixedDecimal`s are equal when their amounts are equal after normalizing
 /// to the same precision (e.g. `1.4` == `1.40`).
 impl PartialEq for FixedDecimal {
@@ -113,6 +121,7 @@ impl PartialEq for FixedDecimal {
     }
 }
 
+/// ADD
 /// Adds two `FixedDecimal`s, aligning precision automatically.
 impl std::ops::Add for &FixedDecimal {
     type Output = FixedDecimal;
@@ -126,6 +135,7 @@ impl std::ops::Add for &FixedDecimal {
     }
 }
 
+/// SUB
 /// Subtracts one `FixedDecimal` from another, aligning precision automatically.
 impl std::ops::Sub for &FixedDecimal {
     type Output = FixedDecimal;
@@ -139,6 +149,7 @@ impl std::ops::Sub for &FixedDecimal {
     }
 }
 
+/// ADD ASSIGN
 /// Implements `+=` for `FixedDecimal`, delegating to `Add`.
 impl std::ops::AddAssign<&FixedDecimal> for FixedDecimal {
     fn add_assign(&mut self, other: &Self) {
@@ -146,6 +157,7 @@ impl std::ops::AddAssign<&FixedDecimal> for FixedDecimal {
     }
 }
 
+/// SUB ASSIGN
 /// Implements `-=` for `FixedDecimal`, delegating to `Sub`.
 impl std::ops::SubAssign<&FixedDecimal> for FixedDecimal {
     fn sub_assign(&mut self, other: &Self) {
@@ -153,6 +165,7 @@ impl std::ops::SubAssign<&FixedDecimal> for FixedDecimal {
     }
 }
 
+/// NEG
 /// Negates a `FixedDecimal` by flipping the sign of its amount.
 impl std::ops::Neg for &FixedDecimal {
     type Output = FixedDecimal;

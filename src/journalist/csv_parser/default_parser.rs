@@ -2,6 +2,7 @@
 //! that do not have custom parsing logic implemented.
 //! It supports classification of transactions based on the regex-based rule system
 
+use crate::commodity_value;
 use crate::journalist::csv_parser;
 use crate::journalist::csv_parser::rules::{RegexRule, RuleAction, read_rule_sheet};
 use crate::transaction;
@@ -161,9 +162,7 @@ impl csv_parser::CSVImporter for DefaultParser {
                             let first_posting = transaction::posting::Posting::new(
                                 self.account.clone(),
                                 Some(
-                                    match transaction::commodity_value::CommodityValue::from_str(
-                                        &amount_str,
-                                    ) {
+                                    match commodity_value::CommodityValue::from_str(&amount_str) {
                                         Ok(value) => value,
                                         Err(e) => {
                                             eprintln!(
@@ -199,7 +198,7 @@ impl csv_parser::CSVImporter for DefaultParser {
                 let posting = transaction::posting::Posting::new(
                     self.account.clone(),
                     Some(
-                        match transaction::commodity_value::CommodityValue::from_str(&amount_str) {
+                        match commodity_value::CommodityValue::from_str(&amount_str) {
                             Ok(value) => value,
                             Err(e) => {
                                 eprintln!("Error parsing amount '{}': {}", amount_str, e);

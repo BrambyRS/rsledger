@@ -5,8 +5,11 @@ use std::fs;
 use std::io::{self, Write};
 
 use crate::cli_utils;
+use crate::commodity_value;
+use crate::price;
 use crate::transaction;
 
+/// NEW_JOURNAL
 /// Creates a new journal file at the path resolved from `args` and `config`.
 /// Intermediate directories are created automatically if they do not exist.
 /// If the flag --open is provided, an opening transaction with the current date
@@ -55,9 +58,7 @@ pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> s
             if parts.len() == 3 {
                 let account_str: String = parts[0].to_string();
                 let amount_str: String = parts[1..].join(" ");
-                let amount = match transaction::commodity_value::CommodityValue::from_str(
-                    &amount_str,
-                ) {
+                let amount = match commodity_value::CommodityValue::from_str(&amount_str) {
                     Ok(val) => Some(val),
                     Err(_) => {
                         println!(
@@ -91,6 +92,7 @@ pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> s
     return Ok(());
 }
 
+/// ADD_ENTRY
 /// Interactively prompts the user for a date, description, and one or more postings,
 /// then appends the resulting [`transaction::Transaction`] to the journal file.
 ///
@@ -107,7 +109,10 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
         ));
     }
 
-    println!("\nAdding entry to journal: {}", journal_file.display());
+    println!(
+        "\nAdding transaction entry to journal: {}",
+        journal_file.display()
+    );
     println!("Enter postings on the format '<account> <amount> <commodity>'");
     println!("example: 'expenses:food 50.00 SEK') such that all are balanced.");
     println!("If you leave an amount blank, it will be inferred.");
@@ -133,11 +138,10 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
 
     // Append entry to journal file
     let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
-    add_transaction_to_file(&mut file, &entry)?;
-
-    Ok(())
+    return add_transaction_to_file(&mut file, &entry);
 }
 
+/// ADD_TRANSACTION_TO_FILE
 /// Appends a transaction to the journal file
 ///
 /// Validates that the transaction is balanced before writing.
@@ -154,6 +158,57 @@ fn add_transaction_to_file(
         ));
     }
 
-    write!(f, "\n{transaction}\n")?;
-    Ok(())
+    return write!(f, "\n{transaction}\n");
+}
+
+/// ADD_PRICE
+/// Prompts the user for inputs to create and add a price directive to a journal file
+pub fn add_price(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
+    if !journal_file.exists() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("Journal file {} not found.", journal_file.display()),
+        ));
+    }
+
+    println!(
+        "\nAdding price entry to journal: {}",
+        journal_file.display()
+    );
+    let date: chrono::NaiveDate = cli_utils::prompt_for_date(
+        "Date (YYYY-MM-DD): ",
+        "%Y-%m-%d",
+        &mut std::io::stdin().lock(),
+        &mut std::io::stdout(),
+    )?;
+    let commodity: commodity_value::commodity::Commodity = match cli_utils::prompt_input(
+        "Commodity: ",
+        &mut std::io::stdin().lock(),
+        &mut std::io::stdout(),
+    ) {
+        Ok(s) => commodity_value::commodity::Commodity { name: s },
+        Err(e) => {
+            return Err(e);
+        }
+    };
+    let value: commodity_value::CommodityValue = cli_utils::prompt_for_value(
+        "Value: ",
+        &mut std::io::stdin().lock(),
+        &mut std::io::stdout(),
+    )?;
+
+    let entry: price::PriceDirective = price::PriceDirective {
+        date,
+        commodity,
+        value,
+    };
+
+    // Append entry to journal file
+    let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
+    return add_price_to_file(&mut file, &entry);
+}
+
+/// ADD_PRICE_TO_FILE
+fn add_price_to_file(f: &mut fs::File, price: &price::PriceDirective) -> std::io::Result<()> {
+    return write!(f, "{price}\n");
 }

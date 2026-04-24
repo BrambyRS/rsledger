@@ -1,30 +1,29 @@
-use super::fixed_decimal::FixedDecimal;
+pub mod commodity;
+pub mod fixed_decimal;
+
 use std::hash::Hash;
 
+/// COMMODITY VALUE
 /// Represents a monetary or commodity amount with a fixed-precision integer representation.
 ///
-/// The numeric amount is stored as a [`FixedDecimal`] to avoid floating-point precision
-/// issues. For example, `123.45 SEK` stores `amount = FixedDecimal { 12345, 2 }`.
+/// The numeric amount is stored as a [`fixed_decimal::FixedDecimal`] to avoid floating-point precision
+/// issues. For example, `123.45 SEK` stores `amount = fixed_decimal::FixedDecimal { 12345, 2 }`.
 #[derive(Clone, Debug, Hash)]
 pub struct CommodityValue {
     /// The scaled decimal amount.
-    amount: FixedDecimal,
+    amount: fixed_decimal::FixedDecimal,
     /// Name of the commodity (e.g. `SEK`, `GBP`, `Gold Bar`). Always stored without quotes.
-    commodity: String,
+    commodity: commodity::Commodity,
 }
 
 impl core::fmt::Display for CommodityValue {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        // Print with quotes if the commodity contains a space for hledger compatibility
-        if self.commodity.contains(' ') {
-            write!(f, "{} \"{}\"", self.amount, self.commodity)
-        } else {
-            write!(f, "{} {}", self.amount, self.commodity)
-        }
+        return write!(f, "{} {}", self.amount, self.commodity);
     }
 }
 
 impl CommodityValue {
+    /// FROM_STR
     /// Parses a `CommodityValue` from a string of the form `"<amount> <commodity>"`.
     ///
     /// The commodity name may contain spaces (e.g. `"Gold Bar"`). The amount may
@@ -63,20 +62,24 @@ impl CommodityValue {
             commodity_part
         };
 
-        let amount = FixedDecimal::from_str(amount_part)
+        let amount = fixed_decimal::FixedDecimal::from_str(amount_part)
             .map_err(|_| format!("Invalid amount format: '{}'.", amount_part))?;
 
         Ok(CommodityValue {
             amount,
-            commodity: commodity_part,
+            commodity: commodity::Commodity {
+                name: commodity_part,
+            },
         })
     }
 
+    /// SAME_COMMODITY
     /// Returns `true` if both values share the same commodity name.
     pub fn same_commodity(&self, other: &Self) -> bool {
         self.commodity == other.commodity
     }
 
+    /// SAME_AMOUNT
     /// Returns `true` if both values have exactly the same raw amount and precision.
     ///
     /// Unlike `PartialEq`, this does **not** normalize precision, so `1.0` and `1.00`
@@ -86,17 +89,20 @@ impl CommodityValue {
             && self.amount.precision() == other.amount.precision()
     }
 
-    /// Returns a reference to the underlying [`FixedDecimal`] amount.
-    pub fn amount(&self) -> &FixedDecimal {
+    /// AMOUNT (getter)
+    /// Returns a reference to the underlying [`fixed_decimal::FixedDecimal`] amount.
+    pub fn amount(&self) -> &fixed_decimal::FixedDecimal {
         &self.amount
     }
 
+    /// COMMODITY (getter)
     /// Returns the commodity name.
     pub fn commodity(&self) -> &str {
-        &self.commodity
+        return &self.commodity.name;
     }
 }
 
+/// ADD ASSIGN
 /// Implements `+=` for `CommodityValue`, delegating to `Add`.
 ///
 /// # Panics
@@ -107,6 +113,7 @@ impl std::ops::AddAssign<&CommodityValue> for CommodityValue {
     }
 }
 
+/// ADD
 /// Adds two `CommodityValue`s. Precision is aligned automatically.
 ///
 /// # Panics
@@ -125,6 +132,7 @@ impl std::ops::Add for &CommodityValue {
     }
 }
 
+/// SUB
 /// Subtracts one `CommodityValue` from another. Precision is aligned automatically.
 ///
 /// # Panics
@@ -143,6 +151,7 @@ impl std::ops::Sub for &CommodityValue {
     }
 }
 
+/// NEG
 /// Negates a `CommodityValue` by flipping the sign of its amount.
 impl std::ops::Neg for &CommodityValue {
     type Output = CommodityValue;
@@ -155,6 +164,7 @@ impl std::ops::Neg for &CommodityValue {
     }
 }
 
+/// PARTIAL EQ
 /// Two `CommodityValue`s are equal when they share the same commodity and their
 /// amounts are equal after normalizing to the same precision (e.g. `1.4` == `1.40`).
 impl PartialEq for CommodityValue {
