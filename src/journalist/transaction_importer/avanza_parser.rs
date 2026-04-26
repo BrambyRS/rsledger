@@ -3,7 +3,7 @@
 //! above what is possible with the regex-based rule system.
 
 use crate::commodity_value;
-use crate::journalist::csv_parser;
+use crate::journalist::transaction_importer;
 use crate::transaction;
 
 use std::fs::File;
@@ -25,8 +25,8 @@ pub struct AvanzaParser;
 /// And the fees go into expenses:bank:avanza
 ///
 /// Deposits or withdrawals are always assumed to come from assets:bank:seb-lönekonto
-impl csv_parser::CSVImporter for AvanzaParser {
-    fn import_csv(&self, csv_path: PathBuf) -> Vec<csv_parser::ImportCandidate> {
+impl transaction_importer::TransactionImporter for AvanzaParser {
+    fn import_csv(&self, csv_path: PathBuf) -> Vec<transaction_importer::ImportCandidate> {
         let file: File = match File::open(&csv_path) {
             Ok(f) => f,
             Err(e) => {
@@ -37,7 +37,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
 
         let mut lines: Peekable<Lines<BufReader<File>>> = BufReader::new(file).lines().peekable();
 
-        let mut import_candidates: Vec<csv_parser::ImportCandidate> = Vec::new();
+        let mut import_candidates: Vec<transaction_importer::ImportCandidate> = Vec::new();
 
         // Avanza CSV has a header which we will skip
         lines.next();
@@ -102,7 +102,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                         None,
                     ),
                 ];
-                import_candidates.push(csv_parser::ImportCandidate::Classified(
+                import_candidates.push(transaction_importer::ImportCandidate::Classified(
                     transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else if action == "Köp" {
@@ -128,7 +128,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                     ),
                 ];
 
-                import_candidates.push(csv_parser::ImportCandidate::Classified(
+                import_candidates.push(transaction_importer::ImportCandidate::Classified(
                     transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else if action == "Sälj" {
@@ -171,7 +171,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                     ),
                 ];
 
-                import_candidates.push(csv_parser::ImportCandidate::Classified(
+                import_candidates.push(transaction_importer::ImportCandidate::Classified(
                     transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else if action == "Utdelning" {
@@ -185,7 +185,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                     transaction::posting::Posting::new("income:dividends".to_string(), None),
                 ];
 
-                import_candidates.push(csv_parser::ImportCandidate::Classified(
+                import_candidates.push(transaction_importer::ImportCandidate::Classified(
                     transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else if action == "Utländsk källskatt" {
@@ -202,7 +202,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                     ),
                 ];
 
-                import_candidates.push(csv_parser::ImportCandidate::Classified(
+                import_candidates.push(transaction_importer::ImportCandidate::Classified(
                     transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else if action == "Utlåningsränta" {
@@ -222,7 +222,7 @@ impl csv_parser::CSVImporter for AvanzaParser {
                     ),
                 ];
 
-                import_candidates.push(csv_parser::ImportCandidate::Classified(
+                import_candidates.push(transaction_importer::ImportCandidate::Classified(
                     transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else {

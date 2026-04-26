@@ -3,8 +3,8 @@
 //! It supports classification of transactions based on the regex-based rule system
 
 use crate::commodity_value;
-use crate::journalist::csv_parser;
-use crate::journalist::csv_parser::rules::{RegexRule, RuleAction, read_rule_sheet};
+use crate::journalist::transaction_importer;
+use crate::journalist::transaction_importer::rules::{RegexRule, RuleAction, read_rule_sheet};
 use crate::transaction;
 
 use std::path::PathBuf;
@@ -64,8 +64,8 @@ impl DefaultParser {
     }
 }
 
-impl csv_parser::CSVImporter for DefaultParser {
-    fn import_csv(&self, csv_path: PathBuf) -> Vec<csv_parser::ImportCandidate> {
+impl transaction_importer::TransactionImporter for DefaultParser {
+    fn import_csv(&self, csv_path: PathBuf) -> Vec<transaction_importer::ImportCandidate> {
         let mut reader = match csv::ReaderBuilder::new()
             .has_headers(self.has_headers)
             .delimiter(self.delimiter as u8)
@@ -87,7 +87,7 @@ impl csv_parser::CSVImporter for DefaultParser {
             .unwrap_or(0)
             + 1;
 
-        let mut import_candidates: Vec<csv_parser::ImportCandidate> = Vec::new();
+        let mut import_candidates: Vec<transaction_importer::ImportCandidate> = Vec::new();
 
         for result in reader.records() {
             let record = match result {
@@ -181,8 +181,9 @@ impl csv_parser::CSVImporter for DefaultParser {
                                 description_str.clone(),
                                 vec![first_posting, second_posting],
                             );
-                            import_candidates
-                                .push(csv_parser::ImportCandidate::Classified(transaction));
+                            import_candidates.push(
+                                transaction_importer::ImportCandidate::Classified(transaction),
+                            );
                             classified = true;
                             break;
                         }
@@ -209,7 +210,9 @@ impl csv_parser::CSVImporter for DefaultParser {
                 );
                 let transaction =
                     transaction::Transaction::new(date, description_str, vec![posting]);
-                import_candidates.push(csv_parser::ImportCandidate::Unclassified(transaction));
+                import_candidates.push(transaction_importer::ImportCandidate::Unclassified(
+                    transaction,
+                ));
             }
         }
 
@@ -220,7 +223,7 @@ impl csv_parser::CSVImporter for DefaultParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::journalist::csv_parser::{CSVImporter, ImportCandidate};
+    use crate::journalist::transaction_importer::{ImportCandidate, TransactionImporter};
 
     fn csv_path(filename: &str) -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
