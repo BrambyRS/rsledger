@@ -23,6 +23,10 @@ impl core::fmt::Display for CommodityValue {
 }
 
 impl CommodityValue {
+    pub fn new(amount: fixed_decimal::FixedDecimal, commodity: commodity::Commodity) -> Self {
+        CommodityValue { amount, commodity }
+    }
+
     /// FROM_STR
     /// Parses a `CommodityValue` from a string of the form `"<amount> <commodity>"`.
     ///

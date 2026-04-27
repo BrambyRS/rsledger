@@ -1,4 +1,5 @@
 mod journal_parser;
+pub mod prices_importer;
 pub mod transaction_importer;
 
 use std::fs;
