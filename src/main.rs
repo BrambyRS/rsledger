@@ -57,6 +57,10 @@ enum Command {
         )]
         rule_sheet: String,
     },
+    ImportPrices {
+        #[arg(help = "Positions CSV file to import prices from.")]
+        csv_file: String,
+    },
     Config {
         #[arg(
             short = 'f',
@@ -361,6 +365,19 @@ fn main() {
                         &mut std::io::stdout(),
                     ) {
                         eprintln!("Error importing CSV: {}", e);
+                    }
+                }
+            }
+        }
+        Command::ImportPrices { csv_file } => {
+            let journal_file: std::io::Result<std::path::PathBuf> =
+                get_journal_file_path(args.journal_path, &config, DefaultJournalTypes::Prices);
+            match journal_file {
+                Err(e) => eprintln!("Error resolving journal file path: {}", e),
+                Ok(path) => {
+                    let csv_file = std::path::PathBuf::from(csv_file);
+                    if let Err(e) = journalist::prices_importer::import_prices(&csv_file, &path) {
+                        eprintln!("Error importing prices: {}", e);
                     }
                 }
             }
