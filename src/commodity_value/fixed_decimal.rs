@@ -16,8 +16,27 @@ pub struct FixedDecimal {
 impl FixedDecimal {
     /// NEW
     /// Constructs a `FixedDecimal` directly from its raw components.
+    ///
+    /// Reduces the value to the lowest possible precision by removing trailing
+    /// fractional zeros. For example, `new(140, 2)` is stored as `amount = 14`,
+    /// `precision = 1`. Zero is always stored as `amount = 0`, `precision = 0`.
     pub fn new(amount: i64, precision: u8) -> Self {
-        FixedDecimal { amount, precision }
+        if amount == 0 {
+            return FixedDecimal {
+                amount: 0,
+                precision: 0,
+            };
+        }
+        let mut a = amount;
+        let mut p = precision;
+        while p > 0 && a % 10 == 0 {
+            a /= 10;
+            p -= 1;
+        }
+        FixedDecimal {
+            amount: a,
+            precision: p,
+        }
     }
 
     /// FROM_STR
@@ -41,27 +60,15 @@ impl FixedDecimal {
                 let amount = parts[0]
                     .parse::<i64>()
                     .map_err(|_| format!("Invalid decimal format: '{}'.", s))?;
-                Ok(FixedDecimal {
-                    amount,
-                    precision: 0,
-                })
+                Ok(FixedDecimal::new(amount, 0))
             }
             2 => {
-                // Walk the decimal parts from the end, until the first non-zero is found
-                let mut precision = parts[1].len() as u8;
-                for ch in parts[1].chars().rev() {
-                    if ch == '0' {
-                        precision -= 1;
-                    } else {
-                        break;
-                    }
-                }
-                let decimal_part = &parts[1][..precision as usize];
-                let joined = format!("{}{}", parts[0], decimal_part);
+                let precision = parts[1].len() as u8;
+                let joined = format!("{}{}", parts[0], parts[1]);
                 let amount = joined
                     .parse::<i64>()
                     .map_err(|_| format!("Invalid decimal format: '{}'.", s))?;
-                Ok(FixedDecimal { amount, precision })
+                Ok(FixedDecimal::new(amount, precision))
             }
             _ => Err(format!("Invalid decimal format: '{}'.", s)),
         }
@@ -357,5 +364,51 @@ mod tests {
         let fd2 = FixedDecimal::from_str("23.25").unwrap();
         fd1 -= &fd2;
         assert_eq!(fd1, FixedDecimal::from_str("77.25").unwrap());
+    }
+
+    // -------------------------------------------------------------------------
+    // new() normalization tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_new_already_canonical() {
+        let fd = FixedDecimal::new(12345, 2);
+        assert_eq!(fd.raw_amount(), 12345);
+        assert_eq!(fd.precision(), 2);
+    }
+
+    #[test]
+    fn test_new_strips_one_trailing_zero() {
+        let fd = FixedDecimal::new(140, 2);
+        assert_eq!(fd.raw_amount(), 14);
+        assert_eq!(fd.precision(), 1);
+    }
+
+    #[test]
+    fn test_new_strips_all_trailing_zeros_to_integer() {
+        let fd = FixedDecimal::new(5000, 3);
+        assert_eq!(fd.raw_amount(), 5);
+        assert_eq!(fd.precision(), 0);
+    }
+
+    #[test]
+    fn test_new_zero_canonical() {
+        let fd = FixedDecimal::new(0, 6);
+        assert_eq!(fd.raw_amount(), 0);
+        assert_eq!(fd.precision(), 0);
+    }
+
+    #[test]
+    fn test_new_negative_strips_trailing_zeros() {
+        let fd = FixedDecimal::new(-1200, 2);
+        assert_eq!(fd.raw_amount(), -12);
+        assert_eq!(fd.precision(), 0);
+    }
+
+    #[test]
+    fn test_new_precision_zero_unchanged() {
+        let fd = FixedDecimal::new(42, 0);
+        assert_eq!(fd.raw_amount(), 42);
+        assert_eq!(fd.precision(), 0);
     }
 }
