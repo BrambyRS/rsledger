@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 mod cli_utils;
 mod commodity_value;
 mod config;
+mod journal;
 mod journalist;
 mod price;
 mod transaction;
