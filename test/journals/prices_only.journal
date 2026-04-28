@@ -1,0 +1,10 @@
+; prices_only.journal
+; Contains only price directives to verify the parser handles a prices-only file.
+; Covers:
+;   - Simple unquoted commodity on both sides
+;   - Quoted COMMODITY_1 (contains a space)
+;   - Quoted COMMODITY_2 (contains a space)
+
+P 2026-01-01 USD 10.50 SEK
+P 2026-01-15 "Gold Bar" 1234.56 SEK
+P 2026-01-15 USD 8.75 "Silver Coin"

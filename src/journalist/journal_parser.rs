@@ -1,4 +1,6 @@
 use crate::commodity_value::CommodityValue;
+use crate::journal;
+use crate::price;
 use crate::transaction;
 
 use std::io::BufRead;
@@ -62,8 +64,9 @@ fn is_date(s: &str) -> bool {
 /// Parses a journal file and returns a vector of transactions.
 pub fn parse_journal<R: BufRead>(
     journal_lines: &mut Peekable<Lines<R>>,
-) -> Result<Vec<transaction::Transaction>, Box<dyn std::error::Error>> {
+) -> Result<journal::Journal, Box<dyn std::error::Error>> {
     let mut transactions: Vec<transaction::Transaction> = Vec::new();
+    let mut prices: Vec<price::PriceDirective> = Vec::new();
 
     // Iterate over lines in the file, looking for transactions
     loop {
@@ -110,8 +113,21 @@ pub fn parse_journal<R: BufRead>(
                 // So there is no need to manually advance the iterator at the end
             }
             DirectiveType::Price => {
-                // Do nothing for now, move to next line
-                journal_lines.next();
+                // Get the price directive starting at this line
+                let price_directive: price::PriceDirective =
+                    match price::PriceDirective::from_str(&stripped_line) {
+                        Ok(p) => p,
+                        Err(e) => {
+                            eprintln!(
+                                "Error parsing price directive at line '{}': {}",
+                                stripped_line, e
+                            );
+                            journal_lines.next();
+                            continue;
+                        }
+                    };
+                prices.push(price_directive);
+                journal_lines.next(); // Consume the line after parsing the price directive
             }
             DirectiveType::None => {
                 // Move to next line
@@ -120,7 +136,10 @@ pub fn parse_journal<R: BufRead>(
         }
     }
 
-    return Ok(transactions);
+    return Ok(journal::Journal {
+        transactions,
+        prices,
+    });
 }
 
 /// PARSE_TRANSACTION
@@ -223,7 +242,8 @@ mod tests {
     fn test_parse_basic_transactions() {
         let file = File::open(test_journal("basic_transactions.journal")).unwrap();
         let mut lines = BufReader::new(file).lines().peekable();
-        let transactions = parse_journal(&mut lines).unwrap();
+        let journal = parse_journal(&mut lines).unwrap();
+        let transactions = &journal.transactions;
 
         assert_eq!(transactions.len(), 15);
 
@@ -244,6 +264,68 @@ mod tests {
             "2026-02-01 Spotify AB | Monthly subscription\n\
              \texpenses:entertainment  119 SEK\n\
              \tassets:bank:checking"
+        );
+    }
+
+    #[test]
+    fn test_parse_prices_only() {
+        let file = File::open(test_journal("prices_only.journal")).unwrap();
+        let mut lines = BufReader::new(file).lines().peekable();
+        let journal = parse_journal(&mut lines).unwrap();
+
+        assert_eq!(journal.transactions.len(), 0);
+        assert_eq!(journal.prices.len(), 3);
+
+        // Simple unquoted commodity on both sides; trailing zero in 10.50 is stripped.
+        assert_eq!(
+            format!("{}", journal.prices[0]),
+            "P 2026-01-01 USD 10.5 SEK"
+        );
+        // Quoted COMMODITY_1 (contains a space).
+        assert_eq!(
+            format!("{}", journal.prices[1]),
+            "P 2026-01-15 \"Gold Bar\" 1234.56 SEK"
+        );
+        // Quoted COMMODITY_2 (contains a space).
+        assert_eq!(
+            format!("{}", journal.prices[2]),
+            "P 2026-01-15 USD 8.75 \"Silver Coin\""
+        );
+    }
+
+    #[test]
+    fn test_parse_transactions_and_prices() {
+        let file = File::open(test_journal("transactions_and_prices.journal")).unwrap();
+        let mut lines = BufReader::new(file).lines().peekable();
+        let journal = parse_journal(&mut lines).unwrap();
+
+        assert_eq!(journal.transactions.len(), 2);
+        assert_eq!(journal.prices.len(), 2);
+
+        // Price before any transaction.
+        assert_eq!(
+            format!("{}", journal.prices[0]),
+            "P 2026-01-01 USD 10.5 SEK"
+        );
+        // Price between two transactions, with a quoted commodity.
+        assert_eq!(
+            format!("{}", journal.prices[1]),
+            "P 2026-01-15 \"Gold Bar\" 1234.56 SEK"
+        );
+
+        // First transaction (appears after the first price directive).
+        assert_eq!(
+            format!("{}", journal.transactions[0]),
+            "2026-01-25 * Salary\n\
+             \tassets:bank:checking  35000 SEK\n\
+             \tincome:salary  -35000 SEK"
+        );
+        // Second transaction (appears after the second price directive).
+        assert_eq!(
+            format!("{}", journal.transactions[1]),
+            "2026-02-01 Subscription\n\
+             \texpenses:entertainment  119 SEK\n\
+             \tassets:bank:checking  -119 SEK"
         );
     }
 }

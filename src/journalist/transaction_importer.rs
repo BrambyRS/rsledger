@@ -29,16 +29,16 @@ fn read_and_hash_journal(journal_path: std::path::PathBuf) -> Option<Vec<HashedT
     let mut lines: Peekable<Lines<std::io::BufReader<std::fs::File>>> =
         std::io::BufReader::new(file).lines().peekable();
 
-    let transactions: Vec<transaction::Transaction> =
-        match journalist::journal_parser::parse_journal(&mut lines) {
-            Ok(t) => t,
-            Err(e) => {
-                eprintln!("Error parsing journal: {}", e);
-                return None;
-            }
-        };
+    let journal = match journalist::journal_parser::parse_journal(&mut lines) {
+        Ok(j) => j,
+        Err(e) => {
+            eprintln!("Error parsing journal: {}", e);
+            return None;
+        }
+    };
 
-    let hashed_transactions: Vec<HashedTransaction> = transactions
+    let hashed_transactions: Vec<HashedTransaction> = journal
+        .transactions
         .into_iter()
         .map(|t| {
             let functional_hash = t.functional_hash();
