@@ -5,6 +5,33 @@ use std::io::BufRead;
 use std::io::Lines;
 use std::iter::Peekable;
 
+enum DirectiveType {
+    Transaction,
+    Price,
+    None,
+}
+
+impl DirectiveType {
+    /// SCAN LINE
+    /// Scans a line to see what type of directive it is.
+    ///
+    /// Takes a line of input and determines what type of directive it is.
+    /// Currently only distinguishes between transaction directives and price directives.
+    /// Transaction directives are identified as starting with a date in the format YYYY-MM-DD.
+    /// Price directives are identified as starting with the word "P".
+    fn scan_line(line: &str) -> DirectiveType {
+        let first_token: &str = line.split_whitespace().next().unwrap_or("");
+        if is_date(first_token) {
+            return DirectiveType::Transaction;
+        } else if first_token == "P" {
+            return DirectiveType::Price;
+        }
+
+        // Return None otherwise
+        return DirectiveType::None;
+    }
+}
+
 /// IS_DATE
 /// Checks if a string is in the format YYYY-MM-DD.
 ///
@@ -64,24 +91,32 @@ pub fn parse_journal<R: BufRead>(
             continue;
         }
 
-        // If it starts with a date, it's a transaction header line.
-        // Don't consume — let parse_transaction read the header itself.
-        let first_token: &str = stripped_line.split_whitespace().next().unwrap_or("");
-        if is_date(first_token) {
-            let transaction: transaction::Transaction = match parse_transaction(journal_lines) {
-                Ok(t) => t,
-                Err(e) => {
-                    eprintln!(
-                        "Error parsing transaction starting at line '{}': {}",
-                        stripped_line, e
-                    );
-                    continue;
-                }
-            };
-            transactions.push(transaction);
-        } else {
-            // Non-transaction line — consume and ignore
-            journal_lines.next();
+        match DirectiveType::scan_line(&stripped_line) {
+            DirectiveType::Transaction => {
+                // Get the transaction starting at this line
+                let transaction: transaction::Transaction = match parse_transaction(journal_lines) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        eprintln!(
+                            "Error parsing transaction starting at line '{}': {}",
+                            stripped_line, e
+                        );
+                        continue;
+                    }
+                };
+                transactions.push(transaction);
+
+                // parse_transaction will consume the lines corresponding to the transaction
+                // So there is no need to manually advance the iterator at the end
+            }
+            DirectiveType::Price => {
+                // Do nothing for now, move to next line
+                journal_lines.next();
+            }
+            DirectiveType::None => {
+                // Move to next line
+                journal_lines.next();
+            }
         }
     }
 
