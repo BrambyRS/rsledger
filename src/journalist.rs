@@ -1,3 +1,8 @@
+//! Journalist is the module that handles the creation and modification of the journal file.
+//! It contains methods to add lines to the journal (this is done blindly, without parsing
+//! the existing journal content), parse the journal, and import prices and transactions from CSVs.
+//! In the latter case, the original journal is parsed and deduplication logic is applied.
+
 mod journal_parser;
 pub mod prices_importer;
 pub mod transaction_importer;
