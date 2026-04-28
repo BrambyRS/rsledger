@@ -1,11 +1,70 @@
 use crate::commodity_value::{CommodityValue, commodity, fixed_decimal};
-use crate::journalist::add_price_to_file;
+use crate::journalist::{self, add_price_to_file};
 use crate::price;
 
 use chrono::NaiveDate;
 use std::fs::File;
 use std::io::{BufRead, Lines};
 use std::iter::Peekable;
+
+/// HASHED PRICE
+/// A price directive paired with its hash for efficient deduplication.
+struct HashedPrice {
+    hash: u64,
+    #[allow(dead_code)]
+    price: price::PriceDirective,
+}
+
+/// READ_PRICES_FROM_JOURNAL
+/// Opens the journal at `journal_path`, parses it, and returns all price directives
+/// wrapped in `HashedPrice` for deduplication. Returns `None` on IO or parse error.
+fn read_prices_from_journal(journal_path: std::path::PathBuf) -> Option<Vec<HashedPrice>> {
+    let file = match std::fs::File::open(&journal_path) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Error opening journal file: {}", e);
+            return None;
+        }
+    };
+
+    let mut lines: Peekable<Lines<std::io::BufReader<std::fs::File>>> =
+        std::io::BufReader::new(file).lines().peekable();
+
+    let journal = match journalist::journal_parser::parse_journal(&mut lines) {
+        Ok(j) => j,
+        Err(e) => {
+            eprintln!("Error parsing journal: {}", e);
+            return None;
+        }
+    };
+
+    Some(
+        journal
+            .prices
+            .into_iter()
+            .map(|p| HashedPrice {
+                hash: p.price_hash(),
+                price: p,
+            })
+            .collect(),
+    )
+}
+
+/// DEDUPLICATE_PRICES
+/// Filters `candidates` to only those whose `price_hash` does not already appear
+/// in `existing_prices`.
+fn deduplicate_prices(
+    existing_prices: Vec<HashedPrice>,
+    candidates: Vec<price::PriceDirective>,
+) -> Vec<price::PriceDirective> {
+    candidates
+        .into_iter()
+        .filter(|c| {
+            let h = c.price_hash();
+            !existing_prices.iter().any(|e| e.hash == h)
+        })
+        .collect()
+}
 
 /// IMPORT_CSV
 /// Reads the an Avanza-style positions CSV and returns a vector of PriceDirective entries
@@ -127,6 +186,7 @@ pub fn import_csv(csv_path: &std::path::PathBuf) -> std::io::Result<Vec<price::P
 /// IMPORT_PRICES
 /// Reads the an Avanza-style positions CSV and appends PriceDirective entries
 /// corresponding to the data in the CSV file to the journal file as price directives.
+/// Deduplicates against prices already present in the journal.
 pub fn import_prices(
     csv_path: &std::path::PathBuf,
     journal_file: &std::path::PathBuf,
@@ -140,6 +200,19 @@ pub fn import_prices(
             ));
         }
     };
+
+    let existing_prices = match read_prices_from_journal(journal_file.clone()) {
+        Some(p) => p,
+        None => {
+            eprintln!(
+                "Error reading existing prices from {}. Aborting import.",
+                journal_file.display()
+            );
+            return Ok(());
+        }
+    };
+
+    let new_prices = deduplicate_prices(existing_prices, price_directives);
 
     let mut file = std::fs::OpenOptions::new()
         .append(true)
@@ -155,7 +228,7 @@ pub fn import_prices(
             )
         })?;
 
-    for price in price_directives {
+    for price in new_prices {
         add_price_to_file(&mut file, &price)?;
     }
 
@@ -250,5 +323,92 @@ mod tests {
         // File name does not start with a valid YYYY-MM-DD date.
         let path = std::path::PathBuf::from("not-a-date_positions.csv");
         assert!(import_csv(&path).is_err());
+    }
+
+    // -------------------------------------------------------------------------
+    // Deduplication
+    // -------------------------------------------------------------------------
+
+    /// Creates a temporary journal file with the given content and returns its path.
+    /// The caller must delete the file after the test.
+    fn write_temp_journal(content: &str) -> std::path::PathBuf {
+        use std::io::Write;
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .subsec_nanos();
+        let path = std::env::temp_dir().join(format!("rsledger_test_{}.journal", nanos));
+        let mut f = std::fs::File::create(&path).unwrap();
+        f.write_all(content.as_bytes()).unwrap();
+        path
+    }
+
+    /// Reads all lines from a file and returns them as a String.
+    fn read_journal(path: &std::path::PathBuf) -> String {
+        std::fs::read_to_string(path).unwrap()
+    }
+
+    #[test]
+    fn import_prices_adds_all_to_empty_journal() {
+        // Empty journal → all 3 prices from the CSV should be appended.
+        let journal = write_temp_journal("");
+        import_prices(&csv_path("2026-01-15_positions.csv"), &journal).unwrap();
+        let contents = read_journal(&journal);
+        std::fs::remove_file(&journal).unwrap();
+
+        assert!(contents.contains("Acme Corp"));
+        assert!(contents.contains("Beta Fund"));
+        assert!(contents.contains("Delta International"));
+        assert_eq!(contents.lines().count(), 3);
+    }
+
+    #[test]
+    fn import_prices_skips_exact_duplicate() {
+        // Journal already has Acme Corp → only Beta Fund and Delta International should be added.
+        let journal = write_temp_journal("P 2026-01-15 \"Acme Corp\" 500 SEK\n");
+        import_prices(&csv_path("2026-01-15_positions.csv"), &journal).unwrap();
+        let contents = read_journal(&journal);
+        std::fs::remove_file(&journal).unwrap();
+
+        assert_eq!(
+            contents.lines().filter(|l| l.contains("Acme Corp")).count(),
+            1,
+            "Acme Corp should appear only once"
+        );
+        assert!(contents.contains("Beta Fund"));
+        assert!(contents.contains("Delta International"));
+        assert_eq!(contents.lines().count(), 3);
+    }
+
+    #[test]
+    fn import_prices_skips_all_when_all_present() {
+        // Journal already has all 3 prices → nothing should be appended.
+        let seed = "P 2026-01-15 \"Acme Corp\" 500 SEK\n\
+                    P 2026-01-15 \"Beta Fund\" 200 SEK\n\
+                    P 2026-01-15 \"Delta International\" 833.3325 SEK\n";
+        let journal = write_temp_journal(seed);
+        import_prices(&csv_path("2026-01-15_positions.csv"), &journal).unwrap();
+        let contents = read_journal(&journal);
+        std::fs::remove_file(&journal).unwrap();
+
+        assert_eq!(contents.lines().count(), 3, "no new lines should be added");
+    }
+
+    #[test]
+    fn import_prices_adds_only_new_prices() {
+        // Journal has Beta Fund → Acme Corp and Delta International should be added.
+        let journal = write_temp_journal("P 2026-01-15 \"Beta Fund\" 200 SEK\n");
+        import_prices(&csv_path("2026-01-15_positions.csv"), &journal).unwrap();
+        let contents = read_journal(&journal);
+        std::fs::remove_file(&journal).unwrap();
+
+        assert!(contents.contains("Acme Corp"));
+        assert_eq!(
+            contents.lines().filter(|l| l.contains("Beta Fund")).count(),
+            1,
+            "Beta Fund should appear only once"
+        );
+        assert!(contents.contains("Delta International"));
+        assert_eq!(contents.lines().count(), 3);
     }
 }
