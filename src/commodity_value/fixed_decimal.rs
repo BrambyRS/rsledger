@@ -16,8 +16,27 @@ pub struct FixedDecimal {
 impl FixedDecimal {
     /// NEW
     /// Constructs a `FixedDecimal` directly from its raw components.
+    ///
+    /// Reduces the value to the lowest possible precision by removing trailing
+    /// fractional zeros. For example, `new(140, 2)` is stored as `amount = 14`,
+    /// `precision = 1`. Zero is always stored as `amount = 0`, `precision = 0`.
     pub fn new(amount: i64, precision: u8) -> Self {
-        FixedDecimal { amount, precision }
+        if amount == 0 {
+            return FixedDecimal {
+                amount: 0,
+                precision: 0,
+            };
+        }
+        let mut a = amount;
+        let mut p = precision;
+        while p > 0 && a % 10 == 0 {
+            a /= 10;
+            p -= 1;
+        }
+        FixedDecimal {
+            amount: a,
+            precision: p,
+        }
     }
 
     /// FROM_STR
@@ -41,27 +60,15 @@ impl FixedDecimal {
                 let amount = parts[0]
                     .parse::<i64>()
                     .map_err(|_| format!("Invalid decimal format: '{}'.", s))?;
-                Ok(FixedDecimal {
-                    amount,
-                    precision: 0,
-                })
+                Ok(FixedDecimal::new(amount, 0))
             }
             2 => {
-                // Walk the decimal parts from the end, until the first non-zero is found
-                let mut precision = parts[1].len() as u8;
-                for ch in parts[1].chars().rev() {
-                    if ch == '0' {
-                        precision -= 1;
-                    } else {
-                        break;
-                    }
-                }
-                let decimal_part = &parts[1][..precision as usize];
-                let joined = format!("{}{}", parts[0], decimal_part);
+                let precision = parts[1].len() as u8;
+                let joined = format!("{}{}", parts[0], parts[1]);
                 let amount = joined
                     .parse::<i64>()
                     .map_err(|_| format!("Invalid decimal format: '{}'.", s))?;
-                Ok(FixedDecimal { amount, precision })
+                Ok(FixedDecimal::new(amount, precision))
             }
             _ => Err(format!("Invalid decimal format: '{}'.", s)),
         }
@@ -175,6 +182,63 @@ impl std::ops::Neg for &FixedDecimal {
             amount: -self.amount,
             precision: self.precision,
         }
+    }
+}
+
+/// DIV
+/// Divides one `FixedDecimal` by another.
+///
+/// Rounds to at most 6 decimal places.
+/// Panics if the denominator is zero.
+impl std::ops::Div for &FixedDecimal {
+    type Output = FixedDecimal;
+
+    fn div(self, other: Self) -> FixedDecimal {
+        let (numerator, denominator, _) = self.align_precision(other);
+        if denominator == 0 {
+            panic!("Division by zero in FixedDecimal division.");
+        }
+
+        // Scale one extra digit beyond max_result_precision, divide, then round
+        // half-away-from-zero by checking the extra digit. Use i128 to avoid overflow.
+        let max_result_precision: u32 = 6;
+        let scaled_numerator = numerator as i128 * 10_i128.pow(max_result_precision + 1);
+        let raw = scaled_numerator / denominator as i128;
+        let rounded = if raw >= 0 {
+            (raw + 5) / 10
+        } else {
+            (raw - 5) / 10
+        };
+        FixedDecimal::new(rounded as i64, max_result_precision as u8)
+    }
+}
+
+/// ASSIGN DIV
+/// Implements `/=` for `FixedDecimal`, delegating to `Div`.
+/// Panics if the denominator is zero.
+impl std::ops::DivAssign<&FixedDecimal> for FixedDecimal {
+    fn div_assign(&mut self, other: &Self) {
+        *self = &*self / other;
+    }
+}
+
+/// MUL
+/// Multiplies two `FixedDecimal`s together.
+impl std::ops::Mul for &FixedDecimal {
+    type Output = FixedDecimal;
+
+    fn mul(self, other: Self) -> FixedDecimal {
+        let new_amount: i64 = self.amount * other.amount;
+        let new_precision: u8 = self.precision + other.precision;
+        return FixedDecimal::new(new_amount, new_precision);
+    }
+}
+
+/// ASSIGN MUL
+/// Implements `*=` for `FixedDecimal`, delegating to `Mul`.
+impl std::ops::MulAssign<&FixedDecimal> for FixedDecimal {
+    fn mul_assign(&mut self, other: &Self) {
+        *self = &*self * other;
     }
 }
 
@@ -357,5 +421,183 @@ mod tests {
         let fd2 = FixedDecimal::from_str("23.25").unwrap();
         fd1 -= &fd2;
         assert_eq!(fd1, FixedDecimal::from_str("77.25").unwrap());
+    }
+
+    // -------------------------------------------------------------------------
+    // new() normalization tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_new_already_canonical() {
+        let fd = FixedDecimal::new(12345, 2);
+        assert_eq!(fd.raw_amount(), 12345);
+        assert_eq!(fd.precision(), 2);
+    }
+
+    #[test]
+    fn test_new_strips_one_trailing_zero() {
+        let fd = FixedDecimal::new(140, 2);
+        assert_eq!(fd.raw_amount(), 14);
+        assert_eq!(fd.precision(), 1);
+    }
+
+    #[test]
+    fn test_new_strips_all_trailing_zeros_to_integer() {
+        let fd = FixedDecimal::new(5000, 3);
+        assert_eq!(fd.raw_amount(), 5);
+        assert_eq!(fd.precision(), 0);
+    }
+
+    #[test]
+    fn test_new_zero_canonical() {
+        let fd = FixedDecimal::new(0, 6);
+        assert_eq!(fd.raw_amount(), 0);
+        assert_eq!(fd.precision(), 0);
+    }
+
+    #[test]
+    fn test_new_negative_strips_trailing_zeros() {
+        let fd = FixedDecimal::new(-1200, 2);
+        assert_eq!(fd.raw_amount(), -12);
+        assert_eq!(fd.precision(), 0);
+    }
+
+    #[test]
+    fn test_new_precision_zero_unchanged() {
+        let fd = FixedDecimal::new(42, 0);
+        assert_eq!(fd.raw_amount(), 42);
+        assert_eq!(fd.precision(), 0);
+    }
+
+    // -------------------------------------------------------------------------
+    // Division tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_div_exact_half() {
+        let fd1 = FixedDecimal::from_str("1").unwrap();
+        let fd2 = FixedDecimal::from_str("2").unwrap();
+        assert_eq!(&fd1 / &fd2, FixedDecimal::from_str("0.5").unwrap());
+    }
+
+    #[test]
+    fn test_div_whole_result() {
+        let fd1 = FixedDecimal::from_str("5").unwrap();
+        let fd2 = FixedDecimal::from_str("1").unwrap();
+        assert_eq!(&fd1 / &fd2, FixedDecimal::from_str("5").unwrap());
+    }
+
+    #[test]
+    fn test_div_decimal_operands() {
+        let fd1 = FixedDecimal::from_str("2.5").unwrap();
+        let fd2 = FixedDecimal::from_str("0.5").unwrap();
+        assert_eq!(&fd1 / &fd2, FixedDecimal::from_str("5").unwrap());
+    }
+
+    #[test]
+    fn test_div_rounds_to_six_places_down() {
+        // 1/3 = 0.3333333... 7th digit is 3, rounds down
+        let fd1 = FixedDecimal::from_str("1").unwrap();
+        let fd2 = FixedDecimal::from_str("3").unwrap();
+        assert_eq!(&fd1 / &fd2, FixedDecimal::from_str("0.333333").unwrap());
+    }
+
+    #[test]
+    fn test_div_rounds_to_six_places_up() {
+        // 2/3 = 0.6666666... 7th digit is 6, rounds up
+        let fd1 = FixedDecimal::from_str("2").unwrap();
+        let fd2 = FixedDecimal::from_str("3").unwrap();
+        assert_eq!(&fd1 / &fd2, FixedDecimal::from_str("0.666667").unwrap());
+    }
+
+    #[test]
+    fn test_div_negative_numerator() {
+        let fd1 = FixedDecimal::from_str("-1").unwrap();
+        let fd2 = FixedDecimal::from_str("4").unwrap();
+        assert_eq!(&fd1 / &fd2, FixedDecimal::from_str("-0.25").unwrap());
+    }
+
+    #[test]
+    fn test_div_negative_denominator() {
+        let fd1 = FixedDecimal::from_str("1").unwrap();
+        let fd2 = FixedDecimal::from_str("-4").unwrap();
+        assert_eq!(&fd1 / &fd2, FixedDecimal::from_str("-0.25").unwrap());
+    }
+
+    #[test]
+    fn test_div_both_negative() {
+        let fd1 = FixedDecimal::from_str("-3").unwrap();
+        let fd2 = FixedDecimal::from_str("-2").unwrap();
+        assert_eq!(&fd1 / &fd2, FixedDecimal::from_str("1.5").unwrap());
+    }
+
+    #[test]
+    #[should_panic(expected = "Division by zero")]
+    fn test_div_by_zero_panics() {
+        let fd1 = FixedDecimal::from_str("1").unwrap();
+        let fd2 = FixedDecimal::from_str("0").unwrap();
+        let _ = &fd1 / &fd2;
+    }
+
+    #[test]
+    fn test_div_assign() {
+        let mut fd1 = FixedDecimal::from_str("3").unwrap();
+        let fd2 = FixedDecimal::from_str("2").unwrap();
+        fd1 /= &fd2;
+        assert_eq!(fd1, FixedDecimal::from_str("1.5").unwrap());
+    }
+
+    // -------------------------------------------------------------------------
+    // Multiplication tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_mul_integers() {
+        let fd1 = FixedDecimal::from_str("3").unwrap();
+        let fd2 = FixedDecimal::from_str("4").unwrap();
+        assert_eq!(&fd1 * &fd2, FixedDecimal::from_str("12").unwrap());
+    }
+
+    #[test]
+    fn test_mul_decimals() {
+        let fd1 = FixedDecimal::from_str("1.5").unwrap();
+        let fd2 = FixedDecimal::from_str("1.5").unwrap();
+        assert_eq!(&fd1 * &fd2, FixedDecimal::from_str("2.25").unwrap());
+    }
+
+    #[test]
+    fn test_mul_integer_and_decimal() {
+        let fd1 = FixedDecimal::from_str("2").unwrap();
+        let fd2 = FixedDecimal::from_str("1.5").unwrap();
+        assert_eq!(&fd1 * &fd2, FixedDecimal::from_str("3").unwrap());
+    }
+
+    #[test]
+    fn test_mul_negative() {
+        let fd1 = FixedDecimal::from_str("-2").unwrap();
+        let fd2 = FixedDecimal::from_str("1.5").unwrap();
+        assert_eq!(&fd1 * &fd2, FixedDecimal::from_str("-3").unwrap());
+    }
+
+    #[test]
+    fn test_mul_both_negative() {
+        let fd1 = FixedDecimal::from_str("-2").unwrap();
+        let fd2 = FixedDecimal::from_str("-1.5").unwrap();
+        assert_eq!(&fd1 * &fd2, FixedDecimal::from_str("3").unwrap());
+    }
+
+    #[test]
+    fn test_mul_by_zero() {
+        let fd1 = FixedDecimal::from_str("123.45").unwrap();
+        let fd2 = FixedDecimal::from_str("0").unwrap();
+        assert_eq!(&fd1 * &fd2, FixedDecimal::from_str("0").unwrap());
+    }
+
+    #[test]
+    fn test_mul_assign() {
+        let mut fd1 = FixedDecimal::from_str("2.5").unwrap();
+        let fd2 = FixedDecimal::from_str("4").unwrap();
+        fd1 *= &fd2;
+        assert_eq!(fd1, FixedDecimal::from_str("10").unwrap());
     }
 }

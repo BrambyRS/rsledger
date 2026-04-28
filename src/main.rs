@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 mod cli_utils;
 mod commodity_value;
 mod config;
+mod journal;
 mod journalist;
 mod price;
 mod transaction;
@@ -56,6 +57,10 @@ enum Command {
             default_value = ""
         )]
         rule_sheet: String,
+    },
+    ImportPrices {
+        #[arg(help = "Positions CSV file to import prices from.")]
+        csv_file: String,
     },
     Config {
         #[arg(
@@ -265,12 +270,12 @@ fn main() {
             match journal_file {
                 Err(e) => eprintln!("Error resolving journal file path: {}", e),
                 Ok(path) => {
-                    let parser: Box<dyn journalist::csv_parser::CSVImporter> = match parser {
+                    let parser: Box<dyn journalist::transaction_importer::TransactionImporter> = match parser {
                         ParserOptions::Avanza => {
-                            Box::new(journalist::csv_parser::avanza_parser::AvanzaParser::new())
+                            Box::new(journalist::transaction_importer::avanza_parser::AvanzaParser::new())
                         }
                         ParserOptions::HSBCDebit => {
-                            Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
+                            Box::new(journalist::transaction_importer::default_parser::DefaultParser::new(
                                 "assets:bank:hsbc".to_string(),
                                 "GBP".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -286,7 +291,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::HSBCCredit => {
-                            Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
+                            Box::new(journalist::transaction_importer::default_parser::DefaultParser::new(
                                 "liabilities:credit:hsbc-credit-card".to_string(),
                                 "GBP".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -302,7 +307,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::SebDebit => {
-                            Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
+                            Box::new(journalist::transaction_importer::default_parser::DefaultParser::new(
                                 "assets:bank:seb-lönekonto".to_string(),
                                 "SEK".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -318,7 +323,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::SebSavings => {
-                            Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
+                            Box::new(journalist::transaction_importer::default_parser::DefaultParser::new(
                                 "assets:bank:seb-sparkonto".to_string(),
                                 "SEK".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -334,7 +339,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::Volksbank => {
-                            Box::new(journalist::csv_parser::default_parser::DefaultParser::new(
+                            Box::new(journalist::transaction_importer::default_parser::DefaultParser::new(
                                 "assets:bank:volksbank".to_string(),
                                 "EUR".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -353,7 +358,7 @@ fn main() {
 
                     let csv_file = std::path::PathBuf::from(csv_file);
 
-                    if let Err(e) = journalist::csv_parser::import_transactions_from_csv(
+                    if let Err(e) = journalist::transaction_importer::import_transactions(
                         &*parser,
                         &csv_file,
                         &path,
@@ -361,6 +366,19 @@ fn main() {
                         &mut std::io::stdout(),
                     ) {
                         eprintln!("Error importing CSV: {}", e);
+                    }
+                }
+            }
+        }
+        Command::ImportPrices { csv_file } => {
+            let journal_file: std::io::Result<std::path::PathBuf> =
+                get_journal_file_path(args.journal_path, &config, DefaultJournalTypes::Prices);
+            match journal_file {
+                Err(e) => eprintln!("Error resolving journal file path: {}", e),
+                Ok(path) => {
+                    let csv_file = std::path::PathBuf::from(csv_file);
+                    if let Err(e) = journalist::prices_importer::import_prices(&csv_file, &path) {
+                        eprintln!("Error importing prices: {}", e);
                     }
                 }
             }

@@ -29,16 +29,16 @@ fn read_and_hash_journal(journal_path: std::path::PathBuf) -> Option<Vec<HashedT
     let mut lines: Peekable<Lines<std::io::BufReader<std::fs::File>>> =
         std::io::BufReader::new(file).lines().peekable();
 
-    let transactions: Vec<transaction::Transaction> =
-        match journalist::journal_parser::parse_journal(&mut lines) {
-            Ok(t) => t,
-            Err(e) => {
-                eprintln!("Error parsing journal: {}", e);
-                return None;
-            }
-        };
+    let journal = match journalist::journal_parser::parse_journal(&mut lines) {
+        Ok(j) => j,
+        Err(e) => {
+            eprintln!("Error parsing journal: {}", e);
+            return None;
+        }
+    };
 
-    let hashed_transactions: Vec<HashedTransaction> = transactions
+    let hashed_transactions: Vec<HashedTransaction> = journal
+        .transactions
         .into_iter()
         .map(|t| {
             let functional_hash = t.functional_hash();
@@ -65,13 +65,13 @@ pub enum ImportCandidate {
     Unclassified(transaction::Transaction),
 }
 
-/// CSV IMPORTER
+/// TRANSACTION IMPORTER
 /// Trait for csv importers.
 ///
 /// Each CSV importer can define arbitrarily complex logic to parse a CSV
 /// and classify the transactions it contains. It must then return a list of
 /// `ImportCandidate` objects.
-pub trait CSVImporter {
+pub trait TransactionImporter {
     fn import_csv(&self, csv_path: std::path::PathBuf) -> Vec<ImportCandidate>;
 }
 
@@ -158,15 +158,15 @@ fn deduplicate_transactions(
     return new_transactions;
 }
 
-/// IMPORT_TRANSACTIONS_FROM_CSV
+/// IMPORT_TRANSACTIONS
 /// Main function to handle the CSV import process
 ///
 /// 1. Reads and hashes existing transactions in the journal
-/// 2. Uses the provided CSVImporter to parse the CSV and get a list of ImportCandidates
+/// 2. Uses the provided TransactionImporter to parse the CSV and get a list of ImportCandidates
 /// 3. Deduplicates the candidates against existing transactions and prompts the user for manual classification when needed
 /// 4. Appends the new transactions to the journal file
-pub fn import_transactions_from_csv(
-    csv_importer: &dyn CSVImporter,
+pub fn import_transactions(
+    csv_importer: &dyn TransactionImporter,
     csv_path: &std::path::PathBuf,
     journal_path: &std::path::PathBuf,
     reader: &mut impl BufRead,
@@ -515,7 +515,7 @@ mod tests {
     }
 
     // -------------------------------------------------------------------------
-    // import_transactions_from_csv: same CSV imported twice adds nothing new
+    // import_transactions: same CSV imported twice adds nothing new
     // -------------------------------------------------------------------------
 
     /// End-to-end check: importing an all-classified CSV twice must leave the
@@ -538,7 +538,7 @@ mod tests {
             '.',
         );
 
-        import_transactions_from_csv(
+        import_transactions(
             &parser,
             &csv_path("hsbc_classified.csv"),
             journal.path(),
@@ -548,7 +548,7 @@ mod tests {
         .unwrap();
         let after_first = journal.transaction_count();
 
-        import_transactions_from_csv(
+        import_transactions(
             &parser,
             &csv_path("hsbc_classified.csv"),
             journal.path(),
@@ -569,7 +569,7 @@ mod tests {
     }
 
     // -------------------------------------------------------------------------
-    // import_transactions_from_csv: partial match works with a different description
+    // import_transactions: partial match works with a different description
     // -------------------------------------------------------------------------
 
     /// First import hsbc_mixed.csv (one classified, one unclassified).
@@ -596,7 +596,7 @@ mod tests {
 
         // First import: classified transaction added automatically; unclassified one
         // requires the user to supply an account.
-        import_transactions_from_csv(
+        import_transactions(
             &parser,
             &csv_path("hsbc_mixed.csv"),
             journal.path(),
@@ -609,7 +609,7 @@ mod tests {
         // Second import uses the same amounts and dates but a different description for
         // the unclassified transaction.  The partial hash should still match the existing
         // journal entry, and the user confirms the match with "y".
-        import_transactions_from_csv(
+        import_transactions(
             &parser,
             &csv_path("hsbc_mixed_alt_desc.csv"),
             journal.path(),

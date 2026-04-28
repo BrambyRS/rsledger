@@ -1,0 +1,18 @@
+; transactions_and_prices.journal
+; Verifies that price directives and transactions can be freely interspersed in a journal.
+; Covers:
+;   - Price directive before any transaction
+;   - Price directive between two transactions
+;   - Quoted commodity in a price directive
+
+P 2026-01-01 USD 10.50 SEK
+
+2026-01-25 * Salary
+    assets:bank:checking  35000.00 SEK
+    income:salary        -35000.00 SEK
+
+P 2026-01-15 "Gold Bar" 1234.56 SEK
+
+2026-02-01 Subscription
+    expenses:entertainment  119.00 SEK
+    assets:bank:checking   -119.00 SEK
