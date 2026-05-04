@@ -105,8 +105,7 @@ pub fn dispatch(
             } else {
                 DefaultJournalType::Transactions
             };
-            let path =
-                get_journal_file_path(&args.journal_path, &config, journal_type)?;
+            let path = get_journal_file_path(&args.journal_path, &config, journal_type)?;
             crate::cli::commands::price::run_price(&path, reader, writer)
         }
         Command::Import {
@@ -131,11 +130,8 @@ pub fn dispatch(
             )
         }
         Command::ImportPrices { csv_file } => {
-            let path = get_journal_file_path(
-                &args.journal_path,
-                &config,
-                DefaultJournalType::Prices,
-            )?;
+            let path =
+                get_journal_file_path(&args.journal_path, &config, DefaultJournalType::Prices)?;
             import_prices::run_import_prices(&path, &std::path::PathBuf::from(&csv_file))
         }
         Command::Config {
@@ -143,12 +139,16 @@ pub fn dispatch(
             config_journal,
             config_stock_prices_journal,
             config_exchange_rates_journal,
-        } => config::run_config(
-            config_folder,
-            config_journal,
-            config_stock_prices_journal,
-            config_exchange_rates_journal,
-            &mut config,
-        ),
+        } => {
+            config::run_config(
+                config_folder,
+                config_journal,
+                config_stock_prices_journal,
+                config_exchange_rates_journal,
+                &mut config,
+            )?;
+            config.save();
+            Ok(())
+        }
     }
 }
