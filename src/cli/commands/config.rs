@@ -46,15 +46,15 @@ mod tests {
     #[test]
     fn sets_folder_when_provided() {
         let mut cfg = empty_config();
-        // edit_config calls config.save(), which writes to disk; we need a real config dir.
-        // Since this touches the filesystem we just verify the in-memory mutation before save.
-        // Use a path that won't interfere with real config by catching the save error.
-        let _ = run_config(
-            "/tmp/journals".to_string(),
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-            &mut cfg,
+        assert!(
+            run_config(
+                "/tmp/journals".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                &mut cfg,
+            )
+            .is_ok()
         );
         assert_eq!(cfg.default_journal_folder, "/tmp/journals");
     }
