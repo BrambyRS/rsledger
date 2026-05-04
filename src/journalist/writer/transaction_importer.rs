@@ -1,5 +1,5 @@
-pub mod avanza_parser;
-pub mod default_parser;
+pub mod avanza_importer;
+pub mod default_importer;
 pub mod rules;
 
 use crate::cli_utils;
@@ -502,7 +502,7 @@ mod tests {
     #[test]
     fn import_same_csv_twice_only_adds_once() {
         let journal = TempJournal::new_empty();
-        let parser = default_parser::DefaultParser::new(
+        let parser = default_importer::DefaultParser::new(
             "assets:bank:hsbc".to_string(),
             "GBP".to_string(),
             rule_sheet_path("valid_rules.toml"),
@@ -558,7 +558,7 @@ mod tests {
     #[test]
     fn import_mixed_csv_twice_partial_match_with_different_description() {
         let journal = TempJournal::new_empty();
-        let parser = default_parser::DefaultParser::new(
+        let parser = default_importer::DefaultParser::new(
             "assets:bank:hsbc".to_string(),
             "GBP".to_string(),
             rule_sheet_path("valid_rules.toml"),

@@ -275,10 +275,10 @@ fn main() {
                 Ok(path) => {
                     let parser: Box<dyn journalist::writer::transaction_importer::TransactionImporter> = match parser {
                         ParserOptions::Avanza => {
-                            Box::new(journalist::writer::transaction_importer::avanza_parser::AvanzaParser::new())
+                            Box::new(journalist::writer::transaction_importer::avanza_importer::AvanzaParser::new())
                         }
                         ParserOptions::HSBCDebit => {
-                            Box::new(journalist::writer::transaction_importer::default_parser::DefaultParser::new(
+                            Box::new(journalist::writer::transaction_importer::default_importer::DefaultParser::new(
                                 "assets:bank:hsbc".to_string(),
                                 "GBP".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -294,7 +294,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::HSBCCredit => {
-                            Box::new(journalist::writer::transaction_importer::default_parser::DefaultParser::new(
+                            Box::new(journalist::writer::transaction_importer::default_importer::DefaultParser::new(
                                 "liabilities:credit:hsbc-credit-card".to_string(),
                                 "GBP".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -310,7 +310,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::SebDebit => {
-                            Box::new(journalist::writer::transaction_importer::default_parser::DefaultParser::new(
+                            Box::new(journalist::writer::transaction_importer::default_importer::DefaultParser::new(
                                 "assets:bank:seb-lönekonto".to_string(),
                                 "SEK".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -326,7 +326,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::SebSavings => {
-                            Box::new(journalist::writer::transaction_importer::default_parser::DefaultParser::new(
+                            Box::new(journalist::writer::transaction_importer::default_importer::DefaultParser::new(
                                 "assets:bank:seb-sparkonto".to_string(),
                                 "SEK".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -342,7 +342,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::Volksbank => {
-                            Box::new(journalist::writer::transaction_importer::default_parser::DefaultParser::new(
+                            Box::new(journalist::writer::transaction_importer::default_importer::DefaultParser::new(
                                 "assets:bank:volksbank".to_string(),
                                 "EUR".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
