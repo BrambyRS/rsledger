@@ -2,7 +2,7 @@ pub mod avanza_importer;
 pub mod default_importer;
 pub mod rules;
 
-use crate::cli_utils;
+use crate::cli;
 use crate::journalist;
 use crate::transaction;
 
@@ -100,12 +100,16 @@ fn deduplicate_transactions(
                 for existing in &existing_transactions {
                     if existing.partial_hash == candidate_partial_hash {
                         // Ask the user if they want to classify this transaction as the existing one
-                        println!("Found a potential match for the unclassified transaction:");
-                        println!("{}\n", u);
-                        println!("With as the existing transaction:");
-                        println!("{}\n", existing.transaction);
+                        writeln!(
+                            writer,
+                            "Found a potential match for the unclassified transaction:"
+                        )
+                        .unwrap();
+                        writeln!(writer, "{}\n", u).unwrap();
+                        writeln!(writer, "With as the existing transaction:").unwrap();
+                        writeln!(writer, "{}\n", existing.transaction).unwrap();
 
-                        let user_input: String = cli_utils::prompt_input(
+                        let user_input: String = cli::utils::prompt_input(
                             "Do you want to classify this transaction as the existing one? (y/n) ",
                             reader,
                             writer,
@@ -121,11 +125,13 @@ fn deduplicate_transactions(
 
                 // If we get here and skip is false, it means there were no approved matches
                 if !skip {
-                    println!(
+                    writeln!(
+                        writer,
                         "This transaction could not be automatically classified:\n{}\n",
                         u
-                    );
-                    let user_classification: String = cli_utils::prompt_for_account("Please enter the account to balance this transaction against (e.g. 'expenses:food') or leave empty to skip: ", reader, writer)
+                    )
+                    .unwrap();
+                    let user_classification: String = cli::utils::prompt_for_account("Please enter the account to balance this transaction against (e.g. 'expenses:food') or leave empty to skip: ", reader, writer)
                     .unwrap();
                     if user_classification.is_empty() {
                         continue;
