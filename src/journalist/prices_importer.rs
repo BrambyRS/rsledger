@@ -17,37 +17,23 @@ struct HashedPrice {
 
 /// READ_PRICES_FROM_JOURNAL
 /// Opens the journal at `journal_path`, parses it, and returns all price directives
-/// wrapped in `HashedPrice` for deduplication. Returns `None` on IO or parse error.
-fn read_prices_from_journal(journal_path: std::path::PathBuf) -> Option<Vec<HashedPrice>> {
-    let file = match std::fs::File::open(&journal_path) {
-        Ok(f) => f,
-        Err(e) => {
-            eprintln!("Error opening journal file: {}", e);
-            return None;
-        }
-    };
+/// wrapped in `HashedPrice` for deduplication.
+fn read_prices_from_journal(journal_path: std::path::PathBuf) -> crate::Result<Vec<HashedPrice>> {
+    let file = std::fs::File::open(&journal_path)?;
 
     let mut lines: Peekable<Lines<std::io::BufReader<std::fs::File>>> =
         std::io::BufReader::new(file).lines().peekable();
 
-    let journal = match journalist::journal_parser::parse_journal(&mut lines) {
-        Ok(j) => j,
-        Err(e) => {
-            eprintln!("Error parsing journal: {}", e);
-            return None;
-        }
-    };
+    let journal = journalist::journal_parser::parse_journal(&mut lines)?;
 
-    Some(
-        journal
-            .prices
-            .into_iter()
-            .map(|p| HashedPrice {
-                hash: p.price_hash(),
-                price: p,
-            })
-            .collect(),
-    )
+    Ok(journal
+        .prices
+        .into_iter()
+        .map(|p| HashedPrice {
+            hash: p.price_hash(),
+            price: p,
+        })
+        .collect())
 }
 
 /// DEDUPLICATE_PRICES
@@ -191,33 +177,15 @@ pub fn import_prices(
     csv_path: &std::path::PathBuf,
     journal_file: &std::path::PathBuf,
 ) -> crate::Result<()> {
-    let price_directives = match import_csv(csv_path) {
-        Ok(prices) => prices,
-        Err(e) => {
-            return Err(crate::error::RsledgerError::ParseError(
-                "CSV Import".to_string(),
-                format!("Failed to import prices from CSV: {}", e),
-            ));
-        }
-    };
+    let price_directives = import_csv(csv_path)?;
 
-    let existing_prices = match read_prices_from_journal(journal_file.clone()) {
-        Some(p) => p,
-        None => {
-            eprintln!(
-                "Error reading existing prices from {}. Aborting import.",
-                journal_file.display()
-            );
-            return Ok(());
-        }
-    };
+    let existing_prices = read_prices_from_journal(journal_file.clone())?;
 
     let new_prices = deduplicate_prices(existing_prices, price_directives);
 
     let mut file = std::fs::OpenOptions::new()
         .append(true)
-        .open(journal_file)
-        .map_err(|e| crate::error::RsledgerError::IoError(e))?;
+        .open(journal_file)?;
 
     for price in new_prices {
         add_price_to_file(&mut file, &price)?;
