@@ -73,6 +73,7 @@ pub trait TransactionImporter {
 fn deduplicate_transactions(
     existing_transactions: Vec<HashedTransaction>,
     candidates: Vec<ImportCandidate>,
+    accept_partial_matches: bool,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> Vec<transaction::Transaction> {
@@ -99,26 +100,32 @@ fn deduplicate_transactions(
 
                 for existing in &existing_transactions {
                     if existing.partial_hash == candidate_partial_hash {
-                        // Ask the user if they want to classify this transaction as the existing one
-                        writeln!(
-                            writer,
-                            "Found a potential match for the unclassified transaction:"
-                        )
-                        .unwrap();
-                        writeln!(writer, "{}\n", u).unwrap();
-                        writeln!(writer, "With as the existing transaction:").unwrap();
-                        writeln!(writer, "{}\n", existing.transaction).unwrap();
+                        if accept_partial_matches {
+                            // -y flag: treat the partial match as a confirmed duplicate
+                            skip = true;
+                            break;
+                        } else {
+                            // Ask the user if they want to classify this transaction as the existing one
+                            writeln!(
+                                writer,
+                                "Found a potential match for the unclassified transaction:"
+                            )
+                            .unwrap();
+                            writeln!(writer, "{}\n", u).unwrap();
+                            writeln!(writer, "With as the existing transaction:").unwrap();
+                            writeln!(writer, "{}\n", existing.transaction).unwrap();
 
-                        let user_input: String = cli::utils::prompt_input(
+                            let user_input: String = cli::utils::prompt_input(
                             "Do you want to classify this transaction as the existing one? (y/n) ",
                             reader,
                             writer,
                         )
                         .unwrap();
-                        if user_input.to_lowercase() == "y" {
-                            // User confirmed the match, so we skip adding this transaction
-                            skip = true;
-                            break;
+                            if user_input.to_lowercase() == "y" {
+                                // User confirmed the match, so we skip adding this transaction
+                                skip = true;
+                                break;
+                            }
                         }
                     }
                 }
@@ -163,6 +170,7 @@ pub fn import_transactions(
     csv_importer: &dyn TransactionImporter,
     csv_path: &std::path::PathBuf,
     journal_path: &std::path::PathBuf,
+    accept_partial_matches: bool,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> crate::Result<()> {
@@ -171,8 +179,13 @@ pub fn import_transactions(
 
     let candidates: Vec<ImportCandidate> = csv_importer.import_csv(csv_path.clone());
 
-    let new_transactions: Vec<transaction::Transaction> =
-        deduplicate_transactions(existing_transactions, candidates, reader, writer);
+    let new_transactions: Vec<transaction::Transaction> = deduplicate_transactions(
+        existing_transactions,
+        candidates,
+        accept_partial_matches,
+        reader,
+        writer,
+    );
 
     let mut file = std::fs::OpenOptions::new()
         .append(true)
@@ -375,6 +388,7 @@ mod tests {
         let result = deduplicate_transactions(
             existing,
             vec![ImportCandidate::Classified(candidate_tx)],
+            false,
             &mut Cursor::new(b""),
             &mut Vec::new(),
         );
@@ -431,6 +445,7 @@ mod tests {
         let result = deduplicate_transactions(
             existing,
             vec![ImportCandidate::Unclassified(candidate_tx)],
+            false,
             &mut Cursor::new(b"y\n"),
             &mut Vec::new(),
         );
@@ -488,6 +503,7 @@ mod tests {
         let result = deduplicate_transactions(
             existing,
             vec![ImportCandidate::Classified(candidate_tx)],
+            false,
             &mut Cursor::new(b""),
             &mut Vec::new(),
         );
@@ -527,6 +543,7 @@ mod tests {
             &parser,
             &csv_path("hsbc_classified.csv"),
             journal.path(),
+            false,
             &mut std::io::Cursor::new(b""),
             &mut Vec::new(),
         )
@@ -537,6 +554,7 @@ mod tests {
             &parser,
             &csv_path("hsbc_classified.csv"),
             journal.path(),
+            false,
             &mut std::io::Cursor::new(b""),
             &mut Vec::new(),
         )
@@ -585,6 +603,7 @@ mod tests {
             &parser,
             &csv_path("hsbc_mixed.csv"),
             journal.path(),
+            false,
             &mut std::io::Cursor::new(b"expenses:misc\n"),
             &mut Vec::new(),
         )
@@ -598,6 +617,7 @@ mod tests {
             &parser,
             &csv_path("hsbc_mixed_alt_desc.csv"),
             journal.path(),
+            false,
             &mut std::io::Cursor::new(b"y\n"),
             &mut Vec::new(),
         )

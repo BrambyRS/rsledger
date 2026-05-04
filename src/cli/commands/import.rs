@@ -10,6 +10,7 @@ pub fn run_import(
     csv_file: &std::path::PathBuf,
     parser_opt: ParserOptions,
     rule_sheet: &str,
+    accept_partial_matches: bool,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> crate::Result<()> {
@@ -101,7 +102,14 @@ pub fn run_import(
         ),
     };
 
-    transaction_importer::import_transactions(&*parser, csv_file, journal_file, reader, writer)
+    transaction_importer::import_transactions(
+        &*parser,
+        csv_file,
+        journal_file,
+        accept_partial_matches,
+        reader,
+        writer,
+    )
 }
 
 #[cfg(test)]
@@ -156,6 +164,7 @@ mod tests {
             &csv_path("seb_classified.csv"),
             ParserOptions::SebDebit,
             rule_sheet_path("valid_rules.toml").to_str().unwrap(),
+            false,
             &mut reader,
             &mut output,
         )
@@ -174,11 +183,54 @@ mod tests {
             &csv_path("hsbc_classified.csv"),
             ParserOptions::HSBCDebit,
             rule_sheet_path("valid_rules.toml").to_str().unwrap(),
+            false,
             &mut reader,
             &mut output,
         )
         .unwrap();
         let contents = std::fs::read_to_string(tmp.path()).unwrap();
         assert!(!contents.is_empty(), "expected transactions to be imported");
+    }
+
+    #[test]
+    fn accept_partial_matches_flag_skips_unclassified_without_prompt() {
+        // First import to populate the journal (the unclassified tx needs manual account entry).
+        let tmp = TempJournal::new_empty();
+        run_import(
+            tmp.path(),
+            &csv_path("hsbc_mixed.csv"),
+            ParserOptions::HSBCDebit,
+            rule_sheet_path("valid_rules.toml").to_str().unwrap(),
+            false,
+            &mut Cursor::new(b"expenses:misc\n"),
+            &mut Vec::new(),
+        )
+        .unwrap();
+        let after_first = {
+            let contents = std::fs::read_to_string(tmp.path()).unwrap();
+            contents.matches('\n').count()
+        };
+
+        // Second import with -y: the partial match should be silently accepted as a
+        // duplicate without reading from the reader at all.
+        run_import(
+            tmp.path(),
+            &csv_path("hsbc_mixed_alt_desc.csv"),
+            ParserOptions::HSBCDebit,
+            rule_sheet_path("valid_rules.toml").to_str().unwrap(),
+            true,
+            &mut Cursor::new(b""),
+            &mut Vec::new(),
+        )
+        .unwrap();
+        let after_second = {
+            let contents = std::fs::read_to_string(tmp.path()).unwrap();
+            contents.matches('\n').count()
+        };
+
+        assert_eq!(
+            after_first, after_second,
+            "re-import with -y should not add any transactions"
+        );
     }
 }

@@ -48,6 +48,13 @@ pub enum Command {
             default_value = ""
         )]
         rule_sheet: String,
+
+        #[arg(
+            short = 'y',
+            long = "yes",
+            help = "Automatically accept all partial matches as duplicates without prompting."
+        )]
+        accept_partial_matches: bool,
     },
     ImportPrices {
         #[arg(help = "Positions CSV file to import prices from.")]

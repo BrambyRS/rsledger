@@ -113,6 +113,7 @@ pub fn dispatch(
             csv_file,
             parser,
             rule_sheet,
+            accept_partial_matches,
         } => {
             let path = get_journal_file_path(
                 &args.journal_path,
@@ -124,6 +125,7 @@ pub fn dispatch(
                 &std::path::PathBuf::from(&csv_file),
                 parser,
                 &rule_sheet,
+                accept_partial_matches,
                 reader,
                 writer,
             )
