@@ -17,27 +17,15 @@ struct HashedTransaction {
     transaction: transaction::Transaction,
 }
 
-fn read_and_hash_journal(journal_path: std::path::PathBuf) -> Option<Vec<HashedTransaction>> {
-    let file = match std::fs::File::open(&journal_path) {
-        Ok(f) => f,
-        Err(e) => {
-            eprintln!("Error opening journal file: {}", e);
-            return None;
-        }
-    };
+fn read_and_hash_journal(journal_path: std::path::PathBuf) -> crate::Result<Vec<HashedTransaction>> {
+    let file = std::fs::File::open(&journal_path)?;
 
     let mut lines: Peekable<Lines<std::io::BufReader<std::fs::File>>> =
         std::io::BufReader::new(file).lines().peekable();
 
-    let journal = match journalist::journal_parser::parse_journal(&mut lines) {
-        Ok(j) => j,
-        Err(e) => {
-            eprintln!("Error parsing journal: {}", e);
-            return None;
-        }
-    };
+    let journal = journalist::journal_parser::parse_journal(&mut lines)?;
 
-    let hashed_transactions: Vec<HashedTransaction> = journal
+    Ok(journal
         .transactions
         .into_iter()
         .map(|t| {
@@ -49,9 +37,7 @@ fn read_and_hash_journal(journal_path: std::path::PathBuf) -> Option<Vec<HashedT
                 transaction: t,
             }
         })
-        .collect();
-
-    return Some(hashed_transactions);
+        .collect())
 }
 
 /// IMPORT CANDIDATE
@@ -171,18 +157,8 @@ pub fn import_transactions(
     journal_path: &std::path::PathBuf,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
-) -> std::io::Result<()> {
-    let existing_transactions: Vec<HashedTransaction> =
-        match read_and_hash_journal(journal_path.clone()) {
-            Some(t) => t,
-            None => {
-                eprintln!(
-                    "Error reading and hashing existing transactions from {}. Aborting import.",
-                    journal_path.display()
-                );
-                return Ok(());
-            }
-        };
+) -> crate::Result<()> {
+    let existing_transactions: Vec<HashedTransaction> = read_and_hash_journal(journal_path.clone())?;
 
     let candidates: Vec<ImportCandidate> = csv_importer.import_csv(csv_path.clone());
 
@@ -214,7 +190,7 @@ mod tests {
     #[test]
     fn read_and_hash_basic_transactions_returns_all_entries() {
         let result = read_and_hash_journal(journal_path("basic_transactions.journal"));
-        assert!(result.is_some());
+        assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 15);
     }
 

@@ -64,7 +64,7 @@ fn is_date(s: &str) -> bool {
 /// Parses a journal file and returns a vector of transactions.
 pub fn parse_journal<R: BufRead>(
     journal_lines: &mut Peekable<Lines<R>>,
-) -> Result<journal::Journal, Box<dyn std::error::Error>> {
+) -> crate::Result<journal::Journal> {
     let mut transactions: Vec<transaction::Transaction> = Vec::new();
     let mut prices: Vec<price::PriceDirective> = Vec::new();
 
@@ -145,16 +145,21 @@ pub fn parse_journal<R: BufRead>(
 /// PARSE_TRANSACTION
 fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
     journal_lines: &mut I,
-) -> Result<transaction::Transaction, Box<dyn std::error::Error>> {
+) -> crate::Result<transaction::Transaction> {
     // Read first line to get the date and description
     let first_line = match journal_lines.next() {
         Some(Ok(line)) => line,
-        Some(Err(e)) => return Err(Box::new(e)),
+        Some(Err(e)) => {
+            return Err(crate::error::RsledgerError::ParseError(
+                "Journal Parse".to_string(),
+                format!("Error reading line: {}", e),
+            ));
+        }
         None => {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::UnexpectedEof,
-                "Unexpected end of file while reading transaction header.",
-            )));
+            return Err(crate::error::RsledgerError::ParseError(
+                "Journal Parse".to_string(),
+                "Unexpected end of file while reading transaction header.".to_string(),
+            ));
         }
     };
     // Trim any trailing comments and whitespace
@@ -164,7 +169,15 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
         .expect("Unexpected comment in transaction header line.")
         .trim_end()
         .to_string();
-    let date = chrono::NaiveDate::parse_from_str(&first_line[..10], "%Y-%m-%d")?;
+    let date = match chrono::NaiveDate::parse_from_str(&first_line[..10], "%Y-%m-%d") {
+        Ok(d) => d,
+        Err(e) => {
+            return Err(crate::error::RsledgerError::ParseError(
+                "Journal Parse".to_string(),
+                format!("Invalid date format in transaction header: {e}"),
+            ));
+        }
+    };
     let description = first_line[11..].trim().to_string();
     // Expect lines with leading whitespace to be postings
     // Stop either when the next line is empty,
@@ -174,7 +187,12 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
     loop {
         let line = match journal_lines.next() {
             Some(Ok(l)) => l,
-            Some(Err(e)) => return Err(Box::new(e)),
+            Some(Err(e)) => {
+                return Err(crate::error::RsledgerError::ParseError(
+                    "Journal Parse".to_string(),
+                    format!("Error reading line: {e}"),
+                ));
+            }
             None => break, // End of file
         };
 

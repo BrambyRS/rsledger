@@ -20,7 +20,7 @@ use crate::transaction;
 /// Intermediate directories are created automatically if they do not exist.
 /// If the flag --open is provided, an opening transaction with the current date
 /// is also added to the journal.
-pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> std::io::Result<()> {
+pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> crate::Result<()> {
     // Create the directory if it doesn't exist
     if let Some(parent) = journal_file.parent() {
         if !parent.exists() {
@@ -107,12 +107,12 @@ pub fn new_journal(journal_file: &std::path::PathBuf, create_opening: bool) -> s
 /// - `<account> <amount> <commodity>` — e.g. `expenses:food 50.00 SEK`
 ///
 /// An empty line terminates posting input.
-pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
+pub fn add_entry(journal_file: &std::path::PathBuf) -> crate::Result<()> {
     if !journal_file.exists() {
-        return Err(io::Error::new(
+        return Err(crate::error::RsledgerError::IoError(io::Error::new(
             io::ErrorKind::NotFound,
             format!("Journal file {} not found.", journal_file.display()),
-        ));
+        )));
     }
 
     println!(
@@ -155,26 +155,28 @@ pub fn add_entry(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
 fn add_transaction_to_file(
     f: &mut fs::File,
     transaction: &transaction::Transaction,
-) -> std::io::Result<()> {
+) -> crate::Result<()> {
     // Validate the transaction before writing to the journal
     if !transaction.validate() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "Transaction is not balanced. Please ensure that the amounts sum to zero.",
+        return Err(crate::error::RsledgerError::ValidationError(
+            "Invalid Transaction".to_string(),
+            "Transaction is not balanced.".to_string(),
         ));
     }
 
-    return write!(f, "\n{transaction}\n");
+    write!(f, "\n{transaction}\n")?;
+
+    return Ok(());
 }
 
 /// ADD_PRICE
 /// Prompts the user for inputs to create and add a price directive to a journal file
-pub fn add_price(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
+pub fn add_price(journal_file: &std::path::PathBuf) -> crate::Result<()> {
     if !journal_file.exists() {
-        return Err(io::Error::new(
+        return Err(crate::error::RsledgerError::IoError(io::Error::new(
             io::ErrorKind::NotFound,
             format!("Journal file {} not found.", journal_file.display()),
-        ));
+        )));
     }
 
     println!(
@@ -215,6 +217,7 @@ pub fn add_price(journal_file: &std::path::PathBuf) -> std::io::Result<()> {
 }
 
 /// ADD_PRICE_TO_FILE
-fn add_price_to_file(f: &mut fs::File, price: &price::PriceDirective) -> std::io::Result<()> {
-    return write!(f, "{price}\n");
+fn add_price_to_file(f: &mut fs::File, price: &price::PriceDirective) -> crate::Result<()> {
+    write!(f, "{price}\n")?; // This will return an RsledgerError if the price cannot be formatted
+    return Ok(()); // Default to Ok if the previous line succeeds, since write! returns () on success
 }

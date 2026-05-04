@@ -17,37 +17,23 @@ struct HashedPrice {
 
 /// READ_PRICES_FROM_JOURNAL
 /// Opens the journal at `journal_path`, parses it, and returns all price directives
-/// wrapped in `HashedPrice` for deduplication. Returns `None` on IO or parse error.
-fn read_prices_from_journal(journal_path: std::path::PathBuf) -> Option<Vec<HashedPrice>> {
-    let file = match std::fs::File::open(&journal_path) {
-        Ok(f) => f,
-        Err(e) => {
-            eprintln!("Error opening journal file: {}", e);
-            return None;
-        }
-    };
+/// wrapped in `HashedPrice` for deduplication.
+fn read_prices_from_journal(journal_path: std::path::PathBuf) -> crate::Result<Vec<HashedPrice>> {
+    let file = std::fs::File::open(&journal_path)?;
 
     let mut lines: Peekable<Lines<std::io::BufReader<std::fs::File>>> =
         std::io::BufReader::new(file).lines().peekable();
 
-    let journal = match journalist::journal_parser::parse_journal(&mut lines) {
-        Ok(j) => j,
-        Err(e) => {
-            eprintln!("Error parsing journal: {}", e);
-            return None;
-        }
-    };
+    let journal = journalist::journal_parser::parse_journal(&mut lines)?;
 
-    Some(
-        journal
-            .prices
-            .into_iter()
-            .map(|p| HashedPrice {
-                hash: p.price_hash(),
-                price: p,
-            })
-            .collect(),
-    )
+    Ok(journal
+        .prices
+        .into_iter()
+        .map(|p| HashedPrice {
+            hash: p.price_hash(),
+            price: p,
+        })
+        .collect())
 }
 
 /// DEDUPLICATE_PRICES
@@ -69,7 +55,7 @@ fn deduplicate_prices(
 /// IMPORT_CSV
 /// Reads the an Avanza-style positions CSV and returns a vector of PriceDirective entries
 /// corresponding to the data in the CSV file.
-pub fn import_csv(csv_path: &std::path::PathBuf) -> std::io::Result<Vec<price::PriceDirective>> {
+pub fn import_csv(csv_path: &std::path::PathBuf) -> crate::Result<Vec<price::PriceDirective>> {
     let file: File = File::open(csv_path)?;
     let mut lines: Peekable<Lines<std::io::BufReader<File>>> =
         std::io::BufReader::new(file).lines().peekable();
@@ -81,8 +67,8 @@ pub fn import_csv(csv_path: &std::path::PathBuf) -> std::io::Result<Vec<price::P
     let date: NaiveDate = match NaiveDate::parse_from_str(&file_name[0..10], "%Y-%m-%d") {
         Ok(d) => d,
         Err(_) => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
+            return Err(crate::error::RsledgerError::ParseError(
+                "NaiveDate".to_string(),
                 format!(
                     "Could not parse date from file name '{}'. Expected format: YYYY-MM-DD.",
                     file_name
@@ -113,8 +99,8 @@ pub fn import_csv(csv_path: &std::path::PathBuf) -> std::io::Result<Vec<price::P
 
                     let parts: Vec<&str> = line.split(';').collect();
                     if parts.len() == 6 {
-                        return Err(std::io::Error::new(
-                            std::io::ErrorKind::InvalidInput,
+                        return Err(crate::error::RsledgerError::ParseError(
+                            "CSV Import".to_string(),
                             format!(
                                 "Unexpected number of columns in line '{}'. Expected 6 columns.",
                                 line
@@ -130,8 +116,8 @@ pub fn import_csv(csv_path: &std::path::PathBuf) -> std::io::Result<Vec<price::P
                     let volume_str = parts[2].trim().replace(",", ".");
                     let volume =
                         fixed_decimal::FixedDecimal::from_str(&volume_str).map_err(|e| {
-                            std::io::Error::new(
-                                std::io::ErrorKind::InvalidInput,
+                            crate::error::RsledgerError::ParseError(
+                                "CSV Import".to_string(),
                                 format!(
                                     "Could not parse volume '{}' as a number: {}",
                                     volume_str, e
@@ -142,8 +128,8 @@ pub fn import_csv(csv_path: &std::path::PathBuf) -> std::io::Result<Vec<price::P
                     let market_value_str = parts[3].trim().replace(",", ".");
                     let market_value = fixed_decimal::FixedDecimal::from_str(&market_value_str)
                         .map_err(|e| {
-                            std::io::Error::new(
-                                std::io::ErrorKind::InvalidInput,
+                            crate::error::RsledgerError::ParseError(
+                                "CSV Import".to_string(),
                                 format!(
                                     "Could not parse market value '{}' as a number: {}",
                                     market_value_str, e
@@ -190,43 +176,16 @@ pub fn import_csv(csv_path: &std::path::PathBuf) -> std::io::Result<Vec<price::P
 pub fn import_prices(
     csv_path: &std::path::PathBuf,
     journal_file: &std::path::PathBuf,
-) -> std::io::Result<()> {
-    let price_directives = match import_csv(csv_path) {
-        Ok(prices) => prices,
-        Err(e) => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                format!("Failed to import prices from CSV: {}", e),
-            ));
-        }
-    };
+) -> crate::Result<()> {
+    let price_directives = import_csv(csv_path)?;
 
-    let existing_prices = match read_prices_from_journal(journal_file.clone()) {
-        Some(p) => p,
-        None => {
-            eprintln!(
-                "Error reading existing prices from {}. Aborting import.",
-                journal_file.display()
-            );
-            return Ok(());
-        }
-    };
+    let existing_prices = read_prices_from_journal(journal_file.clone())?;
 
     let new_prices = deduplicate_prices(existing_prices, price_directives);
 
     let mut file = std::fs::OpenOptions::new()
         .append(true)
-        .open(journal_file)
-        .map_err(|e| {
-            std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                format!(
-                    "Failed to open journal file {}: {}",
-                    journal_file.display(),
-                    e
-                ),
-            )
-        })?;
+        .open(journal_file)?;
 
     for price in new_prices {
         add_price_to_file(&mut file, &price)?;

@@ -41,14 +41,17 @@ impl CommodityValue {
     /// ```
     /// let cv = CommodityValue::from_str("123.45 SEK").unwrap();
     /// ```
-    pub fn from_str(amount_str: &str) -> Result<Self, String> {
+    pub fn from_str(amount_str: &str) -> crate::Result<Self> {
         // First split the string into the amount part and the commodity part
         // The commodity part can have spaces,
         let parts: Vec<&str> = amount_str.split_whitespace().collect();
         if parts.len() < 2 {
-            return Err(format!(
-                "Invalid amount format: '{}'. Expected format: '<amount> <commodity>'.",
-                amount_str
+            return Err(crate::error::RsledgerError::ParseError(
+                "CommodityValue".to_string(),
+                format!(
+                    "Invalid amount format '{}'. Expected '<amount> <commodity>'.",
+                    amount_str
+                ),
             ));
         }
 
@@ -66,8 +69,12 @@ impl CommodityValue {
             commodity_part
         };
 
-        let amount = fixed_decimal::FixedDecimal::from_str(amount_part)
-            .map_err(|_| format!("Invalid amount format: '{}'.", amount_part))?;
+        let amount = fixed_decimal::FixedDecimal::from_str(amount_part).map_err(|_| {
+            crate::error::RsledgerError::ParseError(
+                "CommodityValue".to_string(),
+                format!("Invalid amount format: '{}'.", amount_part),
+            )
+        })?;
 
         Ok(CommodityValue {
             amount,

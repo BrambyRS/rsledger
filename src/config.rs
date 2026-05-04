@@ -78,17 +78,17 @@ pub fn edit_config(
     config_stock_prices_journal: String,
     config_exchange_rates_journal: String,
     config: &mut Config,
-) -> std::io::Result<()> {
+) -> crate::Result<()> {
     // Check that at least one of the config options is provided
     if config_folder.len() == 0
         && config_journal.len() == 0
         && config_stock_prices_journal.len() == 0
         && config_exchange_rates_journal.len() == 0
     {
-        return Err(std::io::Error::new(
+        return Err(crate::error::RsledgerError::IoError(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             "At least one config option must be provided.",
-        ));
+        )));
     }
 
     if config_folder.len() > 0 {
