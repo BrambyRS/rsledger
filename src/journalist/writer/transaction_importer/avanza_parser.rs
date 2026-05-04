@@ -3,7 +3,7 @@
 //! above what is possible with the regex-based rule system.
 
 use crate::commodity_value;
-use crate::journalist::transaction_importer;
+use crate::journalist::writer::transaction_importer;
 use crate::transaction;
 
 use std::fs::File;

@@ -3,8 +3,10 @@
 //! It supports classification of transactions based on the regex-based rule system
 
 use crate::commodity_value;
-use crate::journalist::transaction_importer;
-use crate::journalist::transaction_importer::rules::{RegexRule, RuleAction, read_rule_sheet};
+use crate::journalist::writer::transaction_importer;
+use crate::journalist::writer::transaction_importer::rules::{
+    RegexRule, RuleAction, read_rule_sheet,
+};
 use crate::transaction;
 
 use std::path::PathBuf;
@@ -223,7 +225,7 @@ impl transaction_importer::TransactionImporter for DefaultParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::journalist::transaction_importer::{ImportCandidate, TransactionImporter};
+    use crate::journalist::writer::transaction_importer::{ImportCandidate, TransactionImporter};
 
     fn csv_path(filename: &str) -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))

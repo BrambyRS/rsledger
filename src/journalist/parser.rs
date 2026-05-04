@@ -1,5 +1,5 @@
 use crate::commodity_value::CommodityValue;
-use crate::journal;
+use crate::journalist::Journal;
 use crate::price;
 use crate::transaction;
 
@@ -62,9 +62,7 @@ fn is_date(s: &str) -> bool {
 
 /// PARSE_JOURNAL
 /// Parses a journal file and returns a vector of transactions.
-pub fn parse_journal<R: BufRead>(
-    journal_lines: &mut Peekable<Lines<R>>,
-) -> crate::Result<journal::Journal> {
+pub fn parse_journal<R: BufRead>(journal_lines: &mut Peekable<Lines<R>>) -> crate::Result<Journal> {
     let mut transactions: Vec<transaction::Transaction> = Vec::new();
     let mut prices: Vec<price::PriceDirective> = Vec::new();
 
@@ -136,7 +134,7 @@ pub fn parse_journal<R: BufRead>(
         }
     }
 
-    return Ok(journal::Journal {
+    return Ok(Journal {
         transactions,
         prices,
     });

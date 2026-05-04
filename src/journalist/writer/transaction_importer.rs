@@ -17,13 +17,15 @@ struct HashedTransaction {
     transaction: transaction::Transaction,
 }
 
-fn read_and_hash_journal(journal_path: std::path::PathBuf) -> crate::Result<Vec<HashedTransaction>> {
+fn read_and_hash_journal(
+    journal_path: std::path::PathBuf,
+) -> crate::Result<Vec<HashedTransaction>> {
     let file = std::fs::File::open(&journal_path)?;
 
     let mut lines: Peekable<Lines<std::io::BufReader<std::fs::File>>> =
         std::io::BufReader::new(file).lines().peekable();
 
-    let journal = journalist::journal_parser::parse_journal(&mut lines)?;
+    let journal = journalist::parser::parse_journal(&mut lines)?;
 
     Ok(journal
         .transactions
@@ -158,7 +160,8 @@ pub fn import_transactions(
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> crate::Result<()> {
-    let existing_transactions: Vec<HashedTransaction> = read_and_hash_journal(journal_path.clone())?;
+    let existing_transactions: Vec<HashedTransaction> =
+        read_and_hash_journal(journal_path.clone())?;
 
     let candidates: Vec<ImportCandidate> = csv_importer.import_csv(csv_path.clone());
 
@@ -170,7 +173,7 @@ pub fn import_transactions(
         .open(&journal_path)?;
 
     for transaction in new_transactions {
-        journalist::add_transaction_to_file(&mut file, &transaction)?;
+        journalist::writer::add_transaction_to_file(&mut file, &transaction)?;
     }
 
     Ok(())

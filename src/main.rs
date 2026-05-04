@@ -4,7 +4,6 @@ mod cli_utils;
 mod commodity_value;
 mod config;
 mod error;
-mod journal;
 mod journalist;
 mod price;
 mod transaction;
@@ -192,7 +191,7 @@ fn main() {
             match journal_file {
                 Err(e) => eprintln!("Error resolving journal file path: {}", e),
                 Ok(path) => {
-                    if let Err(e) = journalist::new_journal(&path, open) {
+                    if let Err(e) = journalist::writer::new_journal(&path, open) {
                         eprintln!("Error creating journal: {}", e);
                     }
                 }
@@ -207,7 +206,7 @@ fn main() {
             match journal_file {
                 Err(e) => eprintln!("Error resolving journal file path: {}", e),
                 Ok(path) => {
-                    if let Err(e) = journalist::add_entry(&path) {
+                    if let Err(e) = journalist::writer::add_entry(&path) {
                         eprintln!("Error adding entry: {}", e);
                     }
                 }
@@ -229,7 +228,7 @@ fn main() {
                 match journal_file {
                     Err(e) => eprintln!("Error resolving journal file path: {}", e),
                     Ok(path) => {
-                        if let Err(e) = journalist::add_price(&path) {
+                        if let Err(e) = journalist::writer::add_price(&path) {
                             eprintln!("Error adding entry: {}", e);
                         }
                     }
@@ -240,7 +239,7 @@ fn main() {
                 match journal_file {
                     Err(e) => eprintln!("Error resolving journal file path: {}", e),
                     Ok(path) => {
-                        if let Err(e) = journalist::add_price(&path) {
+                        if let Err(e) = journalist::writer::add_price(&path) {
                             eprintln!("Error adding entry: {}", e);
                         }
                     }
@@ -254,7 +253,7 @@ fn main() {
                 match journal_file {
                     Err(e) => eprintln!("Error resolving journal file path: {}", e),
                     Ok(path) => {
-                        if let Err(e) = journalist::add_price(&path) {
+                        if let Err(e) = journalist::writer::add_price(&path) {
                             eprintln!("Error adding entry: {}", e);
                         }
                     }
@@ -274,12 +273,12 @@ fn main() {
             match journal_file {
                 Err(e) => eprintln!("Error resolving journal file path: {}", e),
                 Ok(path) => {
-                    let parser: Box<dyn journalist::transaction_importer::TransactionImporter> = match parser {
+                    let parser: Box<dyn journalist::writer::transaction_importer::TransactionImporter> = match parser {
                         ParserOptions::Avanza => {
-                            Box::new(journalist::transaction_importer::avanza_parser::AvanzaParser::new())
+                            Box::new(journalist::writer::transaction_importer::avanza_parser::AvanzaParser::new())
                         }
                         ParserOptions::HSBCDebit => {
-                            Box::new(journalist::transaction_importer::default_parser::DefaultParser::new(
+                            Box::new(journalist::writer::transaction_importer::default_parser::DefaultParser::new(
                                 "assets:bank:hsbc".to_string(),
                                 "GBP".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -295,7 +294,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::HSBCCredit => {
-                            Box::new(journalist::transaction_importer::default_parser::DefaultParser::new(
+                            Box::new(journalist::writer::transaction_importer::default_parser::DefaultParser::new(
                                 "liabilities:credit:hsbc-credit-card".to_string(),
                                 "GBP".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -311,7 +310,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::SebDebit => {
-                            Box::new(journalist::transaction_importer::default_parser::DefaultParser::new(
+                            Box::new(journalist::writer::transaction_importer::default_parser::DefaultParser::new(
                                 "assets:bank:seb-lönekonto".to_string(),
                                 "SEK".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -327,7 +326,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::SebSavings => {
-                            Box::new(journalist::transaction_importer::default_parser::DefaultParser::new(
+                            Box::new(journalist::writer::transaction_importer::default_parser::DefaultParser::new(
                                 "assets:bank:seb-sparkonto".to_string(),
                                 "SEK".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -343,7 +342,7 @@ fn main() {
                             ))
                         }
                         ParserOptions::Volksbank => {
-                            Box::new(journalist::transaction_importer::default_parser::DefaultParser::new(
+                            Box::new(journalist::writer::transaction_importer::default_parser::DefaultParser::new(
                                 "assets:bank:volksbank".to_string(),
                                 "EUR".to_string(),
                                 std::path::PathBuf::from(&rule_sheet),
@@ -362,7 +361,7 @@ fn main() {
 
                     let csv_file = std::path::PathBuf::from(csv_file);
 
-                    if let Err(e) = journalist::transaction_importer::import_transactions(
+                    if let Err(e) = journalist::writer::transaction_importer::import_transactions(
                         &*parser,
                         &csv_file,
                         &path,
@@ -381,7 +380,9 @@ fn main() {
                 Err(e) => eprintln!("Error resolving journal file path: {}", e),
                 Ok(path) => {
                     let csv_file = std::path::PathBuf::from(csv_file);
-                    if let Err(e) = journalist::prices_importer::import_prices(&csv_file, &path) {
+                    if let Err(e) =
+                        journalist::writer::prices_importer::import_prices(&csv_file, &path)
+                    {
                         eprintln!("Error importing prices: {}", e);
                     }
                 }
