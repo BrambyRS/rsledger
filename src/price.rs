@@ -32,20 +32,26 @@ impl PriceDirective {
     /// FROM STR
     /// Parses a price directive from a string in the format "P YYYY-MM-DD COMMODITY_1 VALUE COMMODITY_2"
     /// COMMODITY_1 may be quoted (e.g. "Gold Bar") if it contains spaces, matching hledger's format.
-    pub fn from_str(s: &str) -> Result<PriceDirective, Box<dyn std::error::Error>> {
+    pub fn from_str(s: &str) -> crate::Result<PriceDirective> {
         let tokens: Vec<&str> = s.split_whitespace().collect();
         // Minimum: P date commodity_1 value commodity_2 → 5 tokens
         if tokens.len() < 5 {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
+            return Err(crate::error::RsledgerError::ParseError(
+                "PriceDirective".to_string(),
                 format!(
-                    "Invalid price directive format: '{}'. Expected format: 'P YYYY-MM-DD COMMODITY_1 VALUE COMMODITY_2'",
+                    "Expected 5 tokens in price directive, found {} in '{}'",
+                    tokens.len(),
                     s
                 ),
-            )));
+            ));
         }
 
-        let date = chrono::NaiveDate::parse_from_str(tokens[1], "%Y-%m-%d")?;
+        let date = chrono::NaiveDate::parse_from_str(tokens[1], "%Y-%m-%d").map_err(|_| {
+            crate::error::RsledgerError::ParseError(
+                "PriceDirective".to_string(),
+                format!("Invalid date format in price directive '{s}'"),
+            )
+        })?;
 
         // Parse COMMODITY_1: if it starts with a quote, accumulate tokens until the closing quote.
         // This mirrors Commodity::fmt, which adds quotes when the name contains a space.
@@ -55,13 +61,10 @@ impl PriceDirective {
                 end += 1;
             }
             if end >= tokens.len() {
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    format!(
-                        "Unclosed quote in commodity name in price directive: '{}'",
-                        s
-                    ),
-                )));
+                return Err(crate::error::RsledgerError::ParseError(
+                    "PriceDirective".to_string(),
+                    format!("Unclosed quote in commodity name in price directive: '{s}'"),
+                ));
             }
             let joined = tokens[2..=end].join(" ");
             let name = joined[1..joined.len() - 1].to_string();
@@ -77,8 +80,10 @@ impl PriceDirective {
         // CommodityValue::from_str already handles quoted commodity names on that side.
         let value_str = tokens[value_start..].join(" ");
         let value = commodity_value::CommodityValue::from_str(&value_str).map_err(|e| {
-            Box::new(std::io::Error::new(std::io::ErrorKind::InvalidInput, e))
-                as Box<dyn std::error::Error>
+            crate::error::RsledgerError::ParseError(
+                "PriceDirective".to_string(),
+                format!("Invalid value format '{e}' in '{s}'"),
+            )
         })?;
 
         Ok(PriceDirective {

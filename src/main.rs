@@ -3,10 +3,14 @@ use clap::{Parser, Subcommand, ValueEnum};
 mod cli_utils;
 mod commodity_value;
 mod config;
+mod error;
 mod journal;
 mod journalist;
 mod price;
 mod transaction;
+
+/// Default Result enum using RsledgerError
+type Result<T> = std::result::Result<T, crate::error::RsledgerError>;
 
 #[derive(ValueEnum, Clone)]
 enum ParserOptions {
@@ -123,16 +127,16 @@ fn get_journal_file_path(
     path_arg: String,
     config: &config::Config,
     journal_type: DefaultJournalTypes,
-) -> std::io::Result<std::path::PathBuf> {
+) -> Result<std::path::PathBuf> {
     if path_arg.len() > 0 {
         Ok(std::path::PathBuf::from(&path_arg))
     } else {
         match journal_type {
             DefaultJournalTypes::Transactions => {
                 if config.default_journal_folder.len() == 0 || config.default_journal.len() == 0 {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::NotFound,
-                        "No journal path provided and default journal not set in config.",
+                    return Err(crate::error::RsledgerError::CliError(
+                        "No journal path provided and default journal not set in config."
+                            .to_string(),
                     ));
                 } else {
                     return Ok(std::path::Path::new(&config.default_journal_folder)
@@ -143,9 +147,9 @@ fn get_journal_file_path(
                 if config.default_journal_folder.len() == 0
                     || config.default_exchange_rates_journal.len() == 0
                 {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::NotFound,
-                        "No journal path provided and default exchange rates journal not set in config.",
+                    return Err(crate::error::RsledgerError::CliError(
+                        "No journal path provided and default exchange rates journal not set in config."
+                            .to_string(),
                     ));
                 } else {
                     return Ok(std::path::Path::new(&config.default_journal_folder)
@@ -156,9 +160,9 @@ fn get_journal_file_path(
                 if config.default_journal_folder.len() == 0
                     || config.default_stock_prices_journal.len() == 0
                 {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::NotFound,
-                        "No journal path provided and default stock prices journal not set in config.",
+                    return Err(crate::error::RsledgerError::CliError(
+                        "No journal path provided and default stock prices journal not set in config."
+                            .to_string(),
                     ));
                 } else {
                     return Ok(std::path::Path::new(&config.default_journal_folder)
@@ -180,7 +184,7 @@ fn main() {
     match args.command {
         Command::New { open } => {
             // Resolve journal file path
-            let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(
+            let journal_file: Result<std::path::PathBuf> = get_journal_file_path(
                 args.journal_path,
                 &config,
                 DefaultJournalTypes::Transactions,
@@ -195,7 +199,7 @@ fn main() {
             }
         }
         Command::Add => {
-            let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(
+            let journal_file: Result<std::path::PathBuf> = get_journal_file_path(
                 args.journal_path,
                 &config,
                 DefaultJournalTypes::Transactions,
@@ -217,7 +221,7 @@ fn main() {
                 eprintln!("Cannot be both exchange rate and price at the same time.");
             } else if exchange_rate {
                 // Resolve journal file path
-                let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(
+                let journal_file: Result<std::path::PathBuf> = get_journal_file_path(
                     args.journal_path,
                     &config,
                     DefaultJournalTypes::ExchangeRates,
@@ -231,7 +235,7 @@ fn main() {
                     }
                 }
             } else if price {
-                let journal_file: std::io::Result<std::path::PathBuf> =
+                let journal_file: Result<std::path::PathBuf> =
                     get_journal_file_path(args.journal_path, &config, DefaultJournalTypes::Prices);
                 match journal_file {
                     Err(e) => eprintln!("Error resolving journal file path: {}", e),
@@ -242,7 +246,7 @@ fn main() {
                     }
                 }
             } else {
-                let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(
+                let journal_file: Result<std::path::PathBuf> = get_journal_file_path(
                     args.journal_path,
                     &config,
                     DefaultJournalTypes::Transactions,
@@ -262,7 +266,7 @@ fn main() {
             parser,
             rule_sheet,
         } => {
-            let journal_file: std::io::Result<std::path::PathBuf> = get_journal_file_path(
+            let journal_file: Result<std::path::PathBuf> = get_journal_file_path(
                 args.journal_path,
                 &config,
                 DefaultJournalTypes::Transactions,
@@ -371,7 +375,7 @@ fn main() {
             }
         }
         Command::ImportPrices { csv_file } => {
-            let journal_file: std::io::Result<std::path::PathBuf> =
+            let journal_file: Result<std::path::PathBuf> =
                 get_journal_file_path(args.journal_path, &config, DefaultJournalTypes::Prices);
             match journal_file {
                 Err(e) => eprintln!("Error resolving journal file path: {}", e),

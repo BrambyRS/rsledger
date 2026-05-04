@@ -8,7 +8,7 @@ pub fn prompt_input(
     prompt: &str,
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
-) -> std::io::Result<String> {
+) -> crate::Result<String> {
     write!(writer, "{prompt}")?;
     writer.flush()?;
 
@@ -24,7 +24,7 @@ pub fn prompt_for_date(
     format: &str,
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
-) -> std::io::Result<chrono::NaiveDate> {
+) -> crate::Result<chrono::NaiveDate> {
     loop {
         let date_input = prompt_input(prompt, reader, writer)?;
         match chrono::NaiveDate::parse_from_str(&date_input, format) {
@@ -46,7 +46,7 @@ pub fn prompt_for_value(
     prompt: &str,
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
-) -> std::io::Result<commodity_value::CommodityValue> {
+) -> crate::Result<commodity_value::CommodityValue> {
     loop {
         let value_input = prompt_input(prompt, reader, writer)?;
         match commodity_value::CommodityValue::from_str(&value_input) {
@@ -54,7 +54,7 @@ pub fn prompt_for_value(
             Err(_) => {
                 writeln!(
                     writer,
-                    "Invalid date format. Please enter a date in the format YYYY-MM-DD (e.g. 2024-03-15)."
+                    "Invalid commodity value format. Please enter a valid commodity value (e.g. '500.00 SEK')."
                 )?;
                 continue;
             }
@@ -68,7 +68,7 @@ pub fn prompt_for_account(
     prompt: &str,
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
-) -> std::io::Result<String> {
+) -> crate::Result<String> {
     // Loop until the user enters a non-empty account name
     loop {
         let account_input = prompt_input(prompt, reader, writer)?;
@@ -93,7 +93,7 @@ pub fn prompt_for_account(
 pub fn prompt_for_postings(
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
-) -> std::io::Result<Vec<transaction::posting::Posting>> {
+) -> crate::Result<Vec<transaction::posting::Posting>> {
     let mut postings: Vec<transaction::posting::Posting> = Vec::new();
 
     loop {

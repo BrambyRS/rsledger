@@ -53,24 +53,33 @@ impl FixedDecimal {
     /// ```
     /// let fd = FixedDecimal::from_str("123.45").unwrap();
     /// ```
-    pub fn from_str(s: &str) -> Result<Self, String> {
+    pub fn from_str(s: &str) -> crate::Result<Self> {
         let parts: Vec<&str> = s.split('.').collect();
         match parts.len() {
             1 => {
-                let amount = parts[0]
-                    .parse::<i64>()
-                    .map_err(|_| format!("Invalid decimal format: '{}'.", s))?;
+                let amount = parts[0].parse::<i64>().map_err(|_| {
+                    crate::error::RsledgerError::ParseError(
+                        "FixedDecimal".to_string(),
+                        format!("Invalid decimal format '{s}'."),
+                    )
+                })?;
                 Ok(FixedDecimal::new(amount, 0))
             }
             2 => {
                 let precision = parts[1].len() as u8;
                 let joined = format!("{}{}", parts[0], parts[1]);
-                let amount = joined
-                    .parse::<i64>()
-                    .map_err(|_| format!("Invalid decimal format: '{}'.", s))?;
+                let amount = joined.parse::<i64>().map_err(|_| {
+                    crate::error::RsledgerError::ParseError(
+                        "FixedDecimal".to_string(),
+                        format!("Invalid decimal format '{s}'."),
+                    )
+                })?;
                 Ok(FixedDecimal::new(amount, precision))
             }
-            _ => Err(format!("Invalid decimal format: '{}'.", s)),
+            _ => Err(crate::error::RsledgerError::ParseError(
+                "FixedDecimal".to_string(),
+                format!("Invalid decimal format '{s}'."),
+            )),
         }
     }
 

@@ -171,7 +171,7 @@ pub fn import_transactions(
     journal_path: &std::path::PathBuf,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
-) -> std::io::Result<()> {
+) -> crate::Result<()> {
     let existing_transactions: Vec<HashedTransaction> =
         match read_and_hash_journal(journal_path.clone()) {
             Some(t) => t,

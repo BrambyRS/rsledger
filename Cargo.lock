@@ -418,6 +418,7 @@ dependencies = [
  "dirs",
  "regex",
  "serde",
+ "thiserror",
  "toml",
 ]
 

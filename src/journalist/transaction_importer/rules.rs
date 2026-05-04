@@ -45,12 +45,15 @@ struct RuleSheetFile {
 /// action = "assign_account" # or "skip"
 /// account = "account:name" # required if action is "assign_account", ignored if action is "skip"
 /// ```
-pub fn read_rule_sheet(path: PathBuf) -> Result<Vec<RegexRule>, Box<dyn std::error::Error>> {
+pub fn read_rule_sheet(path: PathBuf) -> crate::Result<Vec<RegexRule>> {
     let rule_sheet_str = match std::fs::read_to_string(&path) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("Error reading rule sheet {}: {}", path.display(), e);
-            return Err(e.into());
+            return Err(crate::error::RsledgerError::ParseError(
+                "Rule Sheet".to_string(),
+                format!("Error reading rule sheet {}: {}", path.display(), e),
+            ));
         }
     };
 
@@ -63,7 +66,10 @@ pub fn read_rule_sheet(path: PathBuf) -> Result<Vec<RegexRule>, Box<dyn std::err
                     path.display(),
                     e
                 );
-                return Err(e.into());
+                return Err(crate::error::RsledgerError::ParseError(
+                    "Rule Sheet".to_string(),
+                    format!("Error parsing rule sheet {}: {}", path.display(), e),
+                ));
             }
         };
 
