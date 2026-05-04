@@ -1,8 +1,8 @@
-pub mod avanza_parser;
-pub mod default_parser;
+pub mod avanza_importer;
+pub mod default_importer;
 pub mod rules;
 
-use crate::cli_utils;
+use crate::cli;
 use crate::journalist;
 use crate::transaction;
 
@@ -17,13 +17,15 @@ struct HashedTransaction {
     transaction: transaction::Transaction,
 }
 
-fn read_and_hash_journal(journal_path: std::path::PathBuf) -> crate::Result<Vec<HashedTransaction>> {
+fn read_and_hash_journal(
+    journal_path: std::path::PathBuf,
+) -> crate::Result<Vec<HashedTransaction>> {
     let file = std::fs::File::open(&journal_path)?;
 
     let mut lines: Peekable<Lines<std::io::BufReader<std::fs::File>>> =
         std::io::BufReader::new(file).lines().peekable();
 
-    let journal = journalist::journal_parser::parse_journal(&mut lines)?;
+    let journal = journalist::parser::parse_journal(&mut lines)?;
 
     Ok(journal
         .transactions
@@ -71,6 +73,7 @@ pub trait TransactionImporter {
 fn deduplicate_transactions(
     existing_transactions: Vec<HashedTransaction>,
     candidates: Vec<ImportCandidate>,
+    accept_partial_matches: bool,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> Vec<transaction::Transaction> {
@@ -97,33 +100,45 @@ fn deduplicate_transactions(
 
                 for existing in &existing_transactions {
                     if existing.partial_hash == candidate_partial_hash {
-                        // Ask the user if they want to classify this transaction as the existing one
-                        println!("Found a potential match for the unclassified transaction:");
-                        println!("{}\n", u);
-                        println!("With as the existing transaction:");
-                        println!("{}\n", existing.transaction);
+                        if accept_partial_matches {
+                            // -y flag: treat the partial match as a confirmed duplicate
+                            skip = true;
+                            break;
+                        } else {
+                            // Ask the user if they want to classify this transaction as the existing one
+                            writeln!(
+                                writer,
+                                "Found a potential match for the unclassified transaction:"
+                            )
+                            .unwrap();
+                            writeln!(writer, "{}\n", u).unwrap();
+                            writeln!(writer, "With as the existing transaction:").unwrap();
+                            writeln!(writer, "{}\n", existing.transaction).unwrap();
 
-                        let user_input: String = cli_utils::prompt_input(
+                            let user_input: String = cli::utils::prompt_input(
                             "Do you want to classify this transaction as the existing one? (y/n) ",
                             reader,
                             writer,
                         )
                         .unwrap();
-                        if user_input.to_lowercase() == "y" {
-                            // User confirmed the match, so we skip adding this transaction
-                            skip = true;
-                            break;
+                            if user_input.to_lowercase() == "y" {
+                                // User confirmed the match, so we skip adding this transaction
+                                skip = true;
+                                break;
+                            }
                         }
                     }
                 }
 
                 // If we get here and skip is false, it means there were no approved matches
                 if !skip {
-                    println!(
+                    writeln!(
+                        writer,
                         "This transaction could not be automatically classified:\n{}\n",
                         u
-                    );
-                    let user_classification: String = cli_utils::prompt_for_account("Please enter the account to balance this transaction against (e.g. 'expenses:food') or leave empty to skip: ", reader, writer)
+                    )
+                    .unwrap();
+                    let user_classification: String = cli::utils::prompt_for_account("Please enter the account to balance this transaction against (e.g. 'expenses:food') or leave empty to skip: ", reader, writer)
                     .unwrap();
                     if user_classification.is_empty() {
                         continue;
@@ -155,22 +170,29 @@ pub fn import_transactions(
     csv_importer: &dyn TransactionImporter,
     csv_path: &std::path::PathBuf,
     journal_path: &std::path::PathBuf,
+    accept_partial_matches: bool,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> crate::Result<()> {
-    let existing_transactions: Vec<HashedTransaction> = read_and_hash_journal(journal_path.clone())?;
+    let existing_transactions: Vec<HashedTransaction> =
+        read_and_hash_journal(journal_path.clone())?;
 
     let candidates: Vec<ImportCandidate> = csv_importer.import_csv(csv_path.clone());
 
-    let new_transactions: Vec<transaction::Transaction> =
-        deduplicate_transactions(existing_transactions, candidates, reader, writer);
+    let new_transactions: Vec<transaction::Transaction> = deduplicate_transactions(
+        existing_transactions,
+        candidates,
+        accept_partial_matches,
+        reader,
+        writer,
+    );
 
     let mut file = std::fs::OpenOptions::new()
         .append(true)
         .open(&journal_path)?;
 
     for transaction in new_transactions {
-        journalist::add_transaction_to_file(&mut file, &transaction)?;
+        journalist::writer::add_transaction_to_file(&mut file, &transaction)?;
     }
 
     Ok(())
@@ -366,6 +388,7 @@ mod tests {
         let result = deduplicate_transactions(
             existing,
             vec![ImportCandidate::Classified(candidate_tx)],
+            false,
             &mut Cursor::new(b""),
             &mut Vec::new(),
         );
@@ -422,6 +445,7 @@ mod tests {
         let result = deduplicate_transactions(
             existing,
             vec![ImportCandidate::Unclassified(candidate_tx)],
+            false,
             &mut Cursor::new(b"y\n"),
             &mut Vec::new(),
         );
@@ -479,6 +503,7 @@ mod tests {
         let result = deduplicate_transactions(
             existing,
             vec![ImportCandidate::Classified(candidate_tx)],
+            false,
             &mut Cursor::new(b""),
             &mut Vec::new(),
         );
@@ -499,7 +524,7 @@ mod tests {
     #[test]
     fn import_same_csv_twice_only_adds_once() {
         let journal = TempJournal::new_empty();
-        let parser = default_parser::DefaultParser::new(
+        let parser = default_importer::DefaultParser::new(
             "assets:bank:hsbc".to_string(),
             "GBP".to_string(),
             rule_sheet_path("valid_rules.toml"),
@@ -518,6 +543,7 @@ mod tests {
             &parser,
             &csv_path("hsbc_classified.csv"),
             journal.path(),
+            false,
             &mut std::io::Cursor::new(b""),
             &mut Vec::new(),
         )
@@ -528,6 +554,7 @@ mod tests {
             &parser,
             &csv_path("hsbc_classified.csv"),
             journal.path(),
+            false,
             &mut std::io::Cursor::new(b""),
             &mut Vec::new(),
         )
@@ -555,7 +582,7 @@ mod tests {
     #[test]
     fn import_mixed_csv_twice_partial_match_with_different_description() {
         let journal = TempJournal::new_empty();
-        let parser = default_parser::DefaultParser::new(
+        let parser = default_importer::DefaultParser::new(
             "assets:bank:hsbc".to_string(),
             "GBP".to_string(),
             rule_sheet_path("valid_rules.toml"),
@@ -576,6 +603,7 @@ mod tests {
             &parser,
             &csv_path("hsbc_mixed.csv"),
             journal.path(),
+            false,
             &mut std::io::Cursor::new(b"expenses:misc\n"),
             &mut Vec::new(),
         )
@@ -589,6 +617,7 @@ mod tests {
             &parser,
             &csv_path("hsbc_mixed_alt_desc.csv"),
             journal.path(),
+            false,
             &mut std::io::Cursor::new(b"y\n"),
             &mut Vec::new(),
         )

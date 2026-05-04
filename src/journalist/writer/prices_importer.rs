@@ -1,5 +1,5 @@
 use crate::commodity_value::{CommodityValue, commodity, fixed_decimal};
-use crate::journalist::{self, add_price_to_file};
+use crate::journalist;
 use crate::price;
 
 use chrono::NaiveDate;
@@ -24,7 +24,7 @@ fn read_prices_from_journal(journal_path: std::path::PathBuf) -> crate::Result<V
     let mut lines: Peekable<Lines<std::io::BufReader<std::fs::File>>> =
         std::io::BufReader::new(file).lines().peekable();
 
-    let journal = journalist::journal_parser::parse_journal(&mut lines)?;
+    let journal = journalist::parser::parse_journal(&mut lines)?;
 
     Ok(journal
         .prices
@@ -188,7 +188,7 @@ pub fn import_prices(
         .open(journal_file)?;
 
     for price in new_prices {
-        add_price_to_file(&mut file, &price)?;
+        journalist::writer::add_price_to_file(&mut file, &price)?;
     }
 
     Ok(())
