@@ -1,5 +1,6 @@
 # Specific files
-PLAN.md
+update_journal.sh
 
 # Directories
 /target
+/data
