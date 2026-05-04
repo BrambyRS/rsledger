@@ -107,6 +107,5 @@ pub fn edit_config(
         config.set_default_exchange_rates_journal(config_exchange_rates_journal.clone());
     }
 
-    config.save();
     Ok(())
 }
