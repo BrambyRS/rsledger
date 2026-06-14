@@ -2,9 +2,8 @@
 //! All transactions can be perfectly classified, but require custom logic
 //! above what is possible with the regex-based rule system.
 
-use crate::commodity_value;
 use crate::journalist::writer::transaction_importer;
-use crate::transaction;
+use crate::types;
 
 use std::fs::File;
 use std::io::Lines;
@@ -92,44 +91,52 @@ impl transaction_importer::TransactionImporter for AvanzaParser {
             if action == "Insättning" || action == "Uttag" {
                 let amount_str: String = format!("{} {}", amount_cash, currency);
 
-                let postings: Vec<transaction::posting::Posting> = vec![
-                    transaction::posting::Posting::new(
-                        "assets:bank:avanza".to_string(),
-                        Some(commodity_value::CommodityValue::from_str(&amount_str).unwrap()),
+                let postings: Vec<types::transaction::posting::Posting> = vec![
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
+                        Some(
+                            types::commodity_value::CommodityValue::from_str(&amount_str).unwrap(),
+                        ),
                     ),
-                    transaction::posting::Posting::new(
-                        "expenses:bank:internal-transfers".to_string(),
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("expenses:bank:internal-transfers").unwrap(),
                         None,
                     ),
                 ];
                 import_candidates.push(transaction_importer::ImportCandidate::Classified(
-                    transaction::Transaction::new(date, action + " " + &name, postings),
+                    types::transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else if action == "Köp" {
                 let commodity_amount_str: String = format!("{} {}", amount_commodity, name);
                 let cash_amount_str: String = format!("{} {}", amount_cash, currency);
                 let fee_amount_str: String = format!("{} SEK", fee_amount);
 
-                let postings: Vec<transaction::posting::Posting> = vec![
-                    transaction::posting::Posting::new(
-                        "assets:bank:avanza".to_string(),
+                let postings: Vec<types::transaction::posting::Posting> = vec![
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
                         Some(
-                            commodity_value::CommodityValue::from_str(&commodity_amount_str)
+                            types::commodity_value::CommodityValue::from_str(&commodity_amount_str)
                                 .unwrap(),
                         ),
                     ),
-                    transaction::posting::Posting::new(
-                        "assets:bank:avanza".to_string(),
-                        Some(commodity_value::CommodityValue::from_str(&cash_amount_str).unwrap()),
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
+                        Some(
+                            types::commodity_value::CommodityValue::from_str(&cash_amount_str)
+                                .unwrap(),
+                        ),
                     ),
-                    transaction::posting::Posting::new(
-                        "expenses:bank:avanza".to_string(),
-                        Some(commodity_value::CommodityValue::from_str(&fee_amount_str).unwrap()),
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("expenses:bank:avanza").unwrap(),
+                        Some(
+                            types::commodity_value::CommodityValue::from_str(&fee_amount_str)
+                                .unwrap(),
+                        ),
                     ),
                 ];
 
                 import_candidates.push(transaction_importer::ImportCandidate::Classified(
-                    transaction::Transaction::new(date, action + " " + &name, postings),
+                    types::transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else if action == "Sälj" {
                 let commodity_amount_str: String = format!("{} {}", amount_commodity, name);
@@ -138,7 +145,7 @@ impl transaction_importer::TransactionImporter for AvanzaParser {
                 let profit_str: String = format!("{} SEK", profit);
 
                 let profit_commodity_value =
-                    match commodity_value::CommodityValue::from_str(&profit_str) {
+                    match types::commodity_value::CommodityValue::from_str(&profit_str) {
                         Ok(val) => -&val,
                         Err(_) => {
                             eprintln!(
@@ -149,81 +156,93 @@ impl transaction_importer::TransactionImporter for AvanzaParser {
                         }
                     };
 
-                let postings: Vec<transaction::posting::Posting> = vec![
-                    transaction::posting::Posting::new(
-                        "assets:bank:avanza".to_string(),
+                let postings: Vec<types::transaction::posting::Posting> = vec![
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
                         Some(
-                            commodity_value::CommodityValue::from_str(&commodity_amount_str)
+                            types::commodity_value::CommodityValue::from_str(&commodity_amount_str)
                                 .unwrap(),
                         ),
                     ),
-                    transaction::posting::Posting::new(
-                        "assets:bank:avanza".to_string(),
-                        Some(commodity_value::CommodityValue::from_str(&cash_amount_str).unwrap()),
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
+                        Some(
+                            types::commodity_value::CommodityValue::from_str(&cash_amount_str)
+                                .unwrap(),
+                        ),
                     ),
-                    transaction::posting::Posting::new(
-                        "expenses:bank:avanza".to_string(),
-                        Some(commodity_value::CommodityValue::from_str(&fee_amount_str).unwrap()),
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("expenses:bank:avanza").unwrap(),
+                        Some(
+                            types::commodity_value::CommodityValue::from_str(&fee_amount_str)
+                                .unwrap(),
+                        ),
                     ),
-                    transaction::posting::Posting::new(
-                        "equity:capital-gains".to_string(),
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("equity:capital-gains").unwrap(),
                         Some(profit_commodity_value),
                     ),
                 ];
 
                 import_candidates.push(transaction_importer::ImportCandidate::Classified(
-                    transaction::Transaction::new(date, action + " " + &name, postings),
+                    types::transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else if action == "Utdelning" {
                 let cash_amount_str: String = format!("{} {}", amount_cash, currency);
 
-                let postings: Vec<transaction::posting::Posting> = vec![
-                    transaction::posting::Posting::new(
-                        "assets:bank:avanza".to_string(),
-                        Some(commodity_value::CommodityValue::from_str(&cash_amount_str).unwrap()),
+                let postings: Vec<types::transaction::posting::Posting> = vec![
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
+                        Some(
+                            types::commodity_value::CommodityValue::from_str(&cash_amount_str)
+                                .unwrap(),
+                        ),
                     ),
-                    transaction::posting::Posting::new("income:dividends".to_string(), None),
+                    types::transaction::posting::Posting::new(types::account::Account::from_str("income:dividends").unwrap(), None),
                 ];
 
                 import_candidates.push(transaction_importer::ImportCandidate::Classified(
-                    transaction::Transaction::new(date, action + " " + &name, postings),
+                    types::transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else if action == "Utländsk källskatt" {
                 let tax_amount_str: String = format!("{} {}", amount_cash, currency);
 
-                let postings: Vec<transaction::posting::Posting> = vec![
-                    transaction::posting::Posting::new(
-                        "assets:bank:avanza".to_string(),
-                        Some(commodity_value::CommodityValue::from_str(&tax_amount_str).unwrap()),
+                let postings: Vec<types::transaction::posting::Posting> = vec![
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
+                        Some(
+                            types::commodity_value::CommodityValue::from_str(&tax_amount_str)
+                                .unwrap(),
+                        ),
                     ),
-                    transaction::posting::Posting::new(
-                        "expenses:taxes:withholding".to_string(),
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("expenses:taxes:withholding").unwrap(),
                         None,
                     ),
                 ];
 
                 import_candidates.push(transaction_importer::ImportCandidate::Classified(
-                    transaction::Transaction::new(date, action + " " + &name, postings),
+                    types::transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else if action == "Utlåningsränta" {
                 let interest_amount_str: String = format!("{} {}", amount_cash, currency);
 
-                let postings: Vec<transaction::posting::Posting> = vec![
-                    transaction::posting::Posting::new(
-                        "assets:bank:avanza".to_string(),
+                let postings: Vec<types::transaction::posting::Posting> = vec![
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
                         Some(
-                            commodity_value::CommodityValue::from_str(&interest_amount_str)
+                            types::commodity_value::CommodityValue::from_str(&interest_amount_str)
                                 .unwrap(),
                         ),
                     ),
-                    transaction::posting::Posting::new(
-                        "expenses:bank:avanza:interest".to_string(),
+                    types::transaction::posting::Posting::new(
+                        types::account::Account::from_str("expenses:bank:avanza:interest").unwrap(),
                         None,
                     ),
                 ];
 
                 import_candidates.push(transaction_importer::ImportCandidate::Classified(
-                    transaction::Transaction::new(date, action + " " + &name, postings),
+                    types::transaction::Transaction::new(date, action + " " + &name, postings),
                 ));
             } else {
                 eprintln!(

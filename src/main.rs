@@ -1,12 +1,10 @@
 use clap::Parser;
 
 mod cli;
-mod commodity_value;
 mod config;
 mod error;
 mod journalist;
-mod price;
-mod transaction;
+mod types;
 
 /// Default Result type using RsledgerError
 type Result<T> = std::result::Result<T, crate::error::RsledgerError>;

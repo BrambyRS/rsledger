@@ -1,6 +1,6 @@
 use crate::cli::utils;
 use crate::journalist;
-use crate::transaction;
+use crate::types;
 
 use std::fs;
 use std::io::{self, BufRead, Write};
@@ -41,9 +41,10 @@ pub fn run_add(
     let date: chrono::NaiveDate =
         utils::prompt_for_date("Date (YYYY-MM-DD): ", "%Y-%m-%d", reader, writer)?;
     let description_str: String = utils::prompt_input("Description: ", reader, writer)?;
-    let postings: Vec<transaction::posting::Posting> = utils::prompt_for_postings(reader, writer)?;
+    let postings: Vec<types::transaction::posting::Posting> =
+        utils::prompt_for_postings(reader, writer)?;
 
-    let entry = transaction::Transaction::new(date, description_str, postings);
+    let entry = types::transaction::Transaction::new(date, description_str, postings);
 
     let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
     journalist::writer::add_transaction_to_file(&mut file, &entry)

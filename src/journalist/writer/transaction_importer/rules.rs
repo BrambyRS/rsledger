@@ -1,3 +1,4 @@
+use crate::types::account;
 use serde::Deserialize;
 use std::path::PathBuf;
 
@@ -6,7 +7,7 @@ use std::path::PathBuf;
 /// AssignAccount: assign the transaction to the specified account
 /// Skip: skip the transaction (do not import it)
 pub enum RuleAction {
-    AssignAccount(String),
+    AssignAccount(account::Account),
     Skip,
 }
 
@@ -79,7 +80,16 @@ pub fn read_rule_sheet(path: PathBuf) -> crate::Result<Vec<RegexRule>> {
             RuleAction::Skip
         } else {
             match rule_from_file.account {
-                Some(account) => RuleAction::AssignAccount(account),
+                Some(account_str) => match account::Account::from_str(&account_str) {
+                    Ok(account) => RuleAction::AssignAccount(account),
+                    Err(_) => {
+                        eprintln!(
+                            "Rule with pattern '{}' has an invalid account '{}'. Skipping.",
+                            rule_from_file.pattern, account_str
+                        );
+                        continue;
+                    }
+                },
                 None => {
                     eprintln!(
                         "Rule with pattern '{}' has action 'assign_account' but no account. Skipping.",
@@ -120,13 +130,13 @@ mod tests {
 
         assert!(rules[0].pattern.is_match("GROCERY STORE #123"));
         assert!(
-            matches!(&rules[0].action, RuleAction::AssignAccount(a) if a == "expenses:food:groceries")
+            matches!(&rules[0].action, RuleAction::AssignAccount(a) if a.to_string() == "expenses:food:groceries")
         );
 
         assert!(rules[1].pattern.is_match("NETFLIX subscription"));
         assert!(rules[1].pattern.is_match("SPOTIFY premium"));
         assert!(
-            matches!(&rules[1].action, RuleAction::AssignAccount(a) if a == "expenses:entertainment:subscriptions")
+            matches!(&rules[1].action, RuleAction::AssignAccount(a) if a.to_string() == "expenses:entertainment:subscriptions")
         );
 
         assert!(rules[2].pattern.is_match("INTERNAL TRANSFER to savings"));
@@ -140,7 +150,7 @@ mod tests {
         assert_eq!(rules.len(), 1);
         assert!(rules[0].pattern.is_match("RENT PAYMENT"));
         assert!(
-            matches!(&rules[0].action, RuleAction::AssignAccount(a) if a == "expenses:housing:rent")
+            matches!(&rules[0].action, RuleAction::AssignAccount(a) if a.to_string() == "expenses:housing:rent")
         );
     }
 

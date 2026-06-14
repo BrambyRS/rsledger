@@ -2,17 +2,16 @@
 //! that do not have custom parsing logic implemented.
 //! It supports classification of transactions based on the regex-based rule system
 
-use crate::commodity_value;
 use crate::journalist::writer::transaction_importer;
 use crate::journalist::writer::transaction_importer::rules::{
     RegexRule, RuleAction, read_rule_sheet,
 };
-use crate::transaction;
+use crate::types;
 
 use std::path::PathBuf;
 
 pub struct DefaultParser {
-    account: String,
+    account: types::account::Account,
     currency: String,
     rules: Vec<RegexRule>,
     delimiter: char,
@@ -28,7 +27,7 @@ pub struct DefaultParser {
 
 impl DefaultParser {
     pub fn new(
-        account: String,
+        account: types::account::Account,
         currency: String,
         rule_sheet: PathBuf,
         delimiter: char,
@@ -161,10 +160,12 @@ impl transaction_importer::TransactionImporter for DefaultParser {
                 if rule.pattern.is_match(&description_str) {
                     match &rule.action {
                         RuleAction::AssignAccount(against_account) => {
-                            let first_posting = transaction::posting::Posting::new(
+                            let first_posting = types::transaction::posting::Posting::new(
                                 self.account.clone(),
                                 Some(
-                                    match commodity_value::CommodityValue::from_str(&amount_str) {
+                                    match types::commodity_value::CommodityValue::from_str(
+                                        &amount_str,
+                                    ) {
                                         Ok(value) => value,
                                         Err(e) => {
                                             eprintln!(
@@ -176,9 +177,11 @@ impl transaction_importer::TransactionImporter for DefaultParser {
                                     },
                                 ),
                             );
-                            let second_posting =
-                                transaction::posting::Posting::new(against_account.clone(), None);
-                            let transaction = transaction::Transaction::new(
+                            let second_posting = types::transaction::posting::Posting::new(
+                                against_account.clone(),
+                                None,
+                            );
+                            let transaction = types::transaction::Transaction::new(
                                 date,
                                 description_str.clone(),
                                 vec![first_posting, second_posting],
@@ -198,10 +201,10 @@ impl transaction_importer::TransactionImporter for DefaultParser {
             }
 
             if !classified {
-                let posting = transaction::posting::Posting::new(
+                let posting = types::transaction::posting::Posting::new(
                     self.account.clone(),
                     Some(
-                        match commodity_value::CommodityValue::from_str(&amount_str) {
+                        match types::commodity_value::CommodityValue::from_str(&amount_str) {
                             Ok(value) => value,
                             Err(e) => {
                                 eprintln!("Error parsing amount '{}': {}", amount_str, e);
@@ -211,7 +214,7 @@ impl transaction_importer::TransactionImporter for DefaultParser {
                     ),
                 );
                 let transaction =
-                    transaction::Transaction::new(date, description_str, vec![posting]);
+                    types::transaction::Transaction::new(date, description_str, vec![posting]);
                 import_candidates.push(transaction_importer::ImportCandidate::Unclassified(
                     transaction,
                 ));
@@ -226,6 +229,7 @@ impl transaction_importer::TransactionImporter for DefaultParser {
 mod tests {
     use super::*;
     use crate::journalist::writer::transaction_importer::{ImportCandidate, TransactionImporter};
+    use crate::types;
 
     fn csv_path(filename: &str) -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -243,7 +247,8 @@ mod tests {
 
     fn seb_parser(rule_sheet: &str) -> DefaultParser {
         DefaultParser::new(
-            "assets:bank:seb-lönekonto".to_string(),
+            types::account::Account::from_str("assets:bank:seb-l\u{f6}nekonto")
+                .unwrap(),
             "SEK".to_string(),
             rule_sheet_path(rule_sheet),
             ';',
@@ -260,7 +265,8 @@ mod tests {
 
     fn volksbank_parser(rule_sheet: &str) -> DefaultParser {
         DefaultParser::new(
-            "assets:bank:volksbank".to_string(),
+            types::account::Account::from_str("assets:bank:volksbank")
+                .unwrap(),
             "EUR".to_string(),
             rule_sheet_path(rule_sheet),
             ';',
@@ -351,7 +357,7 @@ mod tests {
         if let ImportCandidate::Unclassified(t) = &candidates[1] {
             assert_eq!(t.get_postings().len(), 1);
             assert_eq!(
-                t.get_postings()[0].get_account(),
+                t.get_postings()[0].get_account().to_string(),
                 "assets:bank:seb-lönekonto"
             );
             assert_eq!(

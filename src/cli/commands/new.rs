@@ -1,6 +1,6 @@
 use crate::cli::utils;
 use crate::journalist;
-use crate::transaction;
+use crate::types;
 
 use std::fs;
 use std::io::{BufRead, Write};
@@ -47,13 +47,14 @@ pub fn run_new(
         let mut postings = utils::prompt_for_postings(reader, writer)?;
 
         // Only postings with explicit amounts make sense for opening balance
-        postings.push(transaction::posting::Posting::new(
-            "equity:opening-balance".to_string(),
+        postings.push(types::transaction::posting::Posting::new(
+            types::account::Account::from_str("equity:opening-balance")
+                .unwrap(),
             None,
         ));
 
         let opening_transaction =
-            transaction::Transaction::new(today, "Opening balance".to_string(), postings);
+            types::transaction::Transaction::new(today, "Opening balance".to_string(), postings);
 
         let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
         journalist::writer::add_transaction_to_file(&mut file, &opening_transaction)?;

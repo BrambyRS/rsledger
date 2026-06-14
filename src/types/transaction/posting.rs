@@ -1,4 +1,5 @@
-use crate::transaction::commodity_value;
+use crate::types::account;
+use crate::types::transaction::commodity_value;
 
 use std::hash::Hash;
 
@@ -10,8 +11,8 @@ use std::hash::Hash;
 /// have a `None` amount.
 #[derive(Hash, Clone)]
 pub struct Posting {
-    /// The account name (e.g. `"assets:bank"`, `"expenses:food"`).
-    account: String,
+    /// The account
+    account: account::Account,
     /// The commodity amount to post. `None` indicates an auto-balancing posting.
     amount: Option<commodity_value::CommodityValue>,
 }
@@ -33,14 +34,14 @@ impl Posting {
     /// Creates a new `Posting` with the given account name and optional amount.
     ///
     /// Pass `None` for `amount` to create an auto-balancing posting.
-    pub fn new(account: String, amount: Option<commodity_value::CommodityValue>) -> Self {
+    pub fn new(account: account::Account, amount: Option<commodity_value::CommodityValue>) -> Self {
         return Posting { account, amount };
     }
 
     #[allow(dead_code)]
     /// GET_ACCOUNT (getter)
     /// Account getter function
-    pub fn get_account(&self) -> &String {
+    pub fn get_account(&self) -> &account::Account {
         return &self.account;
     }
 

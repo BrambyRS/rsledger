@@ -1,7 +1,6 @@
 use crate::cli::utils;
-use crate::commodity_value;
 use crate::journalist;
-use crate::price;
+use crate::types;
 
 use std::fs;
 use std::io::{self, BufRead, Write};
@@ -28,13 +27,13 @@ pub fn run_price(
 
     let date: chrono::NaiveDate =
         utils::prompt_for_date("Date (YYYY-MM-DD): ", "%Y-%m-%d", reader, writer)?;
-    let commodity = commodity_value::commodity::Commodity {
+    let commodity = types::commodity_value::commodity::Commodity {
         name: utils::prompt_input("Commodity: ", reader, writer)?,
     };
-    let value: commodity_value::CommodityValue =
+    let value: types::commodity_value::CommodityValue =
         utils::prompt_for_value("Value: ", reader, writer)?;
 
-    let entry = price::PriceDirective {
+    let entry = types::price::PriceDirective {
         date,
         commodity,
         value,
