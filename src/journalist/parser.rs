@@ -229,8 +229,8 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
             }
         };
         let account = match types::account::Account::from_str(account_str) {
-            Ok(Some(a)) => a,
-            Ok(None) | Err(_) => {
+            Ok(a) => a,
+            Err(_) => {
                 eprintln!(
                     "Invalid account '{}' in posting '{}'. Skipping this posting.",
                     account_str,

@@ -57,8 +57,8 @@ impl Transaction {
     ///     chrono::NaiveDate::from_ymd(2024, 1, 1),
     ///     "Groceries".to_string(),
     ///     vec![
-    ///         posting::Posting::new(Account::from_str("expenses:food").unwrap().unwrap(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
-    ///         posting::Posting::new(Account::from_str("assets:bank").unwrap().unwrap(), None),
+    ///         posting::Posting::new(Account::from_str("expenses:food").unwrap(), Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap())),
+    ///         posting::Posting::new(Account::from_str("assets:bank").unwrap(), None),
     ///     ],
     /// );
     /// ```
@@ -220,11 +220,11 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-123.45 SEK").unwrap()),
                 ),
             ],
@@ -242,15 +242,15 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:savings").unwrap().unwrap(),
+                    Account::from_str("assets:savings").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
                 ),
             ],
@@ -271,15 +271,15 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:a").unwrap().unwrap(),
+                    Account::from_str("assets:a").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:b").unwrap().unwrap(),
+                    Account::from_str("assets:b").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:c").unwrap().unwrap(),
+                    Account::from_str("assets:c").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
                 ),
             ],
@@ -294,15 +294,15 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:a").unwrap().unwrap(),
+                    Account::from_str("assets:a").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:b").unwrap().unwrap(),
+                    Account::from_str("assets:b").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-30.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:c").unwrap().unwrap(),
+                    Account::from_str("assets:c").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -317,23 +317,23 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:a").unwrap().unwrap(),
+                    Account::from_str("assets:a").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:b").unwrap().unwrap(),
+                    Account::from_str("assets:b").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:c").unwrap().unwrap(),
+                    Account::from_str("assets:c").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:d").unwrap().unwrap(),
+                    Account::from_str("assets:d").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:e").unwrap().unwrap(),
+                    Account::from_str("assets:e").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-200.00 SEK").unwrap()),
                 ),
             ],
@@ -348,23 +348,23 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:a").unwrap().unwrap(),
+                    Account::from_str("assets:a").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:b").unwrap().unwrap(),
+                    Account::from_str("assets:b").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:c").unwrap().unwrap(),
+                    Account::from_str("assets:c").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:d").unwrap().unwrap(),
+                    Account::from_str("assets:d").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:e").unwrap().unwrap(),
+                    Account::from_str("assets:e").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-150.00 SEK").unwrap()),
                 ),
             ],
@@ -380,11 +380,11 @@ mod tests {
             "Currency Exchange".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:gbp").unwrap().unwrap(),
+                    Account::from_str("assets:gbp").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:sek").unwrap().unwrap(),
+                    Account::from_str("assets:sek").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-1500.00 SEK").unwrap()),
                 ),
             ],
@@ -400,19 +400,19 @@ mod tests {
             "Currency Exchange".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:gbp").unwrap().unwrap(),
+                    Account::from_str("assets:gbp").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:sek").unwrap().unwrap(),
+                    Account::from_str("assets:sek").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-1500.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("expenses:fees").unwrap().unwrap(),
+                    Account::from_str("expenses:fees").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("5.00 EUR").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:eur").unwrap().unwrap(),
+                    Account::from_str("assets:eur").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-5.00 EUR").unwrap()),
                 ),
             ],
@@ -428,15 +428,15 @@ mod tests {
             "Multi-Currency Exchange".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:gbp").unwrap().unwrap(),
+                    Account::from_str("assets:gbp").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:sek").unwrap().unwrap(),
+                    Account::from_str("assets:sek").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-1500.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:eur").unwrap().unwrap(),
+                    Account::from_str("assets:eur").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 EUR").unwrap()),
                 ),
             ],
@@ -452,27 +452,27 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:gbp").unwrap().unwrap(),
+                    Account::from_str("assets:gbp").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("expenses:gbp").unwrap().unwrap(),
+                    Account::from_str("expenses:gbp").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:sek").unwrap().unwrap(),
+                    Account::from_str("assets:sek").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("expenses:sek").unwrap().unwrap(),
+                    Account::from_str("expenses:sek").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-200.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:eur").unwrap().unwrap(),
+                    Account::from_str("assets:eur").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 EUR").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("expenses:eur").unwrap().unwrap(),
+                    Account::from_str("expenses:eur").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 EUR").unwrap()),
                 ),
             ],
@@ -488,11 +488,11 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:gbp").unwrap().unwrap(),
+                    Account::from_str("assets:gbp").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:sek").unwrap().unwrap(),
+                    Account::from_str("assets:sek").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap()),
                 ),
             ],
@@ -508,11 +508,11 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:gbp").unwrap().unwrap(),
+                    Account::from_str("assets:gbp").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:sek").unwrap().unwrap(),
+                    Account::from_str("assets:sek").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-200.00 SEK").unwrap()),
                 ),
             ],
@@ -528,15 +528,15 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:gbp").unwrap().unwrap(),
+                    Account::from_str("assets:gbp").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:sek").unwrap().unwrap(),
+                    Account::from_str("assets:sek").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("200.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:eur").unwrap().unwrap(),
+                    Account::from_str("assets:eur").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 EUR").unwrap()),
                 ),
             ],
@@ -552,15 +552,15 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:gbp").unwrap().unwrap(),
+                    Account::from_str("assets:gbp").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-100.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:sek").unwrap().unwrap(),
+                    Account::from_str("assets:sek").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-200.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:eur").unwrap().unwrap(),
+                    Account::from_str("assets:eur").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 EUR").unwrap()),
                 ),
             ],
@@ -574,7 +574,7 @@ mod tests {
 
     #[test]
     fn test_posting_display_no_amount() {
-        let posting = posting::Posting::new(Account::from_str("assets:a").unwrap().unwrap(), None);
+        let posting = posting::Posting::new(Account::from_str("assets:a").unwrap(), None);
         assert_eq!(format!("{}", posting), "assets:a");
     }
 
@@ -585,10 +585,10 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:a").unwrap().unwrap(),
+                    Account::from_str("assets:a").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap()),
                 ),
-                posting::Posting::new(Account::from_str("assets:b").unwrap().unwrap(), None),
+                posting::Posting::new(Account::from_str("assets:b").unwrap(), None),
             ],
         );
         let expected_display = "2024-01-01 Test Transaction\n\tassets:a  123.45 SEK\n\tassets:b";
@@ -606,10 +606,10 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:a").unwrap().unwrap(),
+                    Account::from_str("assets:a").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap()),
                 ),
-                posting::Posting::new(Account::from_str("assets:b").unwrap().unwrap(), None),
+                posting::Posting::new(Account::from_str("assets:b").unwrap(), None),
             ],
         );
         assert!(transaction.validate());
@@ -621,9 +621,9 @@ mod tests {
             chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test Transaction".to_string(),
             vec![
-                posting::Posting::new(Account::from_str("assets:a").unwrap().unwrap(), None),
+                posting::Posting::new(Account::from_str("assets:a").unwrap(), None),
                 posting::Posting::new(
-                    Account::from_str("assets:b").unwrap().unwrap(),
+                    Account::from_str("assets:b").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-123.45 SEK").unwrap()),
                 ),
             ],
@@ -638,11 +638,11 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:a").unwrap().unwrap(),
+                    Account::from_str("assets:a").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("123.45 SEK").unwrap()),
                 ),
-                posting::Posting::new(Account::from_str("assets:b").unwrap().unwrap(), None),
-                posting::Posting::new(Account::from_str("assets:c").unwrap().unwrap(), None),
+                posting::Posting::new(Account::from_str("assets:b").unwrap(), None),
+                posting::Posting::new(Account::from_str("assets:c").unwrap(), None),
             ],
         );
         assert!(!transaction.validate());
@@ -655,14 +655,14 @@ mod tests {
             "Test Transaction".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:a").unwrap().unwrap(),
+                    Account::from_str("assets:a").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("100.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:b").unwrap().unwrap(),
+                    Account::from_str("assets:b").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
-                posting::Posting::new(Account::from_str("assets:c").unwrap().unwrap(), None),
+                posting::Posting::new(Account::from_str("assets:c").unwrap(), None),
             ],
         );
         assert!(transaction.validate());
@@ -680,11 +680,11 @@ mod tests {
                 "Groceries".to_string(),
                 vec![
                     posting::Posting::new(
-                        Account::from_str("expenses:food").unwrap().unwrap(),
+                        Account::from_str("expenses:food").unwrap(),
                         Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                     ),
                     posting::Posting::new(
-                        Account::from_str("assets:bank").unwrap().unwrap(),
+                        Account::from_str("assets:bank").unwrap(),
                         Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                     ),
                 ],
@@ -700,11 +700,11 @@ mod tests {
             "Description A".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -714,11 +714,11 @@ mod tests {
             "Description B".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -733,11 +733,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -747,11 +747,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -766,11 +766,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -780,11 +780,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:other").unwrap().unwrap(),
+                    Account::from_str("expenses:other").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -799,11 +799,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -813,11 +813,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("99.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-99.00 SEK").unwrap()),
                 ),
             ],
@@ -832,11 +832,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -846,11 +846,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 GBP").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 GBP").unwrap()),
                 ),
             ],
@@ -865,11 +865,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -879,11 +879,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
             ],
@@ -898,10 +898,10 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
-                posting::Posting::new(Account::from_str("assets:bank").unwrap().unwrap(), None),
+                posting::Posting::new(Account::from_str("assets:bank").unwrap(), None),
             ],
         );
         let t2 = Transaction::new(
@@ -909,11 +909,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -933,11 +933,11 @@ mod tests {
                 "Groceries".to_string(),
                 vec![
                     posting::Posting::new(
-                        Account::from_str("expenses:food").unwrap().unwrap(),
+                        Account::from_str("expenses:food").unwrap(),
                         Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                     ),
                     posting::Posting::new(
-                        Account::from_str("assets:bank").unwrap().unwrap(),
+                        Account::from_str("assets:bank").unwrap(),
                         Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                     ),
                 ],
@@ -952,7 +952,7 @@ mod tests {
             chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![posting::Posting::new(
-                Account::from_str("expenses:food").unwrap().unwrap(),
+                Account::from_str("expenses:food").unwrap(),
                 Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
             )],
         );
@@ -960,7 +960,7 @@ mod tests {
             chrono::NaiveDate::from_ymd_opt(2024, 1, 2).unwrap(),
             "Test".to_string(),
             vec![posting::Posting::new(
-                Account::from_str("expenses:food").unwrap().unwrap(),
+                Account::from_str("expenses:food").unwrap(),
                 Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
             )],
         );
@@ -974,7 +974,7 @@ mod tests {
             chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Description A".to_string(),
             vec![posting::Posting::new(
-                Account::from_str("expenses:food").unwrap().unwrap(),
+                Account::from_str("expenses:food").unwrap(),
                 Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
             )],
         );
@@ -982,7 +982,7 @@ mod tests {
             chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Description B".to_string(),
             vec![posting::Posting::new(
-                Account::from_str("expenses:food").unwrap().unwrap(),
+                Account::from_str("expenses:food").unwrap(),
                 Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
             )],
         );
@@ -998,10 +998,10 @@ mod tests {
             "Supermarket ACME".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:groceries").unwrap().unwrap(),
+                    Account::from_str("expenses:groceries").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("120.00 SEK").unwrap()),
                 ),
-                posting::Posting::new(Account::from_str("assets:checking").unwrap().unwrap(), None),
+                posting::Posting::new(Account::from_str("assets:checking").unwrap(), None),
             ],
         );
         let t2 = Transaction::new(
@@ -1009,10 +1009,10 @@ mod tests {
             "ACME Store Purchase".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:groceries").unwrap().unwrap(),
+                    Account::from_str("expenses:groceries").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("120.00 SEK").unwrap()),
                 ),
-                posting::Posting::new(Account::from_str("assets:checking").unwrap().unwrap(), None),
+                posting::Posting::new(Account::from_str("assets:checking").unwrap(), None),
             ],
         );
         assert_eq!(t1.partial_hash(), t2.partial_hash());
@@ -1024,7 +1024,7 @@ mod tests {
             chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![posting::Posting::new(
-                Account::from_str("expenses:food").unwrap().unwrap(),
+                Account::from_str("expenses:food").unwrap(),
                 Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
             )],
         );
@@ -1032,7 +1032,7 @@ mod tests {
             chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             "Test".to_string(),
             vec![posting::Posting::new(
-                Account::from_str("expenses:food").unwrap().unwrap(),
+                Account::from_str("expenses:food").unwrap(),
                 Some(commodity_value::CommodityValue::from_str("99.00 SEK").unwrap()),
             )],
         );
@@ -1048,11 +1048,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:bank").unwrap().unwrap(),
+                    Account::from_str("assets:bank").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],
@@ -1062,11 +1062,11 @@ mod tests {
             "Test".to_string(),
             vec![
                 posting::Posting::new(
-                    Account::from_str("expenses:food").unwrap().unwrap(),
+                    Account::from_str("expenses:food").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("50.00 SEK").unwrap()),
                 ),
                 posting::Posting::new(
-                    Account::from_str("assets:savings").unwrap().unwrap(),
+                    Account::from_str("assets:savings").unwrap(),
                     Some(commodity_value::CommodityValue::from_str("-50.00 SEK").unwrap()),
                 ),
             ],

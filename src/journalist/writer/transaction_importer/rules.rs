@@ -81,8 +81,8 @@ pub fn read_rule_sheet(path: PathBuf) -> crate::Result<Vec<RegexRule>> {
         } else {
             match rule_from_file.account {
                 Some(account_str) => match account::Account::from_str(&account_str) {
-                    Ok(Some(account)) => RuleAction::AssignAccount(account),
-                    _ => {
+                    Ok(account) => RuleAction::AssignAccount(account),
+                    Err(_) => {
                         eprintln!(
                             "Rule with pattern '{}' has an invalid account '{}'. Skipping.",
                             rule_from_file.pattern, account_str

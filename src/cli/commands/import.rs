@@ -24,7 +24,6 @@ pub fn run_import(
         ParserOptions::HSBCDebit => {
             Box::new(transaction_importer::default_importer::DefaultParser::new(
                 types::account::Account::from_str("assets:bank:hsbc")
-                    .unwrap()
                     .unwrap(),
                 "GBP".to_string(),
                 rule_sheet_path,
@@ -42,7 +41,6 @@ pub fn run_import(
         ParserOptions::HSBCCredit => {
             Box::new(transaction_importer::default_importer::DefaultParser::new(
                 types::account::Account::from_str("liabilities:credit:hsbc-credit-card")
-                    .unwrap()
                     .unwrap(),
                 "GBP".to_string(),
                 rule_sheet_path,
@@ -60,7 +58,6 @@ pub fn run_import(
         ParserOptions::SebDebit => {
             Box::new(transaction_importer::default_importer::DefaultParser::new(
                 types::account::Account::from_str("assets:bank:seb-l\u{f6}nekonto")
-                    .unwrap()
                     .unwrap(),
                 "SEK".to_string(),
                 rule_sheet_path,
@@ -78,7 +75,6 @@ pub fn run_import(
         ParserOptions::SebSavings => {
             Box::new(transaction_importer::default_importer::DefaultParser::new(
                 types::account::Account::from_str("assets:bank:seb-sparkonto")
-                    .unwrap()
                     .unwrap(),
                 "SEK".to_string(),
                 rule_sheet_path,
@@ -96,7 +92,6 @@ pub fn run_import(
         ParserOptions::Volksbank => {
             Box::new(transaction_importer::default_importer::DefaultParser::new(
                 types::account::Account::from_str("assets:bank:volksbank")
-                    .unwrap()
                     .unwrap(),
                 "EUR".to_string(),
                 rule_sheet_path,

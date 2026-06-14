@@ -78,8 +78,8 @@ pub fn prompt_for_account(
             continue;
         }
         match types::account::Account::from_str(&account_input) {
-            Ok(Some(account)) => return Ok(account),
-            _ => {
+            Ok(account) => return Ok(account),
+            Err(_) => {
                 writeln!(
                     writer,
                     "Invalid account '{}'. Root must be one of: assets, liabilities, equity, income, expenses (e.g. 'assets:bank').",
@@ -113,8 +113,8 @@ pub fn prompt_for_postings(
         let parts: Vec<&str> = posting_input.split_whitespace().collect();
         if parts.len() == 1 {
             let account = match types::account::Account::from_str(parts[0]) {
-                Ok(Some(a)) => a,
-                _ => {
+                Ok(a) => a,
+                Err(_) => {
                     writeln!(
                         writer,
                         "Invalid account name '{}'. Root must be one of: assets, liabilities, equity, income, expenses (e.g. 'assets:bank').",
@@ -126,8 +126,8 @@ pub fn prompt_for_postings(
             postings.push(types::transaction::posting::Posting::new(account, None));
         } else if parts.len() == 3 {
             let account = match types::account::Account::from_str(parts[0]) {
-                Ok(Some(a)) => a,
-                _ => {
+                Ok(a) => a,
+                Err(_) => {
                     writeln!(
                         writer,
                         "Invalid account name '{}'. Root must be one of: assets, liabilities, equity, income, expenses (e.g. 'assets:bank').",

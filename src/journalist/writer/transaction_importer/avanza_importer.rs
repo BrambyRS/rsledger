@@ -93,13 +93,13 @@ impl transaction_importer::TransactionImporter for AvanzaParser {
 
                 let postings: Vec<types::transaction::posting::Posting> = vec![
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("assets:bank:avanza").unwrap().unwrap(),
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
                         Some(
                             types::commodity_value::CommodityValue::from_str(&amount_str).unwrap(),
                         ),
                     ),
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("expenses:bank:internal-transfers").unwrap().unwrap(),
+                        types::account::Account::from_str("expenses:bank:internal-transfers").unwrap(),
                         None,
                     ),
                 ];
@@ -113,21 +113,21 @@ impl transaction_importer::TransactionImporter for AvanzaParser {
 
                 let postings: Vec<types::transaction::posting::Posting> = vec![
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("assets:bank:avanza").unwrap().unwrap(),
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
                         Some(
                             types::commodity_value::CommodityValue::from_str(&commodity_amount_str)
                                 .unwrap(),
                         ),
                     ),
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("assets:bank:avanza").unwrap().unwrap(),
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
                         Some(
                             types::commodity_value::CommodityValue::from_str(&cash_amount_str)
                                 .unwrap(),
                         ),
                     ),
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("expenses:bank:avanza").unwrap().unwrap(),
+                        types::account::Account::from_str("expenses:bank:avanza").unwrap(),
                         Some(
                             types::commodity_value::CommodityValue::from_str(&fee_amount_str)
                                 .unwrap(),
@@ -158,28 +158,28 @@ impl transaction_importer::TransactionImporter for AvanzaParser {
 
                 let postings: Vec<types::transaction::posting::Posting> = vec![
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("assets:bank:avanza").unwrap().unwrap(),
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
                         Some(
                             types::commodity_value::CommodityValue::from_str(&commodity_amount_str)
                                 .unwrap(),
                         ),
                     ),
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("assets:bank:avanza").unwrap().unwrap(),
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
                         Some(
                             types::commodity_value::CommodityValue::from_str(&cash_amount_str)
                                 .unwrap(),
                         ),
                     ),
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("expenses:bank:avanza").unwrap().unwrap(),
+                        types::account::Account::from_str("expenses:bank:avanza").unwrap(),
                         Some(
                             types::commodity_value::CommodityValue::from_str(&fee_amount_str)
                                 .unwrap(),
                         ),
                     ),
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("equity:capital-gains").unwrap().unwrap(),
+                        types::account::Account::from_str("equity:capital-gains").unwrap(),
                         Some(profit_commodity_value),
                     ),
                 ];
@@ -192,13 +192,13 @@ impl transaction_importer::TransactionImporter for AvanzaParser {
 
                 let postings: Vec<types::transaction::posting::Posting> = vec![
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("assets:bank:avanza").unwrap().unwrap(),
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
                         Some(
                             types::commodity_value::CommodityValue::from_str(&cash_amount_str)
                                 .unwrap(),
                         ),
                     ),
-                    types::transaction::posting::Posting::new(types::account::Account::from_str("income:dividends").unwrap().unwrap(), None),
+                    types::transaction::posting::Posting::new(types::account::Account::from_str("income:dividends").unwrap(), None),
                 ];
 
                 import_candidates.push(transaction_importer::ImportCandidate::Classified(
@@ -209,14 +209,14 @@ impl transaction_importer::TransactionImporter for AvanzaParser {
 
                 let postings: Vec<types::transaction::posting::Posting> = vec![
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("assets:bank:avanza").unwrap().unwrap(),
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
                         Some(
                             types::commodity_value::CommodityValue::from_str(&tax_amount_str)
                                 .unwrap(),
                         ),
                     ),
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("expenses:taxes:withholding").unwrap().unwrap(),
+                        types::account::Account::from_str("expenses:taxes:withholding").unwrap(),
                         None,
                     ),
                 ];
@@ -229,14 +229,14 @@ impl transaction_importer::TransactionImporter for AvanzaParser {
 
                 let postings: Vec<types::transaction::posting::Posting> = vec![
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("assets:bank:avanza").unwrap().unwrap(),
+                        types::account::Account::from_str("assets:bank:avanza").unwrap(),
                         Some(
                             types::commodity_value::CommodityValue::from_str(&interest_amount_str)
                                 .unwrap(),
                         ),
                     ),
                     types::transaction::posting::Posting::new(
-                        types::account::Account::from_str("expenses:bank:avanza:interest").unwrap().unwrap(),
+                        types::account::Account::from_str("expenses:bank:avanza:interest").unwrap(),
                         None,
                     ),
                 ];

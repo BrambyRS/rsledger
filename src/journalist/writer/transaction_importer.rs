@@ -260,13 +260,11 @@ mod tests {
             vec![
                 Posting::new(
                     types::account::Account::from_str("assets:bank:checking")
-                        .unwrap()
                         .unwrap(),
                     Some(CommodityValue::from_str("35000.00 SEK").unwrap()),
                 ),
                 Posting::new(
                     types::account::Account::from_str("income:salary")
-                        .unwrap()
                         .unwrap(),
                     Some(CommodityValue::from_str("-35000.00 SEK").unwrap()),
                 ),
@@ -290,13 +288,11 @@ mod tests {
             vec![
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("expenses:entertainment")
-                        .unwrap()
                         .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("119.00 SEK").unwrap()),
                 ),
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("assets:bank:checking")
-                        .unwrap()
                         .unwrap(),
                     None,
                 ),
@@ -373,13 +369,11 @@ mod tests {
             vec![
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("assets:bank:hsbc")
-                        .unwrap()
                         .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("-25 GBP").unwrap()),
                 ),
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("expenses:food:groceries")
-                        .unwrap()
                         .unwrap(),
                     None,
                 ),
@@ -397,13 +391,11 @@ mod tests {
             vec![
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("assets:bank:hsbc")
-                        .unwrap()
                         .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("-25 GBP").unwrap()),
                 ),
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("expenses:food:groceries")
-                        .unwrap()
                         .unwrap(),
                     None,
                 ),
@@ -444,13 +436,11 @@ mod tests {
             vec![
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("assets:bank:hsbc")
-                        .unwrap()
                         .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("-15.50 GBP").unwrap()),
                 ),
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("expenses:misc")
-                        .unwrap()
                         .unwrap(),
                     None,
                 ),
@@ -468,7 +458,6 @@ mod tests {
             "SOME UNKNOWN SHOP re-import different description".to_string(),
             vec![types::transaction::posting::Posting::new(
                 types::account::Account::from_str("assets:bank:hsbc")
-                    .unwrap()
                     .unwrap(),
                 Some(types::commodity_value::CommodityValue::from_str("-15.50 GBP").unwrap()),
             )],
@@ -508,13 +497,11 @@ mod tests {
             vec![
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("assets:bank:hsbc")
-                        .unwrap()
                         .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("-25 GBP").unwrap()),
                 ),
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("expenses:food:groceries")
-                        .unwrap()
                         .unwrap(),
                     None,
                 ),
@@ -533,13 +520,11 @@ mod tests {
             vec![
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("assets:bank:hsbc")
-                        .unwrap()
                         .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("-25.00 GBP").unwrap()),
                 ),
                 types::transaction::posting::Posting::new(
                     types::account::Account::from_str("expenses:food:groceries")
-                        .unwrap()
                         .unwrap(),
                     None,
                 ),
@@ -572,7 +557,6 @@ mod tests {
         let journal = TempJournal::new_empty();
         let parser = default_importer::DefaultParser::new(
             types::account::Account::from_str("assets:bank:hsbc")
-                .unwrap()
                 .unwrap(),
             "GBP".to_string(),
             rule_sheet_path("valid_rules.toml"),
@@ -632,7 +616,6 @@ mod tests {
         let journal = TempJournal::new_empty();
         let parser = default_importer::DefaultParser::new(
             types::account::Account::from_str("assets:bank:hsbc")
-                .unwrap()
                 .unwrap(),
             "GBP".to_string(),
             rule_sheet_path("valid_rules.toml"),

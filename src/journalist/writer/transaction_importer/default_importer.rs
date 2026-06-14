@@ -248,7 +248,6 @@ mod tests {
     fn seb_parser(rule_sheet: &str) -> DefaultParser {
         DefaultParser::new(
             types::account::Account::from_str("assets:bank:seb-l\u{f6}nekonto")
-                .unwrap()
                 .unwrap(),
             "SEK".to_string(),
             rule_sheet_path(rule_sheet),
@@ -267,7 +266,6 @@ mod tests {
     fn volksbank_parser(rule_sheet: &str) -> DefaultParser {
         DefaultParser::new(
             types::account::Account::from_str("assets:bank:volksbank")
-                .unwrap()
                 .unwrap(),
             "EUR".to_string(),
             rule_sheet_path(rule_sheet),
