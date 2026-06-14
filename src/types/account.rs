@@ -5,6 +5,8 @@
 use crate::error;
 use std::hash::Hash;
 
+/// ROOT ACCOUNT
+/// Represents the five possible root accounts.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RootAccount {
     Assets,
@@ -26,6 +28,8 @@ impl std::fmt::Display for RootAccount {
     }
 }
 
+/// ACCOUNT
+/// Represents a hierarchical account with a root account and optional sub-accounts.
 pub struct Account {
     root_account: RootAccount,
     sub_accounts: Vec<String>,
@@ -48,7 +52,23 @@ impl Account {
             sub_accounts,
         }
     }
-
+    /// FROM_STR
+    /// Parses a colon-separated account string into an Account struct.
+    ///
+    /// Parses a string on the form `root:sub1:sub2:...` into an Account struct.
+    /// The root account has to be one of the five valid root accounts defined in the RootAccount enum:
+    /// - `assets`
+    /// - `liabilities`
+    /// - `equity`
+    /// - `income`
+    /// - `expenses`
+    ///
+    /// FROM_STR will return a Result<Option<Account>, RsledgerError> where:
+    /// - Ok(Some(Account)) if the parsing is successful
+    /// - Ok(None) if the input string is empty
+    /// - Err(RsledgerError) if the parsing fails due to some error
+    ///
+    /// Empty accounts, sub-accounts, or invalid root accounts will all result in an error.
     pub fn from_str(account_str: &str) -> Result<Option<Self>, error::RsledgerError> {
         let parts: Vec<&str> = account_str.split(':').collect();
 
