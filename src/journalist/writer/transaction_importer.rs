@@ -139,11 +139,12 @@ fn deduplicate_transactions(
                         u
                     )
                     .unwrap();
-                    let user_classification: String = cli::utils::prompt_for_account("Please enter the account to balance this transaction against (e.g. 'expenses:food') or leave empty to skip: ", reader, writer)
+                    let user_classification = cli::utils::prompt_for_account(
+                        "Please enter the account to balance this transaction against (e.g. 'expenses:food'): ",
+                        reader,
+                        writer,
+                    )
                     .unwrap();
-                    if user_classification.is_empty() {
-                        continue;
-                    }
                     let second_posting =
                         types::transaction::posting::Posting::new(user_classification, None);
                     let classified_transaction = types::transaction::Transaction::new(
@@ -258,11 +259,15 @@ mod tests {
             "* Salary January".to_string(),
             vec![
                 Posting::new(
-                    "assets:bank:checking".to_string(),
+                    types::account::Account::from_str("assets:bank:checking")
+                        .unwrap()
+                        .unwrap(),
                     Some(CommodityValue::from_str("35000.00 SEK").unwrap()),
                 ),
                 Posting::new(
-                    "income:salary".to_string(),
+                    types::account::Account::from_str("income:salary")
+                        .unwrap()
+                        .unwrap(),
                     Some(CommodityValue::from_str("-35000.00 SEK").unwrap()),
                 ),
             ],
@@ -284,10 +289,17 @@ mod tests {
             "Spotify AB | Monthly subscription".to_string(),
             vec![
                 types::transaction::posting::Posting::new(
-                    "expenses:entertainment".to_string(),
+                    types::account::Account::from_str("expenses:entertainment")
+                        .unwrap()
+                        .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("119.00 SEK").unwrap()),
                 ),
-                types::transaction::posting::Posting::new("assets:bank:checking".to_string(), None),
+                types::transaction::posting::Posting::new(
+                    types::account::Account::from_str("assets:bank:checking")
+                        .unwrap()
+                        .unwrap(),
+                    None,
+                ),
             ],
         );
 
@@ -360,11 +372,15 @@ mod tests {
             "GROCERY STORE (journal description)".to_string(),
             vec![
                 types::transaction::posting::Posting::new(
-                    "assets:bank:hsbc".to_string(),
+                    types::account::Account::from_str("assets:bank:hsbc")
+                        .unwrap()
+                        .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("-25 GBP").unwrap()),
                 ),
                 types::transaction::posting::Posting::new(
-                    "expenses:food:groceries".to_string(),
+                    types::account::Account::from_str("expenses:food:groceries")
+                        .unwrap()
+                        .unwrap(),
                     None,
                 ),
             ],
@@ -380,11 +396,15 @@ mod tests {
             "GROCERY STORE BRACKLEY (different CSV description)".to_string(),
             vec![
                 types::transaction::posting::Posting::new(
-                    "assets:bank:hsbc".to_string(),
+                    types::account::Account::from_str("assets:bank:hsbc")
+                        .unwrap()
+                        .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("-25 GBP").unwrap()),
                 ),
                 types::transaction::posting::Posting::new(
-                    "expenses:food:groceries".to_string(),
+                    types::account::Account::from_str("expenses:food:groceries")
+                        .unwrap()
+                        .unwrap(),
                     None,
                 ),
             ],
@@ -423,10 +443,17 @@ mod tests {
             "SOME UNKNOWN SHOP original".to_string(),
             vec![
                 types::transaction::posting::Posting::new(
-                    "assets:bank:hsbc".to_string(),
+                    types::account::Account::from_str("assets:bank:hsbc")
+                        .unwrap()
+                        .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("-15.50 GBP").unwrap()),
                 ),
-                types::transaction::posting::Posting::new("expenses:misc".to_string(), None),
+                types::transaction::posting::Posting::new(
+                    types::account::Account::from_str("expenses:misc")
+                        .unwrap()
+                        .unwrap(),
+                    None,
+                ),
             ],
         );
         let existing = vec![HashedTransaction {
@@ -440,7 +467,9 @@ mod tests {
             chrono::NaiveDate::from_ymd_opt(2026, 3, 20).unwrap(),
             "SOME UNKNOWN SHOP re-import different description".to_string(),
             vec![types::transaction::posting::Posting::new(
-                "assets:bank:hsbc".to_string(),
+                types::account::Account::from_str("assets:bank:hsbc")
+                    .unwrap()
+                    .unwrap(),
                 Some(types::commodity_value::CommodityValue::from_str("-15.50 GBP").unwrap()),
             )],
         );
@@ -478,11 +507,15 @@ mod tests {
             "GROCERY STORE BRACKLEY".to_string(),
             vec![
                 types::transaction::posting::Posting::new(
-                    "assets:bank:hsbc".to_string(),
+                    types::account::Account::from_str("assets:bank:hsbc")
+                        .unwrap()
+                        .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("-25 GBP").unwrap()),
                 ),
                 types::transaction::posting::Posting::new(
-                    "expenses:food:groceries".to_string(),
+                    types::account::Account::from_str("expenses:food:groceries")
+                        .unwrap()
+                        .unwrap(),
                     None,
                 ),
             ],
@@ -499,11 +532,15 @@ mod tests {
             "GROCERY STORE BRACKLEY".to_string(),
             vec![
                 types::transaction::posting::Posting::new(
-                    "assets:bank:hsbc".to_string(),
+                    types::account::Account::from_str("assets:bank:hsbc")
+                        .unwrap()
+                        .unwrap(),
                     Some(types::commodity_value::CommodityValue::from_str("-25.00 GBP").unwrap()),
                 ),
                 types::transaction::posting::Posting::new(
-                    "expenses:food:groceries".to_string(),
+                    types::account::Account::from_str("expenses:food:groceries")
+                        .unwrap()
+                        .unwrap(),
                     None,
                 ),
             ],
@@ -534,7 +571,9 @@ mod tests {
     fn import_same_csv_twice_only_adds_once() {
         let journal = TempJournal::new_empty();
         let parser = default_importer::DefaultParser::new(
-            "assets:bank:hsbc".to_string(),
+            types::account::Account::from_str("assets:bank:hsbc")
+                .unwrap()
+                .unwrap(),
             "GBP".to_string(),
             rule_sheet_path("valid_rules.toml"),
             ',',
@@ -592,7 +631,9 @@ mod tests {
     fn import_mixed_csv_twice_partial_match_with_different_description() {
         let journal = TempJournal::new_empty();
         let parser = default_importer::DefaultParser::new(
-            "assets:bank:hsbc".to_string(),
+            types::account::Account::from_str("assets:bank:hsbc")
+                .unwrap()
+                .unwrap(),
             "GBP".to_string(),
             rule_sheet_path("valid_rules.toml"),
             ',',

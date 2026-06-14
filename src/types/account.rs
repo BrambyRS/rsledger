@@ -30,6 +30,7 @@ impl std::fmt::Display for RootAccount {
 
 /// ACCOUNT
 /// Represents a hierarchical account with a root account and optional sub-accounts.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Account {
     root_account: RootAccount,
     sub_accounts: Vec<String>,

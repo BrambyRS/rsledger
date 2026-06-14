@@ -48,7 +48,9 @@ pub fn run_new(
 
         // Only postings with explicit amounts make sense for opening balance
         postings.push(types::transaction::posting::Posting::new(
-            "equity:opening-balance".to_string(),
+            types::account::Account::from_str("equity:opening-balance")
+                .unwrap()
+                .unwrap(),
             None,
         ));
 

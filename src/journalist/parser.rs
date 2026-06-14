@@ -228,7 +228,18 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
                 }
             }
         };
-        let posting = types::transaction::posting::Posting::new(account_str.to_string(), amount);
+        let account = match types::account::Account::from_str(account_str) {
+            Ok(Some(a)) => a,
+            Ok(None) | Err(_) => {
+                eprintln!(
+                    "Invalid account '{}' in posting '{}'. Skipping this posting.",
+                    account_str,
+                    line.trim()
+                );
+                continue;
+            }
+        };
+        let posting = types::transaction::posting::Posting::new(account, amount);
 
         postings.push(posting);
     }

@@ -11,7 +11,7 @@ use crate::types;
 use std::path::PathBuf;
 
 pub struct DefaultParser {
-    account: String,
+    account: types::account::Account,
     currency: String,
     rules: Vec<RegexRule>,
     delimiter: char,
@@ -27,7 +27,7 @@ pub struct DefaultParser {
 
 impl DefaultParser {
     pub fn new(
-        account: String,
+        account: types::account::Account,
         currency: String,
         rule_sheet: PathBuf,
         delimiter: char,
@@ -229,6 +229,7 @@ impl transaction_importer::TransactionImporter for DefaultParser {
 mod tests {
     use super::*;
     use crate::journalist::writer::transaction_importer::{ImportCandidate, TransactionImporter};
+    use crate::types;
 
     fn csv_path(filename: &str) -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -246,7 +247,9 @@ mod tests {
 
     fn seb_parser(rule_sheet: &str) -> DefaultParser {
         DefaultParser::new(
-            "assets:bank:seb-lönekonto".to_string(),
+            types::account::Account::from_str("assets:bank:seb-l\u{f6}nekonto")
+                .unwrap()
+                .unwrap(),
             "SEK".to_string(),
             rule_sheet_path(rule_sheet),
             ';',
@@ -263,7 +266,9 @@ mod tests {
 
     fn volksbank_parser(rule_sheet: &str) -> DefaultParser {
         DefaultParser::new(
-            "assets:bank:volksbank".to_string(),
+            types::account::Account::from_str("assets:bank:volksbank")
+                .unwrap()
+                .unwrap(),
             "EUR".to_string(),
             rule_sheet_path(rule_sheet),
             ';',
@@ -354,7 +359,7 @@ mod tests {
         if let ImportCandidate::Unclassified(t) = &candidates[1] {
             assert_eq!(t.get_postings().len(), 1);
             assert_eq!(
-                t.get_postings()[0].get_account(),
+                t.get_postings()[0].get_account().to_string(),
                 "assets:bank:seb-lönekonto"
             );
             assert_eq!(

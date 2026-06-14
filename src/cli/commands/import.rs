@@ -1,5 +1,6 @@
 use crate::cli::args::ParserOptions;
 use crate::journalist::writer::transaction_importer;
+use crate::types;
 
 use std::io::{BufRead, Write};
 
@@ -17,12 +18,14 @@ pub fn run_import(
     let rule_sheet_path = std::path::PathBuf::from(rule_sheet);
 
     let parser: Box<dyn transaction_importer::TransactionImporter> = match parser_opt {
-        ParserOptions::Avanza => Box::new(
-            transaction_importer::avanza_importer::AvanzaParser::new(),
-        ),
-        ParserOptions::HSBCDebit => Box::new(
-            transaction_importer::default_importer::DefaultParser::new(
-                "assets:bank:hsbc".to_string(),
+        ParserOptions::Avanza => {
+            Box::new(transaction_importer::avanza_importer::AvanzaParser::new())
+        }
+        ParserOptions::HSBCDebit => {
+            Box::new(transaction_importer::default_importer::DefaultParser::new(
+                types::account::Account::from_str("assets:bank:hsbc")
+                    .unwrap()
+                    .unwrap(),
                 "GBP".to_string(),
                 rule_sheet_path,
                 ',',
@@ -34,11 +37,13 @@ pub fn run_import(
                 None,
                 Some(','),
                 '.',
-            ),
-        ),
-        ParserOptions::HSBCCredit => Box::new(
-            transaction_importer::default_importer::DefaultParser::new(
-                "liabilities:credit:hsbc-credit-card".to_string(),
+            ))
+        }
+        ParserOptions::HSBCCredit => {
+            Box::new(transaction_importer::default_importer::DefaultParser::new(
+                types::account::Account::from_str("liabilities:credit:hsbc-credit-card")
+                    .unwrap()
+                    .unwrap(),
                 "GBP".to_string(),
                 rule_sheet_path,
                 ',',
@@ -50,11 +55,13 @@ pub fn run_import(
                 None,
                 Some(','),
                 '.',
-            ),
-        ),
-        ParserOptions::SebDebit => Box::new(
-            transaction_importer::default_importer::DefaultParser::new(
-                "assets:bank:seb-lönekonto".to_string(),
+            ))
+        }
+        ParserOptions::SebDebit => {
+            Box::new(transaction_importer::default_importer::DefaultParser::new(
+                types::account::Account::from_str("assets:bank:seb-l\u{f6}nekonto")
+                    .unwrap()
+                    .unwrap(),
                 "SEK".to_string(),
                 rule_sheet_path,
                 ';',
@@ -66,11 +73,13 @@ pub fn run_import(
                 None,
                 None,
                 '.',
-            ),
-        ),
-        ParserOptions::SebSavings => Box::new(
-            transaction_importer::default_importer::DefaultParser::new(
-                "assets:bank:seb-sparkonto".to_string(),
+            ))
+        }
+        ParserOptions::SebSavings => {
+            Box::new(transaction_importer::default_importer::DefaultParser::new(
+                types::account::Account::from_str("assets:bank:seb-sparkonto")
+                    .unwrap()
+                    .unwrap(),
                 "SEK".to_string(),
                 rule_sheet_path,
                 ';',
@@ -82,11 +91,13 @@ pub fn run_import(
                 None,
                 None,
                 '.',
-            ),
-        ),
-        ParserOptions::Volksbank => Box::new(
-            transaction_importer::default_importer::DefaultParser::new(
-                "assets:bank:volksbank".to_string(),
+            ))
+        }
+        ParserOptions::Volksbank => {
+            Box::new(transaction_importer::default_importer::DefaultParser::new(
+                types::account::Account::from_str("assets:bank:volksbank")
+                    .unwrap()
+                    .unwrap(),
                 "EUR".to_string(),
                 rule_sheet_path,
                 ';',
@@ -98,8 +109,8 @@ pub fn run_import(
                 Some(12),
                 Some('.'),
                 ',',
-            ),
-        ),
+            ))
+        }
     };
 
     transaction_importer::import_transactions(
@@ -138,8 +149,7 @@ mod tests {
     impl TempJournal {
         fn new_empty() -> Self {
             let id = COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            let path =
-                std::env::temp_dir().join(format!("rsledger_import_test_{}.journal", id));
+            let path = std::env::temp_dir().join(format!("rsledger_import_test_{}.journal", id));
             std::fs::write(&path, "").unwrap();
             TempJournal(path)
         }
