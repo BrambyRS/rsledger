@@ -1,7 +1,7 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-use crate::commodity_value;
+use crate::types::commodity_value;
 
 /// PRICE DIRECTIVE
 /// Struct to hold exchange rates between commodities at a certain date

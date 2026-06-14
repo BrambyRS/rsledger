@@ -1,4 +1,4 @@
-use crate::transaction::commodity_value;
+use crate::types::transaction::commodity_value;
 
 use std::hash::Hash;
 

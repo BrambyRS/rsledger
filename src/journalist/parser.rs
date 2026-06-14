@@ -1,7 +1,5 @@
-use crate::commodity_value::CommodityValue;
 use crate::journalist::Journal;
-use crate::price;
-use crate::transaction;
+use crate::types;
 
 use std::io::BufRead;
 use std::io::Lines;
@@ -63,8 +61,8 @@ fn is_date(s: &str) -> bool {
 /// PARSE_JOURNAL
 /// Parses a journal file and returns a vector of transactions.
 pub fn parse_journal<R: BufRead>(journal_lines: &mut Peekable<Lines<R>>) -> crate::Result<Journal> {
-    let mut transactions: Vec<transaction::Transaction> = Vec::new();
-    let mut prices: Vec<price::PriceDirective> = Vec::new();
+    let mut transactions: Vec<types::transaction::Transaction> = Vec::new();
+    let mut prices: Vec<types::price::PriceDirective> = Vec::new();
 
     // Iterate over lines in the file, looking for transactions
     loop {
@@ -95,16 +93,17 @@ pub fn parse_journal<R: BufRead>(journal_lines: &mut Peekable<Lines<R>>) -> crat
         match DirectiveType::scan_line(&stripped_line) {
             DirectiveType::Transaction => {
                 // Get the transaction starting at this line
-                let transaction: transaction::Transaction = match parse_transaction(journal_lines) {
-                    Ok(t) => t,
-                    Err(e) => {
-                        eprintln!(
-                            "Error parsing transaction starting at line '{}': {}",
-                            stripped_line, e
-                        );
-                        continue;
-                    }
-                };
+                let transaction: types::transaction::Transaction =
+                    match parse_transaction(journal_lines) {
+                        Ok(t) => t,
+                        Err(e) => {
+                            eprintln!(
+                                "Error parsing transaction starting at line '{}': {}",
+                                stripped_line, e
+                            );
+                            continue;
+                        }
+                    };
                 transactions.push(transaction);
 
                 // parse_transaction will consume the lines corresponding to the transaction
@@ -112,8 +111,8 @@ pub fn parse_journal<R: BufRead>(journal_lines: &mut Peekable<Lines<R>>) -> crat
             }
             DirectiveType::Price => {
                 // Get the price directive starting at this line
-                let price_directive: price::PriceDirective =
-                    match price::PriceDirective::from_str(&stripped_line) {
+                let price_directive: types::price::PriceDirective =
+                    match types::price::PriceDirective::from_str(&stripped_line) {
                         Ok(p) => p,
                         Err(e) => {
                             eprintln!(
@@ -143,7 +142,7 @@ pub fn parse_journal<R: BufRead>(journal_lines: &mut Peekable<Lines<R>>) -> crat
 /// PARSE_TRANSACTION
 fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
     journal_lines: &mut I,
-) -> crate::Result<transaction::Transaction> {
+) -> crate::Result<types::transaction::Transaction> {
     // Read first line to get the date and description
     let first_line = match journal_lines.next() {
         Some(Ok(line)) => line,
@@ -181,7 +180,7 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
     // Stop either when the next line is empty,
     // when the next line starts with a non-whitespace character,
     // or when we reach the end of the file
-    let mut postings: Vec<transaction::posting::Posting> = Vec::new();
+    let mut postings: Vec<types::transaction::posting::Posting> = Vec::new();
     loop {
         let line = match journal_lines.next() {
             Some(Ok(l)) => l,
@@ -218,7 +217,7 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
         let amount = if amount_str.is_empty() {
             None
         } else {
-            match CommodityValue::from_str(&amount_str) {
+            match types::commodity_value::CommodityValue::from_str(&amount_str) {
                 Ok(val) => Some(val),
                 Err(_) => {
                     eprintln!(
@@ -229,14 +228,14 @@ fn parse_transaction<I: Iterator<Item = std::io::Result<String>>>(
                 }
             }
         };
-        let posting = transaction::posting::Posting::new(account_str.to_string(), amount);
+        let posting = types::transaction::posting::Posting::new(account_str.to_string(), amount);
 
         postings.push(posting);
     }
 
     // Create the transaction
-    let transaction: transaction::Transaction =
-        transaction::Transaction::new(date, description, postings);
+    let transaction: types::transaction::Transaction =
+        types::transaction::Transaction::new(date, description, postings);
 
     Ok(transaction)
 }

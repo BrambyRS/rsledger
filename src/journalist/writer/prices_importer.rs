@@ -1,6 +1,5 @@
-use crate::commodity_value::{CommodityValue, commodity, fixed_decimal};
 use crate::journalist;
-use crate::price;
+use crate::types;
 
 use chrono::NaiveDate;
 use std::fs::File;
@@ -12,7 +11,7 @@ use std::iter::Peekable;
 struct HashedPrice {
     hash: u64,
     #[allow(dead_code)]
-    price: price::PriceDirective,
+    price: types::price::PriceDirective,
 }
 
 /// READ_PRICES_FROM_JOURNAL
@@ -41,8 +40,8 @@ fn read_prices_from_journal(journal_path: std::path::PathBuf) -> crate::Result<V
 /// in `existing_prices`.
 fn deduplicate_prices(
     existing_prices: Vec<HashedPrice>,
-    candidates: Vec<price::PriceDirective>,
-) -> Vec<price::PriceDirective> {
+    candidates: Vec<types::price::PriceDirective>,
+) -> Vec<types::price::PriceDirective> {
     candidates
         .into_iter()
         .filter(|c| {
@@ -55,12 +54,14 @@ fn deduplicate_prices(
 /// IMPORT_CSV
 /// Reads the an Avanza-style positions CSV and returns a vector of PriceDirective entries
 /// corresponding to the data in the CSV file.
-pub fn import_csv(csv_path: &std::path::PathBuf) -> crate::Result<Vec<price::PriceDirective>> {
+pub fn import_csv(
+    csv_path: &std::path::PathBuf,
+) -> crate::Result<Vec<types::price::PriceDirective>> {
     let file: File = File::open(csv_path)?;
     let mut lines: Peekable<Lines<std::io::BufReader<File>>> =
         std::io::BufReader::new(file).lines().peekable();
 
-    let mut prices: Vec<price::PriceDirective> = Vec::new();
+    let mut prices: Vec<types::price::PriceDirective> = Vec::new();
 
     // Get the date from the CSV name (first 10 charactersshould be YYYY-MM-DD)
     let file_name = csv_path.file_name().unwrap().to_str().unwrap();
@@ -93,7 +94,7 @@ pub fn import_csv(csv_path: &std::path::PathBuf) -> crate::Result<Vec<price::Pri
                     // The name will be used as the commodity
                     // The price in SEK will have to be calculated as Marknadsvärde / Volym
 
-                    let sek_commodity = commodity::Commodity {
+                    let sek_commodity = types::commodity_value::commodity::Commodity {
                         name: "SEK".to_string(),
                     };
 
@@ -109,24 +110,29 @@ pub fn import_csv(csv_path: &std::path::PathBuf) -> crate::Result<Vec<price::Pri
                     }
 
                     let commodity_name = parts[0].trim();
-                    let commodity: commodity::Commodity = commodity::Commodity {
-                        name: commodity_name.to_string(),
-                    };
+                    let commodity: types::commodity_value::commodity::Commodity =
+                        types::commodity_value::commodity::Commodity {
+                            name: commodity_name.to_string(),
+                        };
 
                     let volume_str = parts[2].trim().replace(",", ".");
                     let volume =
-                        fixed_decimal::FixedDecimal::from_str(&volume_str).map_err(|e| {
-                            crate::error::RsledgerError::ParseError(
-                                "CSV Import".to_string(),
-                                format!(
-                                    "Could not parse volume '{}' as a number: {}",
-                                    volume_str, e
-                                ),
-                            )
-                        })?;
+                        types::commodity_value::fixed_decimal::FixedDecimal::from_str(&volume_str)
+                            .map_err(|e| {
+                                crate::error::RsledgerError::ParseError(
+                                    "CSV Import".to_string(),
+                                    format!(
+                                        "Could not parse volume '{}' as a number: {}",
+                                        volume_str, e
+                                    ),
+                                )
+                            })?;
 
                     let market_value_str = parts[3].trim().replace(",", ".");
-                    let market_value = fixed_decimal::FixedDecimal::from_str(&market_value_str)
+                    let market_value =
+                        types::commodity_value::fixed_decimal::FixedDecimal::from_str(
+                            &market_value_str,
+                        )
                         .map_err(|e| {
                             crate::error::RsledgerError::ParseError(
                                 "CSV Import".to_string(),
@@ -145,10 +151,14 @@ pub fn import_csv(csv_path: &std::path::PathBuf) -> crate::Result<Vec<price::Pri
                         );
                         lines.next();
                     } else {
-                        let amount: fixed_decimal::FixedDecimal = &market_value / &volume;
-                        let value = CommodityValue::new(amount, sek_commodity.clone());
+                        let amount: types::commodity_value::fixed_decimal::FixedDecimal =
+                            &market_value / &volume;
+                        let value = types::commodity_value::CommodityValue::new(
+                            amount,
+                            sek_commodity.clone(),
+                        );
 
-                        prices.push(price::PriceDirective {
+                        prices.push(types::price::PriceDirective {
                             date,
                             commodity,
                             value,

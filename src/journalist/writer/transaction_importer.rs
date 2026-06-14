@@ -4,7 +4,7 @@ pub mod rules;
 
 use crate::cli;
 use crate::journalist;
-use crate::transaction;
+use crate::types;
 
 use std::io::{BufRead, Lines, Write};
 use std::iter::Peekable;
@@ -14,7 +14,7 @@ use std::iter::Peekable;
 struct HashedTransaction {
     functional_hash: u64,
     partial_hash: u64,
-    transaction: transaction::Transaction,
+    transaction: types::transaction::Transaction,
 }
 
 fn read_and_hash_journal(
@@ -48,9 +48,9 @@ fn read_and_hash_journal(
 /// or unclassifiable (i.e. postings need manual review)
 pub enum ImportCandidate {
     /// A fully classified transaction to add as it is
-    Classified(transaction::Transaction),
+    Classified(types::transaction::Transaction),
     /// An unclassifiable transaction for the user to classify manually (should only have the first posting defined)
-    Unclassified(transaction::Transaction),
+    Unclassified(types::transaction::Transaction),
 }
 
 /// TRANSACTION IMPORTER
@@ -76,8 +76,9 @@ fn deduplicate_transactions(
     accept_partial_matches: bool,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
-) -> Vec<transaction::Transaction> {
-    let mut new_transactions: Vec<transaction::Transaction> = Vec::with_capacity(candidates.len());
+) -> Vec<types::transaction::Transaction> {
+    let mut new_transactions: Vec<types::transaction::Transaction> =
+        Vec::with_capacity(candidates.len());
 
     for candidate in candidates {
         match candidate {
@@ -144,8 +145,8 @@ fn deduplicate_transactions(
                         continue;
                     }
                     let second_posting =
-                        transaction::posting::Posting::new(user_classification, None);
-                    let classified_transaction = transaction::Transaction::new(
+                        types::transaction::posting::Posting::new(user_classification, None);
+                    let classified_transaction = types::transaction::Transaction::new(
                         *u.get_date(),
                         u.get_description().to_string(),
                         vec![u.get_postings()[0].clone(), second_posting],
@@ -179,7 +180,7 @@ pub fn import_transactions(
 
     let candidates: Vec<ImportCandidate> = csv_importer.import_csv(csv_path.clone());
 
-    let new_transactions: Vec<transaction::Transaction> = deduplicate_transactions(
+    let new_transactions: Vec<types::transaction::Transaction> = deduplicate_transactions(
         existing_transactions,
         candidates,
         accept_partial_matches,
@@ -246,13 +247,13 @@ mod tests {
 
     #[test]
     fn spot_check_basic_transactions_salary_january() {
-        use crate::commodity_value::CommodityValue;
-        use crate::transaction::posting::Posting;
+        use crate::types::commodity_value::CommodityValue;
+        use crate::types::transaction::posting::Posting;
 
         let result = read_and_hash_journal(journal_path("basic_transactions.journal")).unwrap();
 
         // Transaction index 1: "2026-01-25 * Salary January"
-        let expected = transaction::Transaction::new(
+        let expected = types::transaction::Transaction::new(
             chrono::NaiveDate::from_ymd_opt(2026, 1, 25).unwrap(),
             "* Salary January".to_string(),
             vec![
@@ -273,21 +274,20 @@ mod tests {
 
     #[test]
     fn spot_check_basic_transactions_spotify_autobalance() {
-        use crate::commodity_value::CommodityValue;
-        use crate::transaction::posting::Posting;
+        use crate::types;
 
         let result = read_and_hash_journal(journal_path("basic_transactions.journal")).unwrap();
 
         // Transaction index 6: "2026-02-01 Spotify AB | Monthly subscription" (auto-balance posting)
-        let expected = transaction::Transaction::new(
+        let expected = types::transaction::Transaction::new(
             chrono::NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
             "Spotify AB | Monthly subscription".to_string(),
             vec![
-                Posting::new(
+                types::transaction::posting::Posting::new(
                     "expenses:entertainment".to_string(),
-                    Some(CommodityValue::from_str("119.00 SEK").unwrap()),
+                    Some(types::commodity_value::CommodityValue::from_str("119.00 SEK").unwrap()),
                 ),
-                Posting::new("assets:bank:checking".to_string(), None),
+                types::transaction::posting::Posting::new("assets:bank:checking".to_string(), None),
             ],
         );
 
@@ -352,19 +352,21 @@ mod tests {
     /// must be treated as a duplicate and not added.
     #[test]
     fn classified_dedup_ignores_description() {
-        use crate::commodity_value::CommodityValue;
-        use crate::transaction::posting::Posting;
         use std::io::Cursor;
+        use types;
 
-        let existing_tx = transaction::Transaction::new(
+        let existing_tx = types::transaction::Transaction::new(
             chrono::NaiveDate::from_ymd_opt(2026, 3, 21).unwrap(),
             "GROCERY STORE (journal description)".to_string(),
             vec![
-                Posting::new(
+                types::transaction::posting::Posting::new(
                     "assets:bank:hsbc".to_string(),
-                    Some(CommodityValue::from_str("-25 GBP").unwrap()),
+                    Some(types::commodity_value::CommodityValue::from_str("-25 GBP").unwrap()),
                 ),
-                Posting::new("expenses:food:groceries".to_string(), None),
+                types::transaction::posting::Posting::new(
+                    "expenses:food:groceries".to_string(),
+                    None,
+                ),
             ],
         );
         let existing = vec![HashedTransaction {
@@ -373,15 +375,18 @@ mod tests {
             transaction: existing_tx,
         }];
 
-        let candidate_tx = transaction::Transaction::new(
+        let candidate_tx = types::transaction::Transaction::new(
             chrono::NaiveDate::from_ymd_opt(2026, 3, 21).unwrap(),
             "GROCERY STORE BRACKLEY (different CSV description)".to_string(),
             vec![
-                Posting::new(
+                types::transaction::posting::Posting::new(
                     "assets:bank:hsbc".to_string(),
-                    Some(CommodityValue::from_str("-25 GBP").unwrap()),
+                    Some(types::commodity_value::CommodityValue::from_str("-25 GBP").unwrap()),
                 ),
-                Posting::new("expenses:food:groceries".to_string(), None),
+                types::transaction::posting::Posting::new(
+                    "expenses:food:groceries".to_string(),
+                    None,
+                ),
             ],
         );
 
@@ -409,20 +414,19 @@ mod tests {
     /// must still be offered as a partial match, and skipped when the user confirms.
     #[test]
     fn unclassified_partial_match_ignores_description() {
-        use crate::commodity_value::CommodityValue;
-        use crate::transaction::posting::Posting;
         use std::io::Cursor;
+        use types;
 
         // Existing fully-classified journal entry.
-        let existing_tx = transaction::Transaction::new(
+        let existing_tx = types::transaction::Transaction::new(
             chrono::NaiveDate::from_ymd_opt(2026, 3, 20).unwrap(),
             "SOME UNKNOWN SHOP original".to_string(),
             vec![
-                Posting::new(
+                types::transaction::posting::Posting::new(
                     "assets:bank:hsbc".to_string(),
-                    Some(CommodityValue::from_str("-15.50 GBP").unwrap()),
+                    Some(types::commodity_value::CommodityValue::from_str("-15.50 GBP").unwrap()),
                 ),
-                Posting::new("expenses:misc".to_string(), None),
+                types::transaction::posting::Posting::new("expenses:misc".to_string(), None),
             ],
         );
         let existing = vec![HashedTransaction {
@@ -432,12 +436,12 @@ mod tests {
         }];
 
         // Unclassified candidate: same date + first posting, different description.
-        let candidate_tx = transaction::Transaction::new(
+        let candidate_tx = types::transaction::Transaction::new(
             chrono::NaiveDate::from_ymd_opt(2026, 3, 20).unwrap(),
             "SOME UNKNOWN SHOP re-import different description".to_string(),
-            vec![Posting::new(
+            vec![types::transaction::posting::Posting::new(
                 "assets:bank:hsbc".to_string(),
-                Some(CommodityValue::from_str("-15.50 GBP").unwrap()),
+                Some(types::commodity_value::CommodityValue::from_str("-15.50 GBP").unwrap()),
             )],
         );
 
@@ -465,20 +469,22 @@ mod tests {
     /// produce identical hashes and must be treated as duplicates.
     #[test]
     fn classified_dedup_handles_redundant_decimal_digits() {
-        use crate::commodity_value::CommodityValue;
-        use crate::transaction::posting::Posting;
+        use crate::types;
         use std::io::Cursor;
 
         // Existing entry stored with minimal precision (as written to the journal).
-        let existing_tx = transaction::Transaction::new(
+        let existing_tx = types::transaction::Transaction::new(
             chrono::NaiveDate::from_ymd_opt(2026, 3, 21).unwrap(),
             "GROCERY STORE BRACKLEY".to_string(),
             vec![
-                Posting::new(
+                types::transaction::posting::Posting::new(
                     "assets:bank:hsbc".to_string(),
-                    Some(CommodityValue::from_str("-25 GBP").unwrap()),
+                    Some(types::commodity_value::CommodityValue::from_str("-25 GBP").unwrap()),
                 ),
-                Posting::new("expenses:food:groceries".to_string(), None),
+                types::transaction::posting::Posting::new(
+                    "expenses:food:groceries".to_string(),
+                    None,
+                ),
             ],
         );
         let existing = vec![HashedTransaction {
@@ -488,15 +494,18 @@ mod tests {
         }];
 
         // CSV candidate carries redundant trailing zeros (-25.00 instead of -25).
-        let candidate_tx = transaction::Transaction::new(
+        let candidate_tx = types::transaction::Transaction::new(
             chrono::NaiveDate::from_ymd_opt(2026, 3, 21).unwrap(),
             "GROCERY STORE BRACKLEY".to_string(),
             vec![
-                Posting::new(
+                types::transaction::posting::Posting::new(
                     "assets:bank:hsbc".to_string(),
-                    Some(CommodityValue::from_str("-25.00 GBP").unwrap()),
+                    Some(types::commodity_value::CommodityValue::from_str("-25.00 GBP").unwrap()),
                 ),
-                Posting::new("expenses:food:groceries".to_string(), None),
+                types::transaction::posting::Posting::new(
+                    "expenses:food:groceries".to_string(),
+                    None,
+                ),
             ],
         );
 

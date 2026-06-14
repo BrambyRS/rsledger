@@ -4,8 +4,7 @@ pub mod transaction_importer;
 use std::fs;
 use std::io::Write;
 
-use crate::price;
-use crate::transaction;
+use crate::types;
 
 /// NEW_JOURNAL
 /// Creates an empty journal file at `journal_file`.
@@ -25,7 +24,7 @@ pub fn new_journal(journal_file: &std::path::PathBuf) -> crate::Result<()> {
 /// Returns an error without modifying the file if validation fails.
 pub fn add_transaction_to_file(
     f: &mut fs::File,
-    transaction: &transaction::Transaction,
+    transaction: &types::transaction::Transaction,
 ) -> crate::Result<()> {
     if !transaction.validate() {
         return Err(crate::error::RsledgerError::ValidationError(
@@ -39,7 +38,10 @@ pub fn add_transaction_to_file(
 
 /// ADD_PRICE_TO_FILE
 /// Appends a price directive to the open file.
-pub fn add_price_to_file(f: &mut fs::File, price: &price::PriceDirective) -> crate::Result<()> {
+pub fn add_price_to_file(
+    f: &mut fs::File,
+    price: &types::price::PriceDirective,
+) -> crate::Result<()> {
     write!(f, "{price}\n")?;
     Ok(())
 }

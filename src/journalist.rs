@@ -5,12 +5,11 @@
 pub mod parser;
 pub mod writer;
 
-use crate::price;
-use crate::transaction;
+use crate::types;
 
 /// JOURNAL
 /// Currently only supports storing transactions and prices
 pub struct Journal {
-    pub transactions: Vec<transaction::Transaction>,
-    pub prices: Vec<price::PriceDirective>,
+    pub transactions: Vec<types::transaction::Transaction>,
+    pub prices: Vec<types::price::PriceDirective>,
 }

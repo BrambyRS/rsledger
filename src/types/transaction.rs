@@ -1,6 +1,6 @@
 pub mod posting;
 
-use crate::commodity_value;
+use crate::types::commodity_value;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 

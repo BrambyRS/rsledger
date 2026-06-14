@@ -1,5 +1,4 @@
-use crate::commodity_value;
-use crate::transaction;
+use crate::types;
 
 /// PROMPT_INPUT
 /// Prints `prompt` to stdout, flushes the buffer, reads a line from stdin,
@@ -46,10 +45,10 @@ pub fn prompt_for_value(
     prompt: &str,
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
-) -> crate::Result<commodity_value::CommodityValue> {
+) -> crate::Result<types::commodity_value::CommodityValue> {
     loop {
         let value_input = prompt_input(prompt, reader, writer)?;
-        match commodity_value::CommodityValue::from_str(&value_input) {
+        match types::commodity_value::CommodityValue::from_str(&value_input) {
             Ok(value) => return Ok(value),
             Err(_) => {
                 writeln!(
@@ -84,7 +83,7 @@ pub fn prompt_for_account(
 }
 
 /// PROMPT_FOR_POSTING
-/// Prompts the user to enter one or more postings, and returns them as a vector of [`transaction::posting::Posting`].
+/// Prompts the user to enter one or more postings, and returns them as a vector of [`types::transaction::posting::Posting`].
 ///
 /// Postings can be entered as:
 /// - `<account>` — amount will be inferred (auto-balancing posting)
@@ -93,8 +92,8 @@ pub fn prompt_for_account(
 pub fn prompt_for_postings(
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
-) -> crate::Result<Vec<transaction::posting::Posting>> {
-    let mut postings: Vec<transaction::posting::Posting> = Vec::new();
+) -> crate::Result<Vec<types::transaction::posting::Posting>> {
+    let mut postings: Vec<types::transaction::posting::Posting> = Vec::new();
 
     loop {
         let posting_input: String =
@@ -105,12 +104,12 @@ pub fn prompt_for_postings(
         let parts: Vec<&str> = posting_input.split_whitespace().collect();
         if parts.len() == 1 {
             let account_str: String = parts[0].to_string();
-            postings.push(transaction::posting::Posting::new(account_str, None));
+            postings.push(types::transaction::posting::Posting::new(account_str, None));
         } else if parts.len() == 3 {
             let account_str: String = parts[0].to_string();
             let amount_str: String = parts[1..].join(" ");
-            let amount: Option<commodity_value::CommodityValue> =
-                match commodity_value::CommodityValue::from_str(&amount_str) {
+            let amount: Option<types::commodity_value::CommodityValue> =
+                match types::commodity_value::CommodityValue::from_str(&amount_str) {
                     Ok(val) => Some(val),
                     Err(_) => {
                         writeln!(
@@ -120,7 +119,10 @@ pub fn prompt_for_postings(
                         continue;
                     }
                 };
-            postings.push(transaction::posting::Posting::new(account_str, amount));
+            postings.push(types::transaction::posting::Posting::new(
+                account_str,
+                amount,
+            ));
         } else {
             writeln!(
                 writer,
