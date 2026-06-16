@@ -34,6 +34,16 @@ impl JournalFile {
         return Ok(Journal::new(transactions, prices));
     }
 
+    /// Adds an entry to the journal file.
+    ///
+    /// The entry can be any type that implements the `Display` trait, such as a transaction or a price directive.
+    ///
+    /// # Examples
+    /// ```
+    /// let mut journal_file = journalist::JournalFile::new("path/to/journal.journal");
+    /// let transaction = types::transaction::Transaction::new(...);
+    /// let result = journal_file.add_entry(&transaction);
+    /// ```
     pub fn add_entry(&mut self, entry: &dyn std::fmt::Display) -> crate::Result<()> {
         // Open the file in append mode
         let mut file: std::fs::File =
