@@ -96,7 +96,6 @@ impl Journal {
         transactions: Vec<transaction::Transaction>,
         prices: Vec<price::PriceDirective>,
     ) -> Self {
-        // TODO: Implement the logic to read the journal file and count the directives.
         Self {
             transactions,
             prices,
