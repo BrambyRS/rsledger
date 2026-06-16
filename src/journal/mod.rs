@@ -25,6 +25,35 @@ impl JournalFile {
         }
     }
 
+    /// Creates a new, empty, journal file at the specified path if one does not already exist.
+    ///
+    /// # Examples
+    /// ```
+    /// let mut journal_file = journalist::JournalFile::new("path/to/journal.journal");
+    /// let result = journal_file.create();
+    /// ```
+    pub fn create(&self) -> crate::Result<()> {
+        // Create the journal file if it doesn't exist
+        if !self.path.exists() {
+            if let Some(parent) = self.path.parent() {
+                match std::fs::create_dir_all(parent) {
+                    Ok(_) => (),
+                    Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+                }
+            }
+
+            match std::fs::File::create(&self.path) {
+                Ok(_) => return Ok(()),
+                Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+            }
+        }
+
+        return Err(crate::error::RsledgerError::IoError(std::io::Error::new(
+            std::io::ErrorKind::AlreadyExists,
+            format!("Journal file {} already exists.", self.path.display()),
+        )));
+    }
+
     pub fn load(&mut self) -> crate::Result<Journal> {
         // TODO: Implement the logic to read the journal
 
