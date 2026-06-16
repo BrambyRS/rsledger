@@ -86,7 +86,7 @@ impl JournalFile {
             };
 
         // Write the entry to file using its implemented Display trait
-        match writeln!(file, "{}", entry) {
+        match writeln!(file, "{entry}") {
             Ok(_) => return Ok(()),
             Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
         };
