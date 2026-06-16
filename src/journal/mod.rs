@@ -14,6 +14,8 @@ pub struct JournalFile {
 }
 
 impl JournalFile {
+    /// Creates a new `JournalFile` instance with the given path.
+    ///
     pub fn new(path: std::path::PathBuf) -> Self {
         // TODO: Implement the logic to read the journal file and count the directives.
 
