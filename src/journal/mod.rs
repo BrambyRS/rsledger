@@ -10,8 +10,6 @@ use std::io::Write;
 pub struct JournalFile {
     /// The path to the journal file.
     path: std::path::PathBuf,
-    /// Number of each type of directive in the journal.
-    directive_counts: std::collections::HashMap<utils::DirectiveType, usize>,
 }
 
 impl JournalFile {
@@ -20,10 +18,7 @@ impl JournalFile {
     pub fn new(path: std::path::PathBuf) -> Self {
         // TODO: Implement the logic to read the journal file and count the directives.
 
-        Self {
-            path,
-            directive_counts: std::collections::HashMap::new(),
-        }
+        Self { path }
     }
 
     /// Creates a new, empty, journal file at the specified path if one does not already exist.
