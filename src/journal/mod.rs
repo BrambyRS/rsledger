@@ -2,6 +2,7 @@ pub(crate) mod account;
 pub(crate) mod commodity_value;
 pub(crate) mod price;
 pub(crate) mod transaction;
+mod utils; // Private module for support functions and types
 
 use std::io::Write;
 
@@ -10,7 +11,7 @@ pub struct JournalFile {
     /// The path to the journal file.
     path: std::path::PathBuf,
     /// Number of each type of directive in the journal.
-    directive_counts: std::collections::HashMap<DirectiveType, usize>,
+    directive_counts: std::collections::HashMap<utils::DirectiveType, usize>,
 }
 
 impl JournalFile {
@@ -102,17 +103,6 @@ pub struct Journal {
     pub transactions: Vec<transaction::Transaction>,
     /// All price directives in the journal.
     pub prices: Vec<price::PriceDirective>,
-}
-
-/// The types of directives that can be stored in a journal.
-/// Limited support at the moment, needs to be expanded.
-enum DirectiveType {
-    /// For transactions.
-    Transaction,
-    /// For price directives.
-    Price,
-    /// For unrecognised directives.
-    None,
 }
 
 impl Journal {
