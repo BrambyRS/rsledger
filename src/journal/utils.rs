@@ -4,7 +4,7 @@
 /// The types of directives that can be stored in a journal.
 /// Limited support at the moment, needs to be expanded.
 #[derive(Debug, PartialEq, Eq, Hash)]
-enum DirectiveType {
+pub enum DirectiveType {
     /// For include directives.
     Include,
     /// For transactions.
