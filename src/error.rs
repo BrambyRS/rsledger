@@ -7,6 +7,10 @@ pub enum RsledgerError {
     #[error("Could not parse {0}: {1}")]
     ParseError(String, String),
 
+    /// Include depth exceeded
+    #[error("Include depth exceeded for file: {0}")]
+    IncludeDepthExceeded(std::path::PathBuf),
+
     // Error with IO operations
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
