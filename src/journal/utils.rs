@@ -64,9 +64,21 @@ pub fn trim_comments(line: &str) -> &str {
     };
 }
 
+/// Extracts the path from an include directive.
+pub fn include(line: &str) -> crate::Result<std::path::PathBuf> {
+    let stripped_line = trim_comments(line);
+
+    // Skip the first 7 characters ("include") and then trim any leading/trainling whitespace
+    return Ok(std::path::PathBuf::from(stripped_line[7..].trim()));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ---------------------------------------------------
+    // Tests for the `trim_comments`
+    // ---------------------------------------------------
 
     #[test]
     fn test_trim_comments() {
@@ -94,6 +106,10 @@ mod tests {
         );
     }
 
+    // ---------------------------------------------------
+    // Tests for the `identify_directive_type`
+    // ---------------------------------------------------
+
     #[test]
     fn test_identify_directive_type() {
         assert_eq!(
@@ -112,5 +128,44 @@ mod tests {
             identify_directive_type("Unrecognized directive"),
             DirectiveType::None
         );
+    }
+
+    // ---------------------------------------------------
+    // Tests for the `include` parser
+    // ---------------------------------------------------
+
+    #[test]
+    fn test_include() {
+        let line = "include other.journal";
+        let result = include(line).unwrap();
+        assert_eq!(result, std::path::PathBuf::from("other.journal"));
+    }
+
+    #[test]
+    fn test_include_with_comments() {
+        let line = "include other.journal ; this is a comment";
+        let result = include(line).unwrap();
+        assert_eq!(result, std::path::PathBuf::from("other.journal"));
+    }
+
+    #[test]
+    fn test_include_with_whitespace() {
+        let line = "include    other.journal   ";
+        let result = include(line).unwrap();
+        assert_eq!(result, std::path::PathBuf::from("other.journal"));
+    }
+
+    #[test]
+    fn test_include_with_whitespace_in_path() {
+        let line = "include    other journal.journal   ";
+        let result = include(line).unwrap();
+        assert_eq!(result, std::path::PathBuf::from("other journal.journal"));
+    }
+
+    #[test]
+    fn test_include_with_quotes() {
+        let line = "include \"other.journal\"";
+        let result = include(line).unwrap();
+        assert_eq!(result, std::path::PathBuf::from("other.journal"));
     }
 }
