@@ -5,7 +5,6 @@
 use crate::error;
 use std::hash::Hash;
 
-/// ROOT ACCOUNT
 /// Represents the five possible root accounts.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RootAccount {
@@ -28,7 +27,6 @@ impl std::fmt::Display for RootAccount {
     }
 }
 
-/// ACCOUNT
 /// Represents a hierarchical account with a root account and optional sub-accounts.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Account {
@@ -53,7 +51,6 @@ impl Account {
             sub_accounts,
         }
     }
-    /// FROM_STR
     /// Parses a colon-separated account string into an Account struct.
     ///
     /// Parses a string on the form `root:sub1:sub2:...` into an Account struct.

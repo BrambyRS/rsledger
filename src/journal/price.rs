@@ -1,9 +1,8 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-use crate::types::commodity_value;
+use crate::journal::commodity_value;
 
-/// PRICE DIRECTIVE
 /// Struct to hold exchange rates between commodities at a certain date
 #[derive(Hash, Clone)]
 pub struct PriceDirective {
@@ -20,16 +19,15 @@ impl core::fmt::Display for PriceDirective {
 }
 
 impl PriceDirective {
-    /// PRICE_HASH
     /// Returns a hash of all fields: date, commodity name, value amount, and value commodity name.
     /// Used for deduplication when importing prices.
     pub fn price_hash(&self) -> u64 {
+        // Since the hashes aren't persistent across runs, DefaultHasher is sufficient
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
         hasher.finish()
     }
 
-    /// FROM STR
     /// Parses a price directive from a string in the format "P YYYY-MM-DD COMMODITY_1 VALUE COMMODITY_2"
     /// COMMODITY_1 may be quoted (e.g. "Gold Bar") if it contains spaces, matching hledger's format.
     pub fn from_str(s: &str) -> crate::Result<PriceDirective> {

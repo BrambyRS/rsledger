@@ -1,10 +1,9 @@
-pub mod posting;
+pub(crate) mod posting;
 
-use crate::types::commodity_value;
+use crate::journal::commodity_value;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-/// TRANSACTION
 /// Represents a financial transaction with a date, description, and multiple posts (account and amount pairs).
 #[derive(Hash)]
 pub struct Transaction {
@@ -16,7 +15,6 @@ pub struct Transaction {
     postings: Vec<posting::Posting>,
 }
 
-/// DISPLAY
 /// Formats the transaction as a journal entry:
 ///
 /// ```text
@@ -48,7 +46,6 @@ impl core::fmt::Display for Transaction {
 }
 
 impl Transaction {
-    /// NEW
     /// Creates a new `Transaction` with the given date, description, and postings.
     ///
     /// # Examples
@@ -74,7 +71,6 @@ impl Transaction {
         }
     }
 
-    /// VALIDATE
     /// Returns `true` if the transaction is balanced.
     ///
     /// A transaction is considered balanced when either:
@@ -91,7 +87,7 @@ impl Transaction {
         // More than a single None amount makes the transaction invalid
         let mut none_amount_count: usize = 0;
         for posting in &self.postings {
-            if posting.get_amount().is_none() {
+            if posting.amount().is_none() {
                 none_amount_count += 1;
                 if none_amount_count > 1 {
                     return false;
@@ -109,7 +105,7 @@ impl Transaction {
             commodity_value::fixed_decimal::FixedDecimal,
         > = std::collections::HashMap::with_capacity(self.postings.len());
         for posting in &self.postings {
-            if let Some(amount) = posting.get_amount() {
+            if let Some(amount) = posting.amount() {
                 let this_commodity: String = amount.commodity().to_string();
                 let this_amount: commodity_value::fixed_decimal::FixedDecimal =
                     amount.amount().clone();
@@ -148,13 +144,13 @@ impl Transaction {
         return false;
     }
 
-    /// FUNCTIONAL_HASH
     /// Returns a hash of the transaction based on the date and all postings.
     ///
     /// This is used for comparing if two transactions are *functionally identical*
     /// (same date, accounts, and amounts) even if they have different descriptions
     /// or different posting order. This is useful for identifying duplicate transactions.
     pub fn functional_hash(&self) -> u64 {
+        // Since the hashes aren't persistent across runs, DefaultHasher is sufficient
         let mut hasher = DefaultHasher::new();
         self.date.hash(&mut hasher);
         let mut posting_hashes: Vec<u64> = self
@@ -173,7 +169,6 @@ impl Transaction {
         hasher.finish()
     }
 
-    /// PARTIAL_HASH
     /// Returns a hash of only part of the transaction's data.
     ///
     /// This is used for hashing a transaction based only on the date and first posting.
@@ -191,15 +186,15 @@ impl Transaction {
 
     // Getters
 
-    pub fn get_date(&self) -> &chrono::NaiveDate {
+    pub fn date(&self) -> &chrono::NaiveDate {
         &self.date
     }
 
-    pub fn get_description(&self) -> &String {
+    pub fn description(&self) -> &String {
         &self.description
     }
 
-    pub fn get_postings(&self) -> &Vec<posting::Posting> {
+    pub fn postings(&self) -> &Vec<posting::Posting> {
         &self.postings
     }
 }
@@ -207,7 +202,7 @@ impl Transaction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::account::Account;
+    use crate::journal::account::Account;
 
     // -------------------------------------------------------------------------
     // Display formatting tests
