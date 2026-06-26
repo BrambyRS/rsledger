@@ -65,11 +65,38 @@ pub fn trim_comments(line: &str) -> &str {
 }
 
 /// Extracts the path from an include directive.
-pub fn include(line: &str) -> crate::Result<std::path::PathBuf> {
+///
+/// # Examples
+/// ```
+/// let line = "include other.journal";
+/// let path = match parse_include(line) {
+///     Ok(p) => p,
+///     Err(e) => panic!("Failed to parse include directive: {}", e),
+/// };
+/// ```
+pub fn parse_include(line: &str) -> crate::Result<std::path::PathBuf> {
     let stripped_line = trim_comments(line);
 
     // Skip the first 7 characters ("include") and then trim any leading/trainling whitespace
     return Ok(std::path::PathBuf::from(stripped_line[7..].trim()));
+}
+
+pub fn parse_transaction_header(line: &str) -> crate::Result<(chrono::NaiveDate, String)> {
+    let stripped_line = trim_comments(line);
+
+    // The first 10 characters should be the date in YYYY-MM-DD format
+    let date_str = &stripped_line[..10];
+    // Assume the rest is the description, trim any leading/trailing whitespace
+    let description = stripped_line[10..].trim().to_string();
+
+    // Parse the date string into a NaiveDate
+    match chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+        Ok(date) => Ok((date, description)),
+        Err(e) => Err(crate::error::RsledgerError::ParseError(
+            line.to_string(),
+            format!("Failed to parse transaction date: {}", e),
+        )),
+    }
 }
 
 #[cfg(test)]
@@ -135,37 +162,64 @@ mod tests {
     // ---------------------------------------------------
 
     #[test]
-    fn test_include() {
+    fn test_parse_include() {
         let line = "include other.journal";
-        let result = include(line).unwrap();
+        let result = parse_include(line).unwrap();
         assert_eq!(result, std::path::PathBuf::from("other.journal"));
     }
 
     #[test]
     fn test_include_with_comments() {
         let line = "include other.journal ; this is a comment";
-        let result = include(line).unwrap();
+        let result = parse_include(line).unwrap();
         assert_eq!(result, std::path::PathBuf::from("other.journal"));
     }
 
     #[test]
     fn test_include_with_whitespace() {
         let line = "include    other.journal   ";
-        let result = include(line).unwrap();
+        let result = parse_include(line).unwrap();
         assert_eq!(result, std::path::PathBuf::from("other.journal"));
     }
 
     #[test]
     fn test_include_with_whitespace_in_path() {
         let line = "include    other journal.journal   ";
-        let result = include(line).unwrap();
+        let result = parse_include(line).unwrap();
         assert_eq!(result, std::path::PathBuf::from("other journal.journal"));
     }
 
     #[test]
     fn test_include_with_quotes() {
         let line = "include \"other.journal\"";
-        let result = include(line).unwrap();
+        let result = parse_include(line).unwrap();
         assert_eq!(result, std::path::PathBuf::from("other.journal"));
+    }
+
+    // ---------------------------------------------------
+    // Tests for the `parse_transaction_header`
+    // ---------------------------------------------------
+
+    #[test]
+    fn test_parse_transaction_header() {
+        let line = "2026-01-01 * \"Transaction\"";
+        let result = parse_transaction_header(line).unwrap();
+        let expected_date = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        assert_eq!(result, (expected_date, "* \"Transaction\"".to_string()));
+    }
+
+    #[test]
+    fn test_parse_transaction_header_with_comments() {
+        let line = "2026-01-01 * \"Transaction\" ; this is a comment";
+        let result = parse_transaction_header(line).unwrap();
+        let expected_date = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        assert_eq!(result, (expected_date, "* \"Transaction\"".to_string()));
+    }
+
+    #[test]
+    fn test_parse_transaction_header_invalid_date() {
+        let line = "2026-13-01 * \"Transaction\"";
+        let result = parse_transaction_header(line);
+        assert!(result.is_err());
     }
 }
