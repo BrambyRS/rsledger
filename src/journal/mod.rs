@@ -6,6 +6,8 @@ mod utils; // Private module for support functions and types
 
 use std::io::Write;
 
+const MAX_INCLUDE_DEPTH: usize = 10; // Maximum depth for included files to prevent infinite recursion
+
 /// A journal file handler that can read and write content of/to a journal file.
 pub struct JournalFile {
     /// The path to the journal file.
@@ -48,15 +50,24 @@ impl JournalFile {
         )));
     }
 
+    /// Reads the journal file in full and return a `Journal` struct containing the data.
+    ///
+    /// # Examples
+    /// ```
+    /// let mut journal_file = journalist::JournalFile::new("path/to/journal.journal");
+    /// let journal = match journal_file.load() {
+    ///     Ok(j) => j,
+    ///     Err(e) => {
+    ///         eprintln!("Error loading journal: {}", e);
+    ///         return;
+    ///     }
+    /// };
+    /// ```
     pub fn load(&mut self) -> crate::Result<Journal> {
-        // TODO: Implement the logic to read the journal
-
-        println!("Warning: Journal loading is not yet implemented. Returning an empty journal.");
-
-        let transactions: Vec<transaction::Transaction> = Vec::new();
-        let prices: Vec<price::PriceDirective> = Vec::new();
-
-        return Ok(Journal::new(transactions, prices));
+        match read_journal_file(&self.path, 0) {
+            Ok((transactions, prices)) => return Ok(Journal::new(transactions, prices)),
+            Err(e) => return Err(e),
+        };
     }
 
     /// Adds an entry to the journal file.
@@ -115,4 +126,142 @@ impl Journal {
             prices,
         }
     }
+}
+
+/// Reads a journal file and returns a tuple containing a vector of transactions and a vector of price directives.
+/// the `include_depth` parameter is used to track the depth of inclued files to prevent infinite recursion.
+/// If the include depth exceeds 10, an error is returned.
+///
+/// # Examples
+/// ```
+/// let (transactions, prices) = read_journal_file(&std::path::PathBuf, 0);
+/// ```
+fn read_journal_file(
+    journal_file: &std::path::PathBuf,
+    include_depth: usize,
+) -> crate::Result<(Vec<transaction::Transaction>, Vec<price::PriceDirective>)> {
+    // Initialise empty vectors for transactions and prices
+    let mut transactions: Vec<transaction::Transaction> = Vec::new();
+    let mut prices: Vec<price::PriceDirective> = Vec::new();
+
+    // Read the lines of the journal file
+    let mut lines: std::str::Lines<'_> = match std::fs::read_to_string(journal_file) {
+        Ok(content) => content.lines(),
+        Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+    };
+
+    // This is not a foor loop because we need to be able to advance the iterator
+    // multiple times to parse elements that span multiple lines, such as transactions.
+    loop {
+        // Advance iterator to the next line or break if there are no more lines
+        let line: &str = match lines.next() {
+            Some(l) => l,
+            None => break,
+        };
+
+        let directive_type: utils::DirectiveType = utils::identify_directive_type(line);
+
+        match directive_type {
+            utils::DirectiveType::Include => {
+                // Check if we're already at the maximum depth
+                // TODO: Really, this should be a circular include check
+                if include_depth >= MAX_INCLUDE_DEPTH {
+                    return Err(crate::error::RsledgerError::IncludeDepthExceeded(
+                        journal_file.clone(),
+                    ));
+                }
+
+                // Get the path and check whether the included file exists either relative to the current journal file
+                // or as an absolute path. If it doesn't exist, return an error.
+                let mut included_file_path: std::path::PathBuf = match utils::parse_include(line) {
+                    Ok(path) => path,
+                    Err(e) => return Err(e),
+                };
+
+                // First check for a relative path
+                let parent_dir: std::path::PathBuf = match journal_file.parent() {
+                    Some(parent) => parent.to_path_buf(),
+                    None => std::path::PathBuf::new(),
+                };
+                let relative_path: std::path::PathBuf = parent_dir.join(&included_file_path);
+                if relative_path.exists() {
+                    included_file_path = relative_path;
+                } else {
+                    // If the relative path doesn't exist, check for an absolute path
+                    if !included_file_path.exists() {
+                        return Err(crate::error::RsledgerError::IoError(std::io::Error::new(
+                            std::io::ErrorKind::NotFound,
+                            format!(
+                                "Included journal file {} not found.",
+                                included_file_path.display()
+                            ),
+                        )));
+                    }
+                }
+
+                let (included_transactions, included_prices) =
+                    read_journal_file(&included_file_path, include_depth + 1)?;
+
+                transactions.extend(included_transactions);
+                prices.extend(included_prices);
+            }
+
+            utils::DirectiveType::Transaction => {
+                // Handle transaction directive
+                // Get the date from this line
+                let (date, description): (chrono::NaiveDate, String) =
+                    match utils::parse_transaction_header(line) {
+                        Ok((d, desc)) => (d, desc),
+                        Err(e) => return Err(e),
+                    };
+
+                // TOOD: also keep the description
+
+                // Keep advancing through the lines until we reach a blank line, which indicates the end of the transaction.
+                let mut postings: Vec<transaction::posting::Posting> = Vec::new();
+                loop {
+                    let posting_line: &str = match lines.next() {
+                        Some(l) => l,
+                        None => break,
+                    };
+
+                    // If the line is empty, we've reached the end of the transaction
+                    if posting_line.trim().is_empty() {
+                        break;
+                    }
+
+                    // Strip any comment and pass the posting line into the from_str implementation of the Posting struct
+                    let stripped_posting_line: &str = utils::trim_comments(posting_line);
+                    let posting: transaction::posting::Posting =
+                        match transaction::posting::Posting::from_str(stripped_posting_line) {
+                            Ok(p) => p,
+                            Err(e) => return Err(e),
+                        };
+
+                    postings.push(posting);
+                }
+
+                let transaction: transaction::Transaction =
+                    transaction::Transaction::new(date, String::new(), postings);
+
+                transactions.push(transaction);
+            }
+            utils::DirectiveType::Price => {
+                // We can simply strip the line and send it to use the from_str implementation
+                let stripped_line: &str = utils::trim_comments(line);
+                let price: price::PriceDirective =
+                    match price::PriceDirective::from_str(stripped_line) {
+                        Ok(p) => p,
+                        Err(e) => return Err(e),
+                    };
+
+                prices.push(price);
+            }
+            utils::DirectiveType::None => {
+                // Ignore lines that are not recognized as directives
+            }
+        }
+    }
+
+    return Ok((transactions, prices));
 }
