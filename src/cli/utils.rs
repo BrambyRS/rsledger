@@ -1,6 +1,5 @@
-use crate::types;
+use crate::journal;
 
-/// PROMPT_INPUT
 /// Prints `prompt` to stdout, flushes the buffer, reads a line from stdin,
 /// and returns the trimmed result.
 pub fn prompt_input(
@@ -8,15 +7,23 @@ pub fn prompt_input(
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
 ) -> crate::Result<String> {
-    write!(writer, "{prompt}")?;
-    writer.flush()?;
+    match write!(writer, "{prompt}") {
+        Ok(_) => {}
+        Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+    }
+    match writer.flush() {
+        Ok(_) => {}
+        Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+    }
 
     let mut input = String::new();
-    reader.read_line(&mut input)?;
-    Ok(input.trim().to_string())
+    match reader.read_line(&mut input) {
+        Ok(_) => {}
+        Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+    }
+    return Ok(input.trim().to_string());
 }
 
-/// PROMOT_FOR_DATE
 /// Prompts the user to enter a date in a format specified in the argument and returns a chrono::NaiveDate
 pub fn prompt_for_date(
     prompt: &str,
@@ -25,74 +32,92 @@ pub fn prompt_for_date(
     writer: &mut impl std::io::Write,
 ) -> crate::Result<chrono::NaiveDate> {
     loop {
-        let date_input = prompt_input(prompt, reader, writer)?;
+        let date_input = match prompt_input(prompt, reader, writer) {
+            Ok(s) => s,
+            Err(e) => return Err(e),
+        };
         match chrono::NaiveDate::parse_from_str(&date_input, format) {
             Ok(date) => return Ok(date),
             Err(_) => {
-                writeln!(
+                match writeln!(
                     writer,
                     "Invalid date format. Please enter a date in the format YYYY-MM-DD (e.g. 2024-03-15)."
-                )?;
+                ) {
+                    Ok(_) => {}
+                    Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+                }
                 continue;
             }
         }
     }
 }
 
-/// PROMPT_FOR_COMMODITY_VALUE
 /// Prompts the user for a commodity value
 pub fn prompt_for_value(
     prompt: &str,
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
-) -> crate::Result<types::commodity_value::CommodityValue> {
+) -> crate::Result<journal::commodity_value::CommodityValue> {
     loop {
-        let value_input = prompt_input(prompt, reader, writer)?;
-        match types::commodity_value::CommodityValue::from_str(&value_input) {
+        let value_input = match prompt_input(prompt, reader, writer) {
+            Ok(s) => s,
+            Err(e) => return Err(e),
+        };
+        match journal::commodity_value::CommodityValue::from_str(&value_input) {
             Ok(value) => return Ok(value),
             Err(_) => {
-                writeln!(
+                match writeln!(
                     writer,
                     "Invalid commodity value format. Please enter a valid commodity value (e.g. '500.00 SEK')."
-                )?;
+                ) {
+                    Ok(_) => {}
+                    Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+                }
                 continue;
             }
         };
     }
 }
 
-/// PROMPT_FOR_ACCOUNT
 /// Prompts the user to enter an account name, and returns it as a validated Account.
 pub fn prompt_for_account(
     prompt: &str,
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
-) -> crate::Result<types::account::Account> {
+) -> crate::Result<journal::account::Account> {
     loop {
-        let account_input = prompt_input(prompt, reader, writer)?;
+        let account_input = match prompt_input(prompt, reader, writer) {
+            Ok(s) => s,
+            Err(e) => return Err(e),
+        };
         if account_input.is_empty() {
-            writeln!(
+            match writeln!(
                 writer,
                 "Account name cannot be empty. Please enter a valid account name (e.g. 'assets:bank')."
-            )?;
+            ) {
+                Ok(_) => {}
+                Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+            }
             continue;
         }
-        match types::account::Account::from_str(&account_input) {
+        match journal::account::Account::from_str(&account_input) {
             Ok(account) => return Ok(account),
             Err(_) => {
-                writeln!(
+                match writeln!(
                     writer,
                     "Invalid account '{}'. Root must be one of: assets, liabilities, equity, income, expenses (e.g. 'assets:bank').",
                     account_input
-                )?;
+                ) {
+                    Ok(_) => {}
+                    Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+                }
                 continue;
             }
         }
     }
 }
 
-/// PROMPT_FOR_POSTING
-/// Prompts the user to enter one or more postings, and returns them as a vector of [`types::transaction::posting::Posting`].
+/// Prompts the user to enter one or more postings, and returns them as a vector of [`journal::transaction::posting::Posting`].
 ///
 /// Postings can be entered as:
 /// - `<account>` — amount will be inferred (auto-balancing posting)
@@ -101,62 +126,74 @@ pub fn prompt_for_account(
 pub fn prompt_for_postings(
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
-) -> crate::Result<Vec<types::transaction::posting::Posting>> {
-    let mut postings: Vec<types::transaction::posting::Posting> = Vec::new();
+) -> crate::Result<Vec<journal::transaction::posting::Posting>> {
+    let mut postings: Vec<journal::transaction::posting::Posting> = Vec::new();
 
     loop {
         let posting_input: String =
-            prompt_input("Posting (ex. 'expenses:food 500 SEK'): ", reader, writer)?;
+            match prompt_input("Posting (ex. 'expenses:food 500 SEK'): ", reader, writer) {
+                Ok(s) => s,
+                Err(e) => return Err(e),
+            };
         if posting_input.is_empty() {
             break;
         }
         let parts: Vec<&str> = posting_input.split_whitespace().collect();
         if parts.len() == 1 {
-            let account = match types::account::Account::from_str(parts[0]) {
+            let account = match journal::account::Account::from_str(parts[0]) {
                 Ok(a) => a,
                 Err(_) => {
-                    writeln!(
+                    match writeln!(
                         writer,
                         "Invalid account name '{}'. Root must be one of: assets, liabilities, equity, income, expenses (e.g. 'assets:bank').",
                         parts[0]
-                    )?;
+                    ) {
+                        Ok(_) => {}
+                        Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+                    }
                     continue;
                 }
             };
-            postings.push(types::transaction::posting::Posting::new(account, None));
+            postings.push(journal::transaction::posting::Posting::new(account, None));
         } else if parts.len() == 3 {
-            let account = match types::account::Account::from_str(parts[0]) {
+            let account = match journal::account::Account::from_str(parts[0]) {
                 Ok(a) => a,
                 Err(_) => {
-                    writeln!(
+                    match writeln!(
                         writer,
                         "Invalid account name '{}'. Root must be one of: assets, liabilities, equity, income, expenses (e.g. 'assets:bank').",
                         parts[0]
-                    )?;
+                    ) {
+                        Ok(_) => {}
+                        Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+                    }
                     continue;
                 }
             };
             let amount_str: String = parts[1..].join(" ");
-            let amount: Option<types::commodity_value::CommodityValue> =
-                match types::commodity_value::CommodityValue::from_str(&amount_str) {
+            let amount: Option<journal::commodity_value::CommodityValue> =
+                match journal::commodity_value::CommodityValue::from_str(&amount_str) {
                     Ok(val) => Some(val),
                     Err(_) => {
-                        writeln!(
+                        match writeln!(
                             writer,
                             "Invalid amount format. Please enter a valid commodity amount (e.g. '500.00 SEK')."
-                        )?;
+                        ) {
+                            Ok(_) => {}
+                            Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+                        }
                         continue;
                     }
                 };
-            postings.push(types::transaction::posting::Posting::new(
-                account,
-                amount,
-            ));
+            postings.push(journal::transaction::posting::Posting::new(account, amount));
         } else {
-            writeln!(
+            match writeln!(
                 writer,
                 "Invalid posting format. Please enter in the format '<account>' or '<account> <amount> <commodity>' (e.g. 'assets:bank 500.00 SEK')."
-            )?;
+            ) {
+                Ok(_) => {}
+                Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+            }
             continue;
         }
     }
@@ -249,8 +286,8 @@ mod tests {
         let mut output = Vec::new();
         let postings = prompt_for_postings(&mut input, &mut output).unwrap();
         assert_eq!(postings.len(), 1);
-        assert_eq!(postings[0].get_account().to_string(), "expenses:food");
-        assert_eq!(postings[0].get_amount().unwrap().to_string(), "500 SEK");
+        assert_eq!(postings[0].account().to_string(), "expenses:food");
+        assert_eq!(postings[0].amount().unwrap().to_string(), "500 SEK");
     }
 
     #[test]
@@ -259,8 +296,8 @@ mod tests {
         let mut output = Vec::new();
         let postings = prompt_for_postings(&mut input, &mut output).unwrap();
         assert_eq!(postings.len(), 2);
-        assert_eq!(postings[0].get_account().to_string(), "expenses:food");
-        assert_eq!(postings[1].get_account().to_string(), "assets:bank");
+        assert_eq!(postings[0].account().to_string(), "expenses:food");
+        assert_eq!(postings[1].account().to_string(), "assets:bank");
     }
 
     #[test]
@@ -269,7 +306,7 @@ mod tests {
         let mut output = Vec::new();
         let postings = prompt_for_postings(&mut input, &mut output).unwrap();
         assert_eq!(postings.len(), 1);
-        assert_eq!(postings[0].get_amount().unwrap().to_string(), "123.45 GBP");
+        assert_eq!(postings[0].amount().unwrap().to_string(), "123.45 GBP");
     }
 
     #[test]
@@ -307,8 +344,8 @@ mod tests {
         let mut output = Vec::new();
         let postings = prompt_for_postings(&mut input, &mut output).unwrap();
         assert_eq!(postings.len(), 1);
-        assert_eq!(postings[0].get_account().to_string(), "assets:bank");
-        assert!(postings[0].get_amount().is_none());
+        assert_eq!(postings[0].account().to_string(), "assets:bank");
+        assert!(postings[0].amount().is_none());
     }
 
     #[test]
@@ -317,7 +354,7 @@ mod tests {
         let mut output = Vec::new();
         let postings = prompt_for_postings(&mut input, &mut output).unwrap();
         assert_eq!(postings.len(), 2);
-        assert!(postings[0].get_amount().is_some());
-        assert!(postings[1].get_amount().is_none());
+        assert!(postings[0].amount().is_some());
+        assert!(postings[1].amount().is_none());
     }
 }

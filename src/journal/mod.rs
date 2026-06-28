@@ -96,6 +96,11 @@ impl JournalFile {
             Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
         };
     }
+
+    /// Getter for path field of JournalFile struct.
+    pub fn path(&self) -> &std::path::PathBuf {
+        &self.path
+    }
 }
 
 /// An in-memory representation of a journal.
@@ -145,10 +150,11 @@ fn read_journal_file(
     let mut prices: Vec<price::PriceDirective> = Vec::new();
 
     // Read the lines of the journal file
-    let mut lines: std::str::Lines<'_> = match std::fs::read_to_string(journal_file) {
-        Ok(content) => content.lines(),
+    let file_content: String = match std::fs::read_to_string(journal_file) {
+        Ok(content) => content,
         Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
     };
+    let mut lines = file_content.lines();
 
     // This is not a foor loop because we need to be able to advance the iterator
     // multiple times to parse elements that span multiple lines, such as transactions.

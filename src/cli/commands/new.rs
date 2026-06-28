@@ -1,66 +1,80 @@
 use crate::cli::utils;
-use crate::journalist;
-use crate::types;
+use crate::journal;
 
-use std::fs;
 use std::io::{BufRead, Write};
 
 /// Creates a new journal file. If `create_opening` is true, interactively
 /// prompts the user for opening balance postings and appends an opening
 /// transaction to the file.
 pub fn run_new(
-    journal_file: &std::path::PathBuf,
+    mut journal_file: journal::JournalFile,
     create_opening: bool,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> crate::Result<()> {
-    // Create the directory if it doesn't exist
-    if let Some(parent) = journal_file.parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent)?;
-        }
+    match journal_file.create() {
+        Ok(_) => {}
+        Err(e) => return Err(e),
     }
-
-    journalist::writer::new_journal(journal_file)?;
 
     if create_opening {
         let today: chrono::NaiveDate = chrono::Local::now().date_naive();
 
-        writeln!(
+        match writeln!(
             writer,
             "\nCreating opening transaction at {today} with description 'Opening balance'."
-        )?;
-        writeln!(
+        ) {
+            Ok(_) => {}
+            Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+        }
+        match writeln!(
             writer,
             "Enter the opening balance postings on the format '<account> <amount> <commodity>'"
-        )?;
-        writeln!(writer, "example: 'assets:bank 1000.00 SEK'")?;
-        writeln!(
+        ) {
+            Ok(_) => {}
+            Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+        }
+        match writeln!(writer, "example: 'assets:bank 1000.00 SEK'") {
+            Ok(_) => {}
+            Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+        }
+        match writeln!(
             writer,
-            "Keep adding as many postings as you want, then enter an empty line to finish.\n"
-        )?;
-        writeln!(
+            "Keep adding as many postings as you want, then enter an empty line to finish."
+        ) {
+            Ok(_) => {}
+            Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+        }
+        match writeln!(
             writer,
             "The transaction will be balanced automatically against equity:opening-balance.\n"
-        )?;
+        ) {
+            Ok(_) => {}
+            Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
+        }
 
-        let mut postings = utils::prompt_for_postings(reader, writer)?;
+        let mut postings = match utils::prompt_for_postings(reader, writer) {
+            Ok(p) => p,
+            Err(e) => return Err(e),
+        };
 
-        // Only postings with explicit amounts make sense for opening balance
-        postings.push(types::transaction::posting::Posting::new(
-            types::account::Account::from_str("equity:opening-balance")
-                .unwrap(),
+        let equity_account = match journal::account::Account::from_str("equity:opening-balance") {
+            Ok(a) => a,
+            Err(e) => return Err(e),
+        };
+
+        postings.push(journal::transaction::posting::Posting::new(
+            equity_account,
             None,
         ));
 
         let opening_transaction =
-            types::transaction::Transaction::new(today, "Opening balance".to_string(), postings);
+            journal::transaction::Transaction::new(today, "Opening balance".to_string(), postings);
 
-        let mut file = fs::OpenOptions::new().append(true).open(journal_file)?;
-        journalist::writer::add_transaction_to_file(&mut file, &opening_transaction)?;
+        return journal_file.add_entry(&opening_transaction);
     }
 
-    Ok(())
+    return Ok(());
 }
 
 #[cfg(test)]
@@ -78,8 +92,8 @@ mod tests {
             let path = std::env::temp_dir().join(format!("rsledger_new_test_{}.journal", id));
             TempJournal(path)
         }
-        fn path(&self) -> &std::path::PathBuf {
-            &self.0
+        fn journal_file(&self) -> journal::JournalFile {
+            journal::JournalFile::new(self.0.clone())
         }
     }
 
@@ -94,9 +108,9 @@ mod tests {
         let tmp = TempJournal::new();
         let mut input = Cursor::new(b"");
         let mut output = Vec::new();
-        run_new(tmp.path(), false, &mut input, &mut output).unwrap();
-        assert!(tmp.path().exists());
-        assert_eq!(std::fs::read_to_string(tmp.path()).unwrap(), "");
+        run_new(tmp.journal_file(), false, &mut input, &mut output).unwrap();
+        assert!(tmp.0.exists());
+        assert_eq!(std::fs::read_to_string(&tmp.0).unwrap(), "");
     }
 
     #[test]
@@ -106,9 +120,10 @@ mod tests {
             .join(format!("rsledger_new_dir_test_{}", id))
             .join("sub")
             .join("journal.journal");
+        let jf = journal::JournalFile::new(path.clone());
         let mut input = Cursor::new(b"");
         let mut output = Vec::new();
-        run_new(&path, false, &mut input, &mut output).unwrap();
+        run_new(jf, false, &mut input, &mut output).unwrap();
         assert!(path.exists());
         let _ = std::fs::remove_dir_all(path.parent().unwrap().parent().unwrap());
     }
@@ -119,8 +134,8 @@ mod tests {
         // One posting with an amount, then empty line to finish
         let mut input = Cursor::new(b"assets:bank 1000 SEK\n\n");
         let mut output = Vec::new();
-        run_new(tmp.path(), true, &mut input, &mut output).unwrap();
-        let contents = std::fs::read_to_string(tmp.path()).unwrap();
+        run_new(tmp.journal_file(), true, &mut input, &mut output).unwrap();
+        let contents = std::fs::read_to_string(&tmp.0).unwrap();
         assert!(contents.contains("Opening balance"));
         assert!(contents.contains("assets:bank"));
         assert!(contents.contains("equity:opening-balance"));
@@ -131,7 +146,7 @@ mod tests {
         let tmp = TempJournal::new();
         let mut input = Cursor::new(b"\n");
         let mut output = Vec::new();
-        run_new(tmp.path(), true, &mut input, &mut output).unwrap();
+        run_new(tmp.journal_file(), true, &mut input, &mut output).unwrap();
         let out = String::from_utf8(output).unwrap();
         assert!(out.contains("Opening balance"));
     }
