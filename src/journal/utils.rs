@@ -78,7 +78,14 @@ pub fn parse_include(line: &str) -> crate::Result<std::path::PathBuf> {
     let stripped_line = trim_comments(line);
 
     // Skip the first 7 characters ("include") and then trim any leading/trainling whitespace
-    return Ok(std::path::PathBuf::from(stripped_line[7..].trim()));
+    let path_str: &str = stripped_line[7..].trim();
+
+    // The path may or may not be enclosed in quotes. If it is, remove the quotes.
+    if path_str.starts_with('"') && path_str.ends_with('"') {
+        return Ok(std::path::PathBuf::from(&path_str[1..path_str.len() - 1]));
+    } else {
+        return Ok(std::path::PathBuf::from(path_str));
+    };
 }
 
 pub fn parse_transaction_header(line: &str) -> crate::Result<(chrono::NaiveDate, String)> {
