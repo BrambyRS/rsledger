@@ -181,21 +181,21 @@ impl Transaction {
         if let Some(first_post) = self.postings.first() {
             first_post.hash(&mut hasher);
         }
-        hasher.finish()
+        return hasher.finish();
     }
 
     // Getters
 
     pub fn date(&self) -> &chrono::NaiveDate {
-        &self.date
+        return &self.date;
     }
 
     pub fn description(&self) -> &String {
-        &self.description
+        return &self.description;
     }
 
     pub fn postings(&self) -> &Vec<posting::Posting> {
-        &self.postings
+        return &self.postings;
     }
 }
 
