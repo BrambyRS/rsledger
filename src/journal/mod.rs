@@ -226,8 +226,6 @@ fn read_journal_file(
                         Err(e) => return Err(e),
                     };
 
-                // TOOD: also keep the description
-
                 // Keep advancing through the lines until we reach a blank line, which indicates the end of the transaction.
                 let mut postings: Vec<transaction::posting::Posting> = Vec::new();
                 loop {
@@ -253,7 +251,7 @@ fn read_journal_file(
                 }
 
                 let transaction: transaction::Transaction =
-                    transaction::Transaction::new(date, String::new(), postings);
+                    transaction::Transaction::new(date, description, postings);
                 let mut hasher = std::hash::DefaultHasher::new();
                 transaction.hash(&mut hasher);
                 let transaction_hash: u64 = hasher.finish();
