@@ -1,4 +1,5 @@
 pub(crate) mod avanza_prices;
+pub(crate) mod rules;
 
 use std::fmt::Display;
 use std::hash::Hash;
