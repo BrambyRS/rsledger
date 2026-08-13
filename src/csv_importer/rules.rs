@@ -2,7 +2,6 @@ use crate::journal::account;
 use serde::Deserialize;
 use std::path::PathBuf;
 
-/// RULE ACTION
 /// Possible actions for the RegexRule
 /// AssignAccount: assign the transaction to the specified account
 /// Skip: skip the transaction (do not import it)
@@ -11,14 +10,12 @@ pub enum RuleAction {
     Skip,
 }
 
-/// REGEX RULE
 /// Regexc rule with a pattern and an associated action to take on match.
 pub struct RegexRule {
     pub pattern: regex::Regex,
     pub action: RuleAction,
 }
 
-/// REGEX RULE FROM FILE
 /// Intermediate struct for deserialising RegexRule from file.
 /// This is needed because regex::Regex does not implement Deserialize
 /// so we need to parse the pattern as a string
@@ -29,14 +26,12 @@ struct RegexRuleFromFile {
     account: Option<String>,
 }
 
-/// RULE SHEET FILE
 /// Struct for deserialising the whole rule sheet from file.
 #[derive(Deserialize)]
 struct RuleSheetFile {
     rules: Vec<RegexRuleFromFile>,
 }
 
-/// READ_RULE_SHEET
 /// Reads a rule sheet `.toml` file from the specified path and returns a vector of `RegexRule`s.
 ///
 /// The rule sheet should be a TOML file with the following format:
@@ -49,27 +44,16 @@ struct RuleSheetFile {
 pub fn read_rule_sheet(path: PathBuf) -> crate::Result<Vec<RegexRule>> {
     let rule_sheet_str = match std::fs::read_to_string(&path) {
         Ok(s) => s,
-        Err(e) => {
-            eprintln!("Error reading rule sheet {}: {}", path.display(), e);
-            return Err(crate::error::RsledgerError::ParseError(
-                "Rule Sheet".to_string(),
-                format!("Error reading rule sheet {}: {}", path.display(), e),
-            ));
-        }
+        Err(e) => return Err(crate::error::RsledgerError::IoError(e)),
     };
 
     let rules_from_file: Vec<RegexRuleFromFile> =
         match toml::from_str::<RuleSheetFile>(&rule_sheet_str) {
             Ok(sheet) => sheet.rules,
             Err(e) => {
-                eprintln!(
-                    "Error parsing rule sheet {}: {}. Make sure it is a valid TOML file.",
-                    path.display(),
-                    e
-                );
                 return Err(crate::error::RsledgerError::ParseError(
-                    "Rule Sheet".to_string(),
-                    format!("Error parsing rule sheet {}: {}", path.display(), e),
+                    path.display().to_string(),
+                    format!("failed to parse rule sheet: {}", e),
                 ));
             }
         };
@@ -79,33 +63,45 @@ pub fn read_rule_sheet(path: PathBuf) -> crate::Result<Vec<RegexRule>> {
         let action = if rule_from_file.action.to_lowercase() == "skip" {
             RuleAction::Skip
         } else {
-            match rule_from_file.account {
-                Some(account_str) => match account::Account::from_str(&account_str) {
-                    Ok(account) => RuleAction::AssignAccount(account),
-                    Err(_) => {
-                        eprintln!(
-                            "Rule with pattern '{}' has an invalid account '{}'. Skipping.",
-                            rule_from_file.pattern, account_str
-                        );
-                        continue;
-                    }
-                },
+            let account_str = match rule_from_file.account {
+                Some(s) => s,
                 None => {
-                    eprintln!(
-                        "Rule with pattern '{}' has action 'assign_account' but no account. Skipping.",
-                        rule_from_file.pattern
-                    );
-                    continue;
+                    return Err(crate::error::RsledgerError::ParseError(
+                        path.display().to_string(),
+                        format!(
+                            "rule with pattern '{}' has action 'assign_account' but no account",
+                            rule_from_file.pattern
+                        ),
+                    ));
                 }
+            };
+            let account = match account::Account::from_str(&account_str) {
+                Ok(a) => a,
+                Err(_) => {
+                    return Err(crate::error::RsledgerError::ParseError(
+                        path.display().to_string(),
+                        format!(
+                            "rule with pattern '{}' has an invalid account '{}'",
+                            rule_from_file.pattern, account_str
+                        ),
+                    ));
+                }
+            };
+            RuleAction::AssignAccount(account)
+        };
+        let pattern = match regex::Regex::new(&rule_from_file.pattern) {
+            Ok(p) => p,
+            Err(e) => {
+                return Err(crate::error::RsledgerError::ParseError(
+                    path.display().to_string(),
+                    format!(
+                        "rule has an invalid regex pattern '{}': {}",
+                        rule_from_file.pattern, e
+                    ),
+                ));
             }
         };
-        match regex::Regex::new(&rule_from_file.pattern) {
-            Ok(pattern) => rules.push(RegexRule { pattern, action }),
-            Err(e) => eprintln!(
-                "Error compiling regex pattern '{}': {}. Skipping this rule.",
-                rule_from_file.pattern, e
-            ),
-        }
+        rules.push(RegexRule { pattern, action });
     }
 
     return Ok(rules);
@@ -144,23 +140,15 @@ mod tests {
     }
 
     #[test]
-    fn missing_account_skips_rule() {
-        let rules = read_rule_sheet(test_rule_sheet("missing_account.toml")).unwrap();
-        // First rule (missing account for assign_account) should be skipped
-        assert_eq!(rules.len(), 1);
-        assert!(rules[0].pattern.is_match("RENT PAYMENT"));
-        assert!(
-            matches!(&rules[0].action, RuleAction::AssignAccount(a) if a.to_string() == "expenses:housing:rent")
-        );
+    fn missing_account_returns_error() {
+        let result = read_rule_sheet(test_rule_sheet("missing_account.toml"));
+        assert!(result.is_err());
     }
 
     #[test]
-    fn invalid_regex_skips_rule() {
-        let rules = read_rule_sheet(test_rule_sheet("invalid_regex.toml")).unwrap();
-        // First rule (invalid regex) should be skipped, second should remain
-        assert_eq!(rules.len(), 1);
-        assert!(rules[0].pattern.is_match("VALID PATTERN xyz"));
-        assert!(matches!(&rules[0].action, RuleAction::Skip));
+    fn invalid_regex_returns_error() {
+        let result = read_rule_sheet(test_rule_sheet("invalid_regex.toml"));
+        assert!(result.is_err());
     }
 
     #[test]
