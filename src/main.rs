@@ -2,6 +2,7 @@ use clap::Parser;
 
 mod cli;
 mod config;
+mod csv_importer;
 mod error;
 mod journal;
 
