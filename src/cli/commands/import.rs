@@ -1,7 +1,7 @@
 use crate::cli::args::ParserOptions;
 use crate::csv_importer::avanza_transactions::AvanzaImporter;
 use crate::csv_importer::generic_importer::GenericImporter;
-use crate::csv_importer::{import_entries, EntryImporter};
+use crate::csv_importer::{EntryImporter, import_entries};
 use crate::journal;
 use crate::journal::account::Account;
 
@@ -35,7 +35,13 @@ pub fn run_import(
         ParserOptions::Avanza => {
             let importer = AvanzaImporter::new();
             let candidates = importer.import_csv(csv_file.clone())?;
-            import_entries(candidates, &mut journal_file, accept_partial_matches, reader, writer)
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
 
         // HSBC current account (debit) — UK DD/MM/YYYY comma-delimited format.
@@ -55,7 +61,13 @@ pub fn run_import(
                 '.',
             )?;
             let candidates = importer.import_csv(csv_file.clone())?;
-            import_entries(candidates, &mut journal_file, accept_partial_matches, reader, writer)
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
 
         // HSBC credit card — same file format as the debit account.
@@ -75,7 +87,13 @@ pub fn run_import(
                 '.',
             )?;
             let candidates = importer.import_csv(csv_file.clone())?;
-            import_entries(candidates, &mut journal_file, accept_partial_matches, reader, writer)
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
 
         // SEB lönekonto (checking) — Swedish semicolon-delimited format.
@@ -95,7 +113,13 @@ pub fn run_import(
                 '.',
             )?;
             let candidates = importer.import_csv(csv_file.clone())?;
-            import_entries(candidates, &mut journal_file, accept_partial_matches, reader, writer)
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
 
         // SEB sparkonto (savings) — identical file format to lönekonto.
@@ -115,7 +139,13 @@ pub fn run_import(
                 '.',
             )?;
             let candidates = importer.import_csv(csv_file.clone())?;
-            import_entries(candidates, &mut journal_file, accept_partial_matches, reader, writer)
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
 
         // Volksbank — German semicolon-delimited format with comma decimals.
@@ -136,7 +166,13 @@ pub fn run_import(
                 ',',
             )?;
             let candidates = importer.import_csv(csv_file.clone())?;
-            import_entries(candidates, &mut journal_file, accept_partial_matches, reader, writer)
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
     }
 }

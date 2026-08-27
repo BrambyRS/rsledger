@@ -43,8 +43,8 @@ pub(crate) fn import_entries(
     reader: &mut impl std::io::BufRead,
     writer: &mut impl std::io::Write,
 ) -> crate::Result<()> {
-    use crate::journal::transaction::posting::Posting;
     use crate::journal::transaction::Transaction;
+    use crate::journal::transaction::posting::Posting;
 
     let journal = journal_file.load()?;
 
@@ -134,11 +134,11 @@ pub(crate) fn import_entries(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::journal::JournalFile;
     use crate::journal::account::Account;
     use crate::journal::commodity_value::CommodityValue;
-    use crate::journal::transaction::posting::Posting;
     use crate::journal::transaction::Transaction;
-    use crate::journal::JournalFile;
+    use crate::journal::transaction::posting::Posting;
     use chrono::NaiveDate;
     use std::io::Cursor;
     use std::path::PathBuf;
@@ -468,18 +468,40 @@ mod tests {
         let temp = TempJournal::new_empty();
         let importer = hsbc_importer("valid_rules.toml");
 
-        let c1 = importer.import_csv(csv_path("hsbc_classified.csv")).unwrap();
-        import_entries(c1, &mut temp.journal_file(), false, &mut Cursor::new(b""), &mut Vec::new())
+        let c1 = importer
+            .import_csv(csv_path("hsbc_classified.csv"))
             .unwrap();
+        import_entries(
+            c1,
+            &mut temp.journal_file(),
+            false,
+            &mut Cursor::new(b""),
+            &mut Vec::new(),
+        )
+        .unwrap();
         let after_first = temp.transaction_count();
 
-        let c2 = importer.import_csv(csv_path("hsbc_classified.csv")).unwrap();
-        import_entries(c2, &mut temp.journal_file(), false, &mut Cursor::new(b""), &mut Vec::new())
+        let c2 = importer
+            .import_csv(csv_path("hsbc_classified.csv"))
             .unwrap();
+        import_entries(
+            c2,
+            &mut temp.journal_file(),
+            false,
+            &mut Cursor::new(b""),
+            &mut Vec::new(),
+        )
+        .unwrap();
         let after_second = temp.transaction_count();
 
-        assert_eq!(after_first, 2, "first import should add both classified transactions");
-        assert_eq!(after_second, after_first, "second import should not add duplicates");
+        assert_eq!(
+            after_first, 2,
+            "first import should add both classified transactions"
+        );
+        assert_eq!(
+            after_second, after_first,
+            "second import should not add duplicates"
+        );
     }
 
     /// End-to-end: re-importing with a different description for the unclassified entry
