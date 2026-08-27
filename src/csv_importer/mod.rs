@@ -6,7 +6,7 @@ use std::hash::Hash;
 
 /// Enum to represent an import candidate with its classification status.
 /// Some candidates can be automatically classified while others may require manual classification.
-enum ImportCandidate<T: Display + Hash> {
+pub(crate) enum ImportCandidate<T: Display + Hash> {
     Classified(T),
     Unclassified(T),
 }
