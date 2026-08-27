@@ -99,6 +99,24 @@ impl JournalFile {
         };
     }
 
+    /// Appends a transaction to the journal file, followed by a blank line.
+    ///
+    /// The blank line is required by the hledger journal format to separate
+    /// multi-line transaction entries from one another.
+    pub fn append_transaction(
+        &mut self,
+        transaction: &transaction::Transaction,
+    ) -> crate::Result<()> {
+        let mut file = std::fs::OpenOptions::new()
+            .append(true)
+            .open(&self.path)?;
+        // Transaction's Display does not include a trailing newline on the last posting,
+        // so writeln! supplies one; the extra \n in the format string adds the blank
+        // line separator that the journal parser requires between entries.
+        writeln!(file, "{transaction}\n")?;
+        Ok(())
+    }
+
     /// Getter for path field of JournalFile struct.
     pub fn path(&self) -> &std::path::PathBuf {
         &self.path
