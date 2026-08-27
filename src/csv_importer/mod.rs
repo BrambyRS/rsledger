@@ -1,4 +1,5 @@
 pub(crate) mod avanza_prices;
+pub(crate) mod generic_importer;
 pub(crate) mod rules;
 
 use std::fmt::Display;
