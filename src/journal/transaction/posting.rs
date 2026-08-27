@@ -70,7 +70,6 @@ impl Posting {
         // the posting has no amount.
         if account_end_index == 0 {
             account_str = posting_str.trim();
-            amount_str = None;
             let account = match account::Account::from_str(account_str) {
                 Ok(a) => a,
                 Err(e) => {
