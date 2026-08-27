@@ -32,6 +32,13 @@ pub fn identify_directive_type(line: &str) -> DirectiveType {
 
     // Check for transaction header (line starts with a date in YYYY-MM-DD)
     let first_ten: Vec<char> = trimmed_line.chars().take(10).collect();
+
+    // A transaction header requires exactly 10 leading characters (YYYY-MM-DD).
+    // Return early for lines that are too short to avoid an index-out-of-bounds panic.
+    if first_ten.len() < 10 {
+        return DirectiveType::None;
+    }
+
     let mut is_transaction: bool = true;
 
     for i in 0..10 {
