@@ -1,5 +1,5 @@
-pub mod commodity;
-pub mod fixed_decimal;
+pub(crate) mod commodity;
+pub(crate) mod fixed_decimal;
 
 use std::hash::Hash;
 

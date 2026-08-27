@@ -4,8 +4,12 @@
 pub enum RsledgerError {
     /// Error when something cannot be parsed correctly
     /// ParseError(Item, Reason)
-    #[error("Could not parse {0}: {1}")]
+    #[error("Could not parse \"{0}\": {1}")]
     ParseError(String, String),
+
+    /// Include depth exceeded
+    #[error("Include depth exceeded for file \"{0}\"")]
+    IncludeDepthExceeded(std::path::PathBuf),
 
     // Error with IO operations
     #[error("IO error: {0}")]
@@ -13,7 +17,7 @@ pub enum RsledgerError {
 
     /// Validation errors
     /// ValidationError(Item, Reason)
-    #[error("Validation error in {0}: {1}")]
+    #[error("Validation error in \"{0}\": {1}")]
     ValidationError(String, String),
 
     /// Invalid arguments passed from CLI

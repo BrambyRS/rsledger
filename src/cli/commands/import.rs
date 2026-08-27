@@ -1,30 +1,53 @@
 use crate::cli::args::ParserOptions;
-use crate::journalist::writer::transaction_importer;
-use crate::types;
+use crate::csv_importer::avanza_transactions::AvanzaImporter;
+use crate::csv_importer::generic_importer::GenericImporter;
+use crate::csv_importer::{EntryImporter, import_entries};
+use crate::journal;
+use crate::journal::account::Account;
 
 use std::io::{BufRead, Write};
+use std::path::PathBuf;
 
-/// Instantiates the appropriate parser from `parser_opt` and imports transactions
-/// from `csv_file` into `journal_file`, deduplicating against existing entries.
+/// Runs the CSV import pipeline for the given parser option.
+///
+/// 1. Constructs the appropriate importer for the named bank format.
+/// 2. Parses the CSV into a list of [`ImportCandidate`]s.
+/// 3. Deduplicates against the existing journal and appends new
+///    transactions, prompting the user for any unclassified entries.
 pub fn run_import(
-    journal_file: &std::path::PathBuf,
-    csv_file: &std::path::PathBuf,
+    mut journal_file: journal::JournalFile,
+    csv_file: &PathBuf,
     parser_opt: ParserOptions,
     rule_sheet: &str,
     accept_partial_matches: bool,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> crate::Result<()> {
-    let rule_sheet_path = std::path::PathBuf::from(rule_sheet);
+    // An empty rule-sheet argument means "no classification rules".
+    let rule_sheet_path: Option<PathBuf> = if rule_sheet.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(rule_sheet))
+    };
 
-    let parser: Box<dyn transaction_importer::TransactionImporter> = match parser_opt {
+    match parser_opt {
+        // Avanza has a dedicated parser that handles all transaction types internally.
         ParserOptions::Avanza => {
-            Box::new(transaction_importer::avanza_importer::AvanzaParser::new())
+            let importer = AvanzaImporter::new();
+            let candidates = importer.import_csv(csv_file.clone())?;
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
+
+        // HSBC current account (debit) — UK DD/MM/YYYY comma-delimited format.
         ParserOptions::HSBCDebit => {
-            Box::new(transaction_importer::default_importer::DefaultParser::new(
-                types::account::Account::from_str("assets:bank:hsbc")
-                    .unwrap(),
+            let importer = GenericImporter::new(
+                Account::from_str("assets:bank:hsbc")?,
                 "GBP".to_string(),
                 rule_sheet_path,
                 ',',
@@ -36,12 +59,21 @@ pub fn run_import(
                 None,
                 Some(','),
                 '.',
-            ))
+            )?;
+            let candidates = importer.import_csv(csv_file.clone())?;
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
+
+        // HSBC credit card — same file format as the debit account.
         ParserOptions::HSBCCredit => {
-            Box::new(transaction_importer::default_importer::DefaultParser::new(
-                types::account::Account::from_str("liabilities:credit:hsbc-credit-card")
-                    .unwrap(),
+            let importer = GenericImporter::new(
+                Account::from_str("liabilities:credit-card:hsbc")?,
                 "GBP".to_string(),
                 rule_sheet_path,
                 ',',
@@ -53,12 +85,21 @@ pub fn run_import(
                 None,
                 Some(','),
                 '.',
-            ))
+            )?;
+            let candidates = importer.import_csv(csv_file.clone())?;
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
+
+        // SEB lönekonto (checking) — Swedish semicolon-delimited format.
         ParserOptions::SebDebit => {
-            Box::new(transaction_importer::default_importer::DefaultParser::new(
-                types::account::Account::from_str("assets:bank:seb-l\u{f6}nekonto")
-                    .unwrap(),
+            let importer = GenericImporter::new(
+                Account::from_str("assets:bank:seb-l\u{f6}nekonto")?,
                 "SEK".to_string(),
                 rule_sheet_path,
                 ';',
@@ -70,12 +111,21 @@ pub fn run_import(
                 None,
                 None,
                 '.',
-            ))
+            )?;
+            let candidates = importer.import_csv(csv_file.clone())?;
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
+
+        // SEB sparkonto (savings) — identical file format to lönekonto.
         ParserOptions::SebSavings => {
-            Box::new(transaction_importer::default_importer::DefaultParser::new(
-                types::account::Account::from_str("assets:bank:seb-sparkonto")
-                    .unwrap(),
+            let importer = GenericImporter::new(
+                Account::from_str("assets:bank:seb-sparkonto")?,
                 "SEK".to_string(),
                 rule_sheet_path,
                 ';',
@@ -87,12 +137,22 @@ pub fn run_import(
                 None,
                 None,
                 '.',
-            ))
+            )?;
+            let candidates = importer.import_csv(csv_file.clone())?;
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
+
+        // Volksbank — German semicolon-delimited format with comma decimals.
+        // The currency is read from the CSV (col 12) so `currency` is a fallback only.
         ParserOptions::Volksbank => {
-            Box::new(transaction_importer::default_importer::DefaultParser::new(
-                types::account::Account::from_str("assets:bank:volksbank")
-                    .unwrap(),
+            let importer = GenericImporter::new(
+                Account::from_str("assets:bank:volksbank")?,
                 "EUR".to_string(),
                 rule_sheet_path,
                 ';',
@@ -104,138 +164,15 @@ pub fn run_import(
                 Some(12),
                 Some('.'),
                 ',',
-            ))
+            )?;
+            let candidates = importer.import_csv(csv_file.clone())?;
+            import_entries(
+                candidates,
+                &mut journal_file,
+                accept_partial_matches,
+                reader,
+                writer,
+            )
         }
-    };
-
-    transaction_importer::import_transactions(
-        &*parser,
-        csv_file,
-        journal_file,
-        accept_partial_matches,
-        reader,
-        writer,
-    )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::Cursor;
-
-    fn csv_path(filename: &str) -> std::path::PathBuf {
-        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("test")
-            .join("csvs")
-            .join(filename)
-    }
-
-    fn rule_sheet_path(filename: &str) -> std::path::PathBuf {
-        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("test")
-            .join("rule_sheets")
-            .join(filename)
-    }
-
-    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-
-    struct TempJournal(std::path::PathBuf);
-
-    impl TempJournal {
-        fn new_empty() -> Self {
-            let id = COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            let path = std::env::temp_dir().join(format!("rsledger_import_test_{}.journal", id));
-            std::fs::write(&path, "").unwrap();
-            TempJournal(path)
-        }
-        fn path(&self) -> &std::path::PathBuf {
-            &self.0
-        }
-    }
-
-    impl Drop for TempJournal {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_file(&self.0);
-        }
-    }
-
-    #[test]
-    fn imports_classified_seb_csv_no_prompts() {
-        let tmp = TempJournal::new_empty();
-        let mut reader = Cursor::new(b"");
-        let mut output = Vec::new();
-        run_import(
-            tmp.path(),
-            &csv_path("seb_classified.csv"),
-            ParserOptions::SebDebit,
-            rule_sheet_path("valid_rules.toml").to_str().unwrap(),
-            false,
-            &mut reader,
-            &mut output,
-        )
-        .unwrap();
-        let contents = std::fs::read_to_string(tmp.path()).unwrap();
-        assert!(!contents.is_empty(), "expected transactions to be imported");
-    }
-
-    #[test]
-    fn imports_classified_hsbc_csv_no_prompts() {
-        let tmp = TempJournal::new_empty();
-        let mut reader = Cursor::new(b"");
-        let mut output = Vec::new();
-        run_import(
-            tmp.path(),
-            &csv_path("hsbc_classified.csv"),
-            ParserOptions::HSBCDebit,
-            rule_sheet_path("valid_rules.toml").to_str().unwrap(),
-            false,
-            &mut reader,
-            &mut output,
-        )
-        .unwrap();
-        let contents = std::fs::read_to_string(tmp.path()).unwrap();
-        assert!(!contents.is_empty(), "expected transactions to be imported");
-    }
-
-    #[test]
-    fn accept_partial_matches_flag_skips_unclassified_without_prompt() {
-        // First import to populate the journal (the unclassified tx needs manual account entry).
-        let tmp = TempJournal::new_empty();
-        run_import(
-            tmp.path(),
-            &csv_path("hsbc_mixed.csv"),
-            ParserOptions::HSBCDebit,
-            rule_sheet_path("valid_rules.toml").to_str().unwrap(),
-            false,
-            &mut Cursor::new(b"expenses:misc\n"),
-            &mut Vec::new(),
-        )
-        .unwrap();
-        let after_first = {
-            let contents = std::fs::read_to_string(tmp.path()).unwrap();
-            contents.matches('\n').count()
-        };
-
-        // Second import with -y: the partial match should be silently accepted as a
-        // duplicate without reading from the reader at all.
-        run_import(
-            tmp.path(),
-            &csv_path("hsbc_mixed_alt_desc.csv"),
-            ParserOptions::HSBCDebit,
-            rule_sheet_path("valid_rules.toml").to_str().unwrap(),
-            true,
-            &mut Cursor::new(b""),
-            &mut Vec::new(),
-        )
-        .unwrap();
-        let after_second = {
-            let contents = std::fs::read_to_string(tmp.path()).unwrap();
-            contents.matches('\n').count()
-        };
-
-        assert_eq!(
-            after_first, after_second,
-            "re-import with -y should not add any transactions"
-        );
     }
 }

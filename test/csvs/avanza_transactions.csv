@@ -1,0 +1,8 @@
+Datum;Konto;Typ av transaktion;Värdepapper/beskrivning;Antal;Kurs;Belopp;Transaktionsvaluta;Courtage;Valutakurs;Instrumentvaluta;ISIN;Resultat
+2026-03-21;ISK;Insättning;Bankgiro;0;0;1000;SEK;;;SEK;;
+2026-03-20;ISK;Uttag;Bankgiro;0;0;-500;SEK;;;SEK;;
+2026-03-19;ISK;Köp;Ericsson B;56;96,34;-5408,04;SEK;13,49;;SEK;SE0000108656;
+2026-03-18;ISK;Sälj;Ericsson B;-30;100,00;2988,51;SEK;11,49;;SEK;SE0000108656;500,00
+2026-03-17;ISK;Utdelning;Apple Inc;0;0;342,50;USD;;;USD;US0378331005;
+2026-03-16;ISK;Utländsk källskatt;Apple Inc;0;0;-51,38;USD;;;USD;US0378331005;
+2026-03-15;ISK;Utlåningsränta;Avanza;0;0;12,50;SEK;;;SEK;;

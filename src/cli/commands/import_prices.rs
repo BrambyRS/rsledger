@@ -1,52 +1,31 @@
-use crate::journalist::writer::prices_importer;
+use crate::csv_importer::avanza_prices::AvanzaPricesImporter;
+use crate::csv_importer::{EntryImporter, ImportCandidate};
+use crate::journal;
 
-/// Imports prices from a positions CSV file into the journal.
+/// Imports price directives from an Avanza positions CSV into the prices journal.
+///
+/// Deduplicates against existing prices using the price hash and appends only
+/// new entries to the journal file.
 pub fn run_import_prices(
-    journal_file: &std::path::PathBuf,
+    mut journal_file: journal::JournalFile,
     csv_file: &std::path::PathBuf,
 ) -> crate::Result<()> {
-    prices_importer::import_prices(csv_file, journal_file)
-}
+    let candidates = AvanzaPricesImporter::new().import_csv(csv_file.clone())?;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+    // Load the existing prices once and build a hash-set for O(1) lookup.
+    let journal = journal_file.load()?;
+    let existing: std::collections::HashSet<u64> =
+        journal.prices.iter().map(|(hash, _)| *hash).collect();
 
-    fn csv_path(filename: &str) -> std::path::PathBuf {
-        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("test")
-            .join("csvs")
-            .join(filename)
-    }
-
-    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-
-    struct TempJournal(std::path::PathBuf);
-
-    impl TempJournal {
-        fn new_empty() -> Self {
-            let id = COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            let path =
-                std::env::temp_dir().join(format!("rsledger_import_prices_test_{}.journal", id));
-            std::fs::write(&path, "").unwrap();
-            TempJournal(path)
-        }
-        fn path(&self) -> &std::path::PathBuf {
-            &self.0
+    for candidate in candidates {
+        // All Avanza price candidates are Classified; the match is exhaustive for safety.
+        let price = match candidate {
+            ImportCandidate::Classified(p) | ImportCandidate::Unclassified(p) => p,
+        };
+        if !existing.contains(&price.price_hash()) {
+            journal_file.add_entry(&price)?;
         }
     }
 
-    impl Drop for TempJournal {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_file(&self.0);
-        }
-    }
-
-    #[test]
-    fn imports_prices_from_positions_csv() {
-        let tmp = TempJournal::new_empty();
-        run_import_prices(tmp.path(), &csv_path("2026-01-15_positions.csv")).unwrap();
-        let contents = std::fs::read_to_string(tmp.path()).unwrap();
-        assert!(!contents.is_empty(), "expected price directives to be imported");
-    }
+    Ok(())
 }
