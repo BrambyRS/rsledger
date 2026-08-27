@@ -13,8 +13,11 @@ pub(crate) enum ImportCandidate<T: Display + Hash> {
 
 /// Defines the IO-behaviour of an entry importer, allowing the underlying
 /// importing logic to be arbitrarily complex as long as it adheres to this interface.
-trait EntryImporter<T: Display + Hash> {
-    fn import_csv(&self, csv_path: std::path::PathBuf) -> Vec<ImportCandidate<T>>;
+pub(crate) trait EntryImporter<T: Display + Hash> {
+    /// Reads the CSV at `csv_path` and returns a list of import candidates.
+    ///
+    /// Returns an error if the file cannot be opened or a row cannot be parsed.
+    fn import_csv(&self, csv_path: std::path::PathBuf) -> crate::Result<Vec<ImportCandidate<T>>>;
 }
 
 /// Import items into the journal file.
