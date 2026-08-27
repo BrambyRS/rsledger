@@ -1,4 +1,3 @@
-pub mod avanza_importer;
 pub mod default_importer;
 pub mod rules;
 
