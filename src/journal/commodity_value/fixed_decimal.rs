@@ -108,11 +108,13 @@ impl core::fmt::Display for FixedDecimal {
         if self.precision == 0 {
             return write!(f, "{}", self.amount);
         } else {
-            let int_part = self.amount / 10_i64.pow(self.precision as u32);
-            let decimal_part = (self.amount.abs() % 10_i64.pow(self.precision as u32)).abs();
+            let sign_char: &str = if self.amount < 0 { "-" } else { "" };
+            let int_part: i64 = self.amount.abs() / 10_i64.pow(self.precision as u32);
+            let decimal_part: i64 = (self.amount.abs() % 10_i64.pow(self.precision as u32)).abs();
             return write!(
                 f,
-                "{}.{}",
+                "{}{}.{}",
+                sign_char,
                 int_part,
                 format!("{:0width$}", decimal_part, width = self.precision as usize)
             );
@@ -327,6 +329,12 @@ mod tests {
     fn test_fixed_decimal_display_trailing_zeros() {
         let fd = FixedDecimal::from_str("1.40").unwrap();
         assert_eq!(format!("{}", fd), "1.4");
+    }
+
+    #[test]
+    fn test_fixed_decimal_display_negative_sub_one() {
+        let fd = FixedDecimal::from_str("-0.07").unwrap();
+        assert_eq!(format!("{}", fd), "-0.07");
     }
 
     // -------------------------------------------------------------------------
