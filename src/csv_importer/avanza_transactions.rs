@@ -59,7 +59,7 @@ pub struct AvanzaImporter;
 
 impl AvanzaImporter {
     pub fn new() -> Self {
-        AvanzaImporter
+        return AvanzaImporter;
     }
 
     /// Opens `csv_path` and parses every data row into an [`AvanzaRow`].
@@ -142,7 +142,7 @@ impl AvanzaImporter {
             });
         }
 
-        Ok(rows)
+        return Ok(rows);
     }
 
     /// Dispatches an [`AvanzaRow`] to the appropriate builder based on its action type
@@ -164,7 +164,7 @@ impl AvanzaImporter {
                 ));
             }
         };
-        Ok(ImportCandidate::Classified(transaction))
+        return Ok(ImportCandidate::Classified(transaction));
     }
 
     /// Builds a deposit (`Insättning`) or withdrawal (`Uttag`) transaction.
@@ -177,11 +177,11 @@ impl AvanzaImporter {
             Posting::new(Account::from_str("assets:bank:avanza")?, Some(amount)),
             Posting::new(Account::from_str("expenses:bank:internal-transfers")?, None),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
     }
 
     /// Builds a buy (`Köp`) transaction.
@@ -202,11 +202,11 @@ impl AvanzaImporter {
             Posting::new(Account::from_str("assets:bank:avanza")?, Some(cash_amount)),
             Posting::new(Account::from_str("expenses:bank:avanza")?, Some(fee_amount)),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
     }
 
     /// Builds a sell (`Sälj`) transaction.
@@ -235,11 +235,11 @@ impl AvanzaImporter {
                 Some(negated_profit),
             ),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
     }
 
     /// Builds a dividend (`Utdelning`) transaction.
@@ -252,11 +252,11 @@ impl AvanzaImporter {
             Posting::new(Account::from_str("assets:bank:avanza")?, Some(amount)),
             Posting::new(Account::from_str("income:dividends")?, None),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
     }
 
     /// Builds a foreign withholding tax (`Utländsk källskatt`) transaction.
@@ -269,11 +269,11 @@ impl AvanzaImporter {
             Posting::new(Account::from_str("assets:bank:avanza")?, Some(amount)),
             Posting::new(Account::from_str("expenses:taxes:withholding")?, None),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
     }
 
     /// Builds a lending interest (`Utlåningsränta`) transaction.
@@ -286,11 +286,11 @@ impl AvanzaImporter {
             Posting::new(Account::from_str("assets:bank:avanza")?, Some(amount)),
             Posting::new(Account::from_str("expenses:bank:avanza:interest")?, None),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
     }
 }
 
@@ -299,9 +299,10 @@ impl EntryImporter<Transaction> for AvanzaImporter {
         // Phase 1: parse all rows into intermediate AvanzaRows.
         // Phase 2: dispatch each row to the appropriate transaction builder.
         let rows = self.read_rows(&csv_path)?;
-        rows.into_iter()
+        return rows
+            .into_iter()
             .map(|row| self.build_transaction(row))
-            .collect()
+            .collect();
     }
 }
 
