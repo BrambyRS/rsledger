@@ -9,6 +9,8 @@ use std::path::PathBuf;
 
 use crate::journal::account::Account;
 use crate::journal::commodity_value::CommodityValue;
+use crate::journal::commodity_value::commodity::Commodity;
+use crate::journal::price::PriceDirective;
 use crate::journal::transaction::Transaction;
 use crate::journal::transaction::posting::Posting;
 
@@ -59,7 +61,7 @@ pub struct AvanzaImporter;
 
 impl AvanzaImporter {
     pub fn new() -> Self {
-        AvanzaImporter
+        return AvanzaImporter;
     }
 
     /// Opens `csv_path` and parses every data row into an [`AvanzaRow`].
@@ -142,7 +144,7 @@ impl AvanzaImporter {
             });
         }
 
-        Ok(rows)
+        return Ok(rows);
     }
 
     /// Dispatches an [`AvanzaRow`] to the appropriate builder based on its action type
@@ -164,7 +166,7 @@ impl AvanzaImporter {
                 ));
             }
         };
-        Ok(ImportCandidate::Classified(transaction))
+        return Ok(ImportCandidate::Classified(transaction));
     }
 
     /// Builds a deposit (`Insättning`) or withdrawal (`Uttag`) transaction.
@@ -177,11 +179,11 @@ impl AvanzaImporter {
             Posting::new(Account::from_str("assets:bank:avanza")?, Some(amount)),
             Posting::new(Account::from_str("expenses:bank:internal-transfers")?, None),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
     }
 
     /// Builds a buy (`Köp`) transaction.
@@ -202,11 +204,11 @@ impl AvanzaImporter {
             Posting::new(Account::from_str("assets:bank:avanza")?, Some(cash_amount)),
             Posting::new(Account::from_str("expenses:bank:avanza")?, Some(fee_amount)),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
     }
 
     /// Builds a sell (`Sälj`) transaction.
@@ -235,11 +237,11 @@ impl AvanzaImporter {
                 Some(negated_profit),
             ),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
     }
 
     /// Builds a dividend (`Utdelning`) transaction.
@@ -252,11 +254,11 @@ impl AvanzaImporter {
             Posting::new(Account::from_str("assets:bank:avanza")?, Some(amount)),
             Posting::new(Account::from_str("income:dividends")?, None),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
     }
 
     /// Builds a foreign withholding tax (`Utländsk källskatt`) transaction.
@@ -269,11 +271,11 @@ impl AvanzaImporter {
             Posting::new(Account::from_str("assets:bank:avanza")?, Some(amount)),
             Posting::new(Account::from_str("expenses:taxes:withholding")?, None),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
     }
 
     /// Builds a lending interest (`Utlåningsränta`) transaction.
@@ -286,11 +288,39 @@ impl AvanzaImporter {
             Posting::new(Account::from_str("assets:bank:avanza")?, Some(amount)),
             Posting::new(Account::from_str("expenses:bank:avanza:interest")?, None),
         ];
-        Ok(Transaction::new(
+        return Ok(Transaction::new(
             row.date,
             format!("{} {}", row.action, row.name),
             postings,
-        ))
+        ));
+    }
+
+    /// Price per unit: (abs(Belopp) - Courtage) / Antal in the transaction currency.
+    fn build_buy_price_directive(&self, row: &AvanzaRow) -> crate::Result<PriceDirective> {
+        use crate::journal::commodity_value::fixed_decimal::FixedDecimal;
+
+        let cash = FixedDecimal::from_str(&row.cash_amount)?;
+        let fee = FixedDecimal::from_str(&row.fee)?;
+        let quantity = FixedDecimal::from_str(&row.quantity)?;
+
+        let abs_cash = -&cash;
+        let net_cash = &abs_cash - &fee;
+        let price_amount = &net_cash / &quantity;
+
+        let commodity = Commodity {
+            name: row.name.clone(),
+        };
+        let value = CommodityValue::new(
+            price_amount,
+            Commodity {
+                name: row.currency.clone(),
+            },
+        );
+        return Ok(PriceDirective {
+            date: row.date,
+            commodity,
+            value,
+        });
     }
 }
 
@@ -299,9 +329,24 @@ impl EntryImporter<Transaction> for AvanzaImporter {
         // Phase 1: parse all rows into intermediate AvanzaRows.
         // Phase 2: dispatch each row to the appropriate transaction builder.
         let rows = self.read_rows(&csv_path)?;
-        rows.into_iter()
+        return rows
+            .into_iter()
             .map(|row| self.build_transaction(row))
-            .collect()
+            .collect();
+    }
+}
+
+impl EntryImporter<PriceDirective> for AvanzaImporter {
+    fn import_csv(&self, csv_path: PathBuf) -> crate::Result<Vec<ImportCandidate<PriceDirective>>> {
+        let rows = self.read_rows(&csv_path)?;
+        return rows
+            .into_iter()
+            .filter(|row| row.action == "K\u{f6}p")
+            .map(|row| {
+                self.build_buy_price_directive(&row)
+                    .map(ImportCandidate::Classified)
+            })
+            .collect();
     }
 }
 
@@ -525,13 +570,41 @@ mod tests {
              2026-03-01;ISK;Okänd;Test;0;0;100;SEK;;;SEK;;\n",
         )
         .unwrap();
-        let result = AvanzaImporter::new().import_csv(path);
+        let result: crate::Result<Vec<ImportCandidate<Transaction>>> =
+            AvanzaImporter::new().import_csv(path);
         assert!(result.is_err());
     }
 
     #[test]
     fn nonexistent_file_returns_error() {
-        let result = AvanzaImporter::new().import_csv(PathBuf::from("does_not_exist.csv"));
+        let result: crate::Result<Vec<ImportCandidate<Transaction>>> =
+            AvanzaImporter::new().import_csv(PathBuf::from("does_not_exist.csv"));
         assert!(result.is_err());
+    }
+
+    // -------------------------------------------------------------------------
+    // EntryImporter<PriceDirective>: buy price directives
+    // -------------------------------------------------------------------------
+
+    fn import_prices() -> Vec<ImportCandidate<PriceDirective>> {
+        AvanzaImporter::new()
+            .import_csv(csv_path("avanza_transactions.csv"))
+            .unwrap()
+    }
+
+    #[test]
+    fn only_buy_rows_produce_price_directives() {
+        // Fixture has 7 rows; only 1 is "K\u{f6}p".
+        assert_eq!(import_prices().len(), 1);
+    }
+
+    #[test]
+    fn buy_price_directive_excludes_fee() {
+        // Ericsson B: (5408.04 - 13.49) / 56 = 5394.55 / 56 = 96.33125 SEK
+        if let ImportCandidate::Classified(p) = &import_prices()[0] {
+            assert_eq!(p.commodity.name, "Ericsson B");
+            assert_eq!(format!("{}", p.value), "96.33125 SEK");
+            assert_eq!(p.date, NaiveDate::from_ymd_opt(2026, 3, 19).unwrap());
+        }
     }
 }
