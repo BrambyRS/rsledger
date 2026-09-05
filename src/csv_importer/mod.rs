@@ -131,6 +131,30 @@ pub(crate) fn import_entries(
     Ok(())
 }
 
+/// Imports price directive candidates into a journal, deduplicating against existing prices.
+pub(crate) fn import_price_entries(
+    candidates: Vec<ImportCandidate<crate::journal::price::PriceDirective>>,
+    journal_file: &mut crate::journal::JournalFile,
+) -> crate::Result<()> {
+    use crate::journal::price::PriceDirective;
+    use std::collections::HashSet;
+
+    let journal = journal_file.load()?;
+    let existing: HashSet<u64> = journal.prices.iter().map(|(_, p)| p.price_hash()).collect();
+
+    for candidate in candidates {
+        let price: PriceDirective = match candidate {
+            ImportCandidate::Classified(p) | ImportCandidate::Unclassified(p) => p,
+        };
+        if existing.contains(&price.price_hash()) {
+            continue;
+        }
+        journal_file.add_entry(&price)?;
+    }
+
+    return Ok(());
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -542,6 +566,40 @@ mod tests {
         assert_eq!(
             after_second, after_first,
             "re-importing with a different unclassified description should not add duplicates"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // import_price_entries: deduplication
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn import_price_entries_deduplicates() {
+        use crate::journal::commodity_value::commodity::Commodity;
+        use crate::journal::price::PriceDirective;
+
+        let temp = TempJournal::new_empty();
+
+        let make_candidate = || {
+            ImportCandidate::Classified(PriceDirective {
+                date: NaiveDate::from_ymd_opt(2026, 3, 19).unwrap(),
+                commodity: Commodity {
+                    name: "Ericsson B".to_string(),
+                },
+                value: CommodityValue::from_str("96.33125 SEK").unwrap(),
+            })
+        };
+
+        import_price_entries(vec![make_candidate()], &mut temp.journal_file()).unwrap();
+        import_price_entries(vec![make_candidate()], &mut temp.journal_file()).unwrap();
+
+        let price_count = JournalFile::new(temp.0.clone())
+            .load()
+            .map(|j| j.prices.len())
+            .unwrap_or(0);
+        assert_eq!(
+            price_count, 1,
+            "importing the same price twice should add it only once"
         );
     }
 }
