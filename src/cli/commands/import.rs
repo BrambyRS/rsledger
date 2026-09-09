@@ -1,7 +1,7 @@
 use crate::cli::args::ParserOptions;
 use crate::csv_importer::avanza_transactions::AvanzaImporter;
 use crate::csv_importer::generic_importer::GenericImporter;
-use crate::csv_importer::{EntryImporter, import_entries};
+use crate::csv_importer::{EntryImporter, import_entries, import_price_entries};
 use crate::journal;
 use crate::journal::account::Account;
 
@@ -34,14 +34,16 @@ pub fn run_import(
         // Avanza has a dedicated parser that handles all transaction types internally.
         ParserOptions::Avanza => {
             let importer = AvanzaImporter::new();
-            let candidates = importer.import_csv(csv_file.clone())?;
+            let tx_candidates = importer.import_csv(csv_file.clone())?;
+            let price_candidates = importer.import_csv(csv_file.clone())?;
             import_entries(
-                candidates,
+                tx_candidates,
                 &mut journal_file,
                 accept_partial_matches,
                 reader,
                 writer,
-            )
+            )?;
+            import_price_entries(price_candidates, &mut journal_file)
         }
 
         // HSBC current account (debit) — UK DD/MM/YYYY comma-delimited format.
