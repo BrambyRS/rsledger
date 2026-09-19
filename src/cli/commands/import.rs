@@ -75,7 +75,7 @@ pub fn run_import(
         // HSBC credit card — same file format as the debit account.
         ParserOptions::HSBCCredit => {
             let importer = GenericImporter::new(
-                Account::from_str("liabilities:credit-card:hsbc")?,
+                Account::from_str("liabilities:credit:hsbc-credit-card")?,
                 "GBP".to_string(),
                 rule_sheet_path,
                 ',',
